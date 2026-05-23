@@ -17,12 +17,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link href="/" className="flex items-center gap-2 group">
             <span className="text-2xl group-hover:scale-110 transition-transform">⚽</span>
             <div>
-              <span className="font-black text-white text-lg leading-none copa-gradient">
+              <span className="font-black text-white text-lg leading-none copa-gradient whitespace-nowrap">
                 Bolão da Copa
               </span>
-              <span className="hidden sm:block text-white/30 text-xs leading-none">
-                Mundial 2026
-              </span>
+              <div className="hidden lg:flex items-center gap-1.5 mt-0.5">
+                <span className="text-white/30 text-xs leading-none whitespace-nowrap">Mundial 2026</span>
+                <div className="flex items-center gap-0.5">
+                  {["us", "mx", "ca"].map((code) => (
+                    <Image
+                      key={code}
+                      src={`https://flagcdn.com/w40/${code}.png`}
+                      alt={code}
+                      width={16}
+                      height={11}
+                      className="rounded-sm opacity-60"
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </Link>
 

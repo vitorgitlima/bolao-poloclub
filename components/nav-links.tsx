@@ -13,9 +13,9 @@ export function NavLinks({ isAdmin }: Props) {
   function linkClass(href: string, exact = false) {
     const active = exact ? pathname === href : pathname.startsWith(href);
     return cn(
-      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+      "flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium transition-all",
       active
-        ? "bg-white/15 text-white"
+        ? "text-white bg-white/10"
         : "text-white/60 hover:text-white hover:bg-white/10"
     );
   }
@@ -27,15 +27,15 @@ export function NavLinks({ isAdmin }: Props) {
       <Link
         href="/como-jogar"
         className={cn(
-          "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all border",
+          "flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm font-medium transition-all border",
           guiaActive
             ? "bg-green-500/20 border-green-500/30 text-green-300"
             : "bg-green-500/10 border-green-500/20 text-green-300 hover:bg-green-500/20"
         )}
       >
         <BookOpen className="w-3.5 h-3.5 shrink-0" />
-        <span className="hidden sm:block whitespace-nowrap">Comece Aqui</span>
-        <span className="text-[9px] font-black bg-green-400/20 text-green-300 px-1 py-0.5 rounded leading-none hidden sm:inline">
+        <span className="hidden md:block whitespace-nowrap">Comece Aqui</span>
+        <span className="text-[9px] font-black bg-green-400/20 text-green-300 px-1 py-0.5 rounded leading-none hidden lg:inline">
           NOVO
         </span>
       </Link>
