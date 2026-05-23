@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { GroupView } from "@/components/group-view";
 import { MatchRow } from "@/components/match-row";
-import { Loader2, Calendar, Target, Star } from "lucide-react";
+import { Loader2, Calendar, Target, Star, FlaskConical } from "lucide-react";
+import Link from "next/link";
 
 type Prediction = {
   homeScore: number;
@@ -114,6 +115,21 @@ export default function DashboardPage() {
             sem palpite!
           </p>
         </div>
+      )}
+
+      {/* Beta banner — Copa ainda não começou */}
+      {matches.length === 0 && (
+        <Link href="/brasileirao" className="block">
+          <div className="glass rounded-xl p-4 border border-yellow-400/20 bg-yellow-400/5 flex items-start gap-3 hover:bg-yellow-400/10 transition-all">
+            <FlaskConical className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-yellow-300 font-semibold text-sm">Versão Beta — Brasileirão Série A</p>
+              <p className="text-yellow-300/60 text-xs mt-0.5">
+                Os jogos da Copa do Mundo 2026 estarão disponíveis em junho. Por enquanto, teste o sistema e faça seus palpites no Brasileirão! →
+              </p>
+            </div>
+          </div>
+        </Link>
       )}
 
       {/* Phase tabs */}
