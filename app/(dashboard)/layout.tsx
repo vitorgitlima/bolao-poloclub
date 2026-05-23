@@ -93,6 +93,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </nav>
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-10">{children}</main>
+      <footer className="text-center text-white/20 text-xs pb-6">
+        Built by <span className="text-white/40 font-medium">VitorLima</span>
+      </footer>
     </div>
   );
 }
