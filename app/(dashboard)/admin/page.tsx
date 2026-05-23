@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, AlertTriangle, CheckCircle, Loader2, Zap, Database, FlaskConical } from "lucide-react";
+import { RefreshCw, AlertTriangle, CheckCircle, Loader2, Zap, Database, FlaskConical, Save } from "lucide-react";
 
 type SyncResult = {
   ok: boolean;
@@ -38,11 +38,76 @@ function statusBadge(status: string) {
   return <span className="text-white/30 text-[10px]">AGENDADO</span>;
 }
 
+function ManualScoreRow({ match, onSaved }: { match: TestMatch; onSaved: () => void }) {
+  const [home, setHome] = useState(match.homeScore?.toString() ?? "");
+  const [away, setAway] = useState(match.awayScore?.toString() ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function handleSave() {
+    const h = parseInt(home);
+    const a = parseInt(away);
+    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
+    setSaving(true);
+    try {
+      await fetch(`/api/admin/matches/${match.id}/result`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ homeScore: h, awayScore: a }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5 last:border-0 text-xs">
+      <span className="flex-1 text-white/70 font-medium truncate">{match.homeTeam}</span>
+      <input
+        type="number"
+        min="0"
+        max="99"
+        value={home}
+        onChange={(e) => setHome(e.target.value)}
+        className="w-8 bg-white/10 border border-white/15 rounded text-center text-white font-black text-sm py-0.5 focus:outline-none focus:border-yellow-400/50"
+        placeholder="–"
+      />
+      <span className="text-white/30 font-bold">–</span>
+      <input
+        type="number"
+        min="0"
+        max="99"
+        value={away}
+        onChange={(e) => setAway(e.target.value)}
+        className="w-8 bg-white/10 border border-white/15 rounded text-center text-white font-black text-sm py-0.5 focus:outline-none focus:border-yellow-400/50"
+        placeholder="–"
+      />
+      <span className="flex-1 text-white/70 text-right truncate">{match.awayTeam}</span>
+      <span className="w-12 text-right">{statusBadge(match.status)}</span>
+      <button
+        onClick={handleSave}
+        disabled={saving || home === "" || away === ""}
+        className="flex items-center gap-1 px-2 py-1 rounded bg-green-600/20 hover:bg-green-600/40 text-green-400 border border-green-500/20 transition-all disabled:opacity-40"
+      >
+        {saving ? (
+          <Loader2 className="w-3 h-3 animate-spin" />
+        ) : saved ? (
+          <CheckCircle className="w-3 h-3" />
+        ) : (
+          <Save className="w-3 h-3" />
+        )}
+      </button>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [syncing, setSyncing] = useState<"today" | "all" | null>(null);
   const [result, setResult] = useState<SyncResult | null>(null);
 
-  // Test section state
   const [testDate, setTestDate] = useState("20260523");
   const [testSyncing, setTestSyncing] = useState(false);
   const [testResult, setTestResult] = useState<TestSyncResult | null>(null);
@@ -89,8 +154,8 @@ export default function AdminPage() {
     }
   }
 
-  const rodada1 = testMatches.filter((m) => m.phase === "🧪 Rodada 1");
-  const rodada2 = testMatches.filter((m) => m.phase === "🧪 Rodada 2");
+  // Group test matches dynamically by phase
+  const phases = Array.from(new Set(testMatches.map((m) => m.phase)));
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -212,7 +277,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Resultado do sync teste */}
         {testResult && (
           <div className={`mb-4 p-3 rounded-xl border text-xs ${testResult.ok ? "bg-yellow-400/10 border-yellow-400/20" : "bg-red-500/10 border-red-500/20"}`}>
             {testResult.ok ? (
@@ -228,7 +292,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Tabela de jogos de teste */}
+        {/* Tabela de jogos de teste com placar manual */}
         <div className="space-y-3">
           {loadingMatches ? (
             <div className="flex items-center justify-center py-6 text-white/30 text-sm gap-2">
@@ -241,37 +305,37 @@ export default function AdminPage() {
               <code className="text-xs text-yellow-400/60 mt-1 block">bun run prisma/seed-brasileirao-test.ts</code>
             </div>
           ) : (
-            [{ label: "Rodada 1 — 23/05", matches: rodada1, date: "20260523" }, { label: "Rodada 2 — 24/05", matches: rodada2, date: "20260524" }].map(({ label, matches, date }) =>
-              matches.length > 0 && (
-                <div key={label}>
+            phases.map((phase) => {
+              const phaseMatches = testMatches.filter((m) => m.phase === phase);
+              const label = phase.replace(/^🧪\s*/, "");
+              // Suggest date from first match in phase
+              const dateSuggestion = new Date(phaseMatches[0].date)
+                .toISOString().slice(0, 10).replace(/-/g, "");
+              return (
+                <div key={phase}>
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-white/40 text-[10px] uppercase tracking-wider">{label}</span>
                     <button
-                      onClick={() => { setTestDate(date); }}
+                      onClick={() => setTestDate(dateSuggestion)}
                       className="text-yellow-400/50 text-[10px] hover:text-yellow-400 transition-colors"
                     >
                       ← usar esta data
                     </button>
                   </div>
                   <div className="bg-white/5 rounded-xl overflow-hidden">
-                    {matches.map((m) => (
-                      <div key={m.id} className="flex items-center gap-2 px-3 py-2 border-b border-white/5 last:border-0 text-xs">
-                        <span className="flex-1 text-white/70 font-medium">{m.homeTeam}</span>
-                        <span className="text-white font-black tabular-nums">
-                          {m.status === "SCHEDULED"
-                            ? "× ×"
-                            : `${m.homeScore ?? 0} – ${m.awayScore ?? 0}`}
-                        </span>
-                        <span className="flex-1 text-white/70 text-right">{m.awayTeam}</span>
-                        <span className="w-16 text-right">{statusBadge(m.status)}</span>
-                      </div>
+                    {phaseMatches.map((m) => (
+                      <ManualScoreRow key={m.id} match={m} onSaved={loadTestMatches} />
                     ))}
                   </div>
                 </div>
-              )
-            )
+              );
+            })
           )}
         </div>
+
+        <p className="text-white/25 text-[10px] mt-3 text-center">
+          Fallback manual — edite o placar e salve caso a ESPN API falhe
+        </p>
       </div>
 
       {/* Como sincronizar */}
@@ -282,9 +346,7 @@ export default function AdminPage() {
             <span className="w-6 h-6 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span>
             <div>
               <div className="text-white font-medium">ESPN API configurada</div>
-              <div className="text-white/40 text-xs mt-0.5">
-                Gratuita, sem chave, sem limite de requisições.
-              </div>
+              <div className="text-white/40 text-xs mt-0.5">Gratuita, sem chave, sem limite de requisições.</div>
             </div>
           </li>
           <li className="flex gap-3">
@@ -299,9 +361,9 @@ export default function AdminPage() {
           <li className="flex gap-3">
             <span className="w-6 h-6 bg-white/10 text-white/40 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
             <div>
-              <div className="text-white font-medium">Ao final de cada rodada</div>
+              <div className="text-white font-medium">Se a ESPN falhar</div>
               <div className="text-white/40 text-xs mt-0.5">
-                Use <strong className="text-white/60">"Todos Finalizados"</strong> para varrer a fase de grupos (jun/11–28).
+                Use o <strong className="text-white/60">placar manual</strong> acima — o sistema recalcula os pontos automaticamente.
               </div>
             </div>
           </li>
