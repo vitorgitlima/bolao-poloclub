@@ -71,7 +71,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-white/20 text-xs mt-6">
-          Bolão Copa do Mundo 2026 · Apenas para diversão
+          Bolão Copa do Mundo 2026 · Polo Club Oficial
         </p>
         <p className="text-center text-white/15 text-xs mt-1">
           Built by <span className="text-white/25 font-medium">SatoshiStandard</span>
