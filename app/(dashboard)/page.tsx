@@ -69,10 +69,7 @@ export default function DashboardPage() {
     return acc;
   }, {});
 
-  const hasTestMatches = matches.some((m) => m.phase.startsWith("🧪"));
-  const PHASE_TABS = hasTestMatches
-    ? [...BASE_PHASE_TABS, { key: "teste", label: "🧪 Teste", filter: (p: string) => p.startsWith("🧪") }]
-    : BASE_PHASE_TABS;
+  const PHASE_TABS = BASE_PHASE_TABS;
 
   const activeTab = PHASE_TABS.find((t) => t.key === activePhase) ?? PHASE_TABS[0];
   const phaseMatches = matches.filter((m) => activeTab.filter(m.phase));
@@ -169,7 +166,7 @@ export default function DashboardPage() {
       )}
 
       {/* Knockout phases */}
-      {activePhase !== "grupos" && activePhase !== "teste" && (
+      {activePhase !== "grupos" && (
         <div className="glass-card">
           {phaseMatches.length > 0 ? (
             phaseMatches.map((match) => (
@@ -189,33 +186,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Brasileirão test tab */}
-      {activePhase === "teste" && (
-        <div className="space-y-3">
-          <div className="glass rounded-xl px-4 py-2.5 border border-yellow-400/20 bg-yellow-400/5 text-yellow-300/70 text-xs">
-            🧪 Jogos de teste — Brasileirão Série A. Usado para validar o sync da ESPN antes da Copa.
-          </div>
-          {["🧪 Rodada 1", "🧪 Rodada 2"].map((rodada) => {
-            const rodadaMatches = phaseMatches.filter((m) => m.phase === rodada);
-            if (rodadaMatches.length === 0) return null;
-            return (
-              <div key={rodada}>
-                <p className="text-white/30 text-xs uppercase tracking-wider mb-2 px-1">{rodada}</p>
-                <div className="glass-card">
-                  {rodadaMatches.map((match) => (
-                    <MatchRow
-                      key={match.id}
-                      match={match}
-                      usedDoubleInPhase={usedDoubleByPhase[match.phase] ?? false}
-                      onSaved={loadMatches}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
