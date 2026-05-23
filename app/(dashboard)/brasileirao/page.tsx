@@ -167,7 +167,7 @@ export default function BrasileiraoPage() {
         <span>🎯 Placar exato = <strong className="text-white/90">6 pts</strong></span>
         <span>⚖️ Saldo de gols = <strong className="text-white/90">4 pts</strong></span>
         <span>✅ Vencedor certo = <strong className="text-white/90">3 pts</strong></span>
-        <span>⚡ Double points = <strong className="text-white/90">×2</strong> (1 por fase)</span>
+        <span>⚡ Double points = <strong className="text-white/90">×2</strong> — 1 por rodada</span>
         <span>🔒 Apostas fecham <strong className="text-white/90">10min</strong> antes do jogo</span>
       </div>
 

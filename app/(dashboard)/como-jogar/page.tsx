@@ -111,8 +111,8 @@ export default function ComoJogarPage() {
           <div>
             <span className="text-white/80 font-semibold">Double Points ⚡</span>
             <p className="text-white/35 text-xs mt-0.5">
-              Você pode ativar o double em <strong className="text-white/60">1 jogo por fase</strong>. Os pontos ganhos naquele jogo são dobrados.
-              Use com sabedoria — uma vez por fase, sem volta!
+              Você pode ativar o double em <strong className="text-white/60">1 jogo por rodada</strong>. Os pontos ganhos naquele jogo são dobrados.
+              Use com sabedoria — 1 por rodada, sem volta!
             </p>
           </div>
         </div>
