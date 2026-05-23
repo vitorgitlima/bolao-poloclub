@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a1628;
+  --foreground: #f1f5f9;
+  --glass-bg: rgba(255, 255, 255, 0.11);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-hover: rgba(255, 255, 255, 0.16);
+  --green-copa: #16a34a;
+  --yellow-copa: #fbbf24;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+/* Stadium background */
+.stadium-bg {
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgba(10, 22, 40, 0.88) 0%,
+      rgba(5, 46, 22, 0.72) 40%,
+      rgba(10, 22, 40, 0.94) 100%
+    ),
+    url("/stadium.jpg");
+  background-size: cover;
+  background-position: center center;
+  background-attachment: scroll;
+}
+
+/* Glass morphism */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-hover:hover {
+  background: var(--glass-hover);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.glass-card {
+  background: rgba(10, 22, 40, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1rem;
+  transition: all 0.25s ease;
+}
+
+.glass-card:hover {
+  background: rgba(10, 22, 40, 0.65);
+  border-color: rgba(251, 191, 36, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(251, 191, 36, 0.1);
+}
+
+/* Copa gradient text */
+.copa-gradient {
+  background: linear-gradient(135deg, #fbbf24, #16a34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Scrollbar */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Pill tabs */
+.tab-pill {
+  padding: 0.375rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.tab-pill-active {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: white;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+}
+
+.tab-pill-inactive {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-pill-inactive:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+/* Pulse dot for live */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+/* Double points glow */
+.double-active {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.5), 0 0 40px rgba(251, 191, 36, 0.2);
+  color: #1c1917;
+}
+
+/* Score input */
+.score-input {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 2px solid rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  text-align: center;
+  border-radius: 0.75rem !important;
+  height: 3.5rem !important;
+  transition: all 0.2s ease;
+}
+
+.score-input:focus {
+  border-color: rgba(22, 163, 74, 0.6) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2) !important;
+}
+
+.score-input::placeholder { color: rgba(255,255,255,0.25) !important; }
