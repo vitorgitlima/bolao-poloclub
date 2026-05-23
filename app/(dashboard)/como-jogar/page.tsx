@@ -16,27 +16,17 @@ export default function ComoJogarPage() {
         </p>
       </div>
 
-      {/* O que é */}
-      <div className="glass-card p-5 space-y-2">
-        <h2 className="text-white font-bold text-base flex items-center gap-2">
-          <span className="text-xl">⚽</span> O que é o Bolão da Copa?
-        </h2>
-        <p className="text-white/60 text-sm leading-relaxed">
-          O <strong className="text-white/90">Bolão da Copa</strong> é um jogo de palpites entre amigos do PoloClub para a{" "}
-          <strong className="text-white/90">Copa do Mundo 2026</strong>. Você prevê o placar de cada jogo, acumula pontos e
-          disputa o ranking com todos os participantes.
+      {/* Beta notice */}
+      <div className="p-4 rounded-xl bg-yellow-400/5 border border-yellow-400/20">
+        <p className="text-yellow-300/80 text-sm flex items-start gap-2">
+          <span className="text-base leading-none">🧪</span>
+          <span>
+            <strong className="text-yellow-300">Modo Beta ativo —</strong> enquanto a Copa 2026 não começa,
+            estamos testando o sistema com jogos do{" "}
+            <strong className="text-yellow-300">Brasileirão Série A</strong>. Os palpites aqui não contam para
+            o ranking oficial da Copa!
+          </span>
         </p>
-        <div className="mt-3 p-3 rounded-xl bg-yellow-400/5 border border-yellow-400/20">
-          <p className="text-yellow-300/80 text-xs flex items-start gap-2">
-            <span className="text-base leading-none">🧪</span>
-            <span>
-              <strong className="text-yellow-300">Modo Beta ativo —</strong> enquanto a Copa 2026 não começa,
-              estamos testando o sistema com jogos do{" "}
-              <strong className="text-yellow-300">Brasileirão Série A</strong>. Os palpites aqui não contam para
-              o ranking oficial da Copa!
-            </span>
-          </p>
-        </div>
       </div>
 
       {/* Como fazer palpites */}
