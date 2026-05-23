@@ -5,6 +5,23 @@ import { Zap, Save, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import Image from "next/image";
+
+function TeamBadge({ flag, name }: { flag: string; name: string }) {
+  if (flag.startsWith("http")) {
+    return (
+      <Image
+        src={flag}
+        alt={name}
+        width={20}
+        height={20}
+        className="rounded-full object-contain shrink-0"
+        unoptimized
+      />
+    );
+  }
+  return <span className="text-sm shrink-0">{flag}</span>;
+}
 
 type Prediction = {
   homeScore: number;
@@ -120,7 +137,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
         {/* Home team */}
         <div className="flex items-center gap-1 flex-1 min-w-0 justify-end">
           <span className="text-white/75 text-xs text-right leading-tight">{match.homeTeam}</span>
-          <span className="text-sm shrink-0">{match.homeFlag}</span>
+          <TeamBadge flag={match.homeFlag} name={match.homeTeam} />
         </div>
 
         {/* Score area */}
@@ -162,7 +179,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
 
         {/* Away team */}
         <div className="flex items-center gap-1 flex-1 min-w-0 justify-start">
-          <span className="text-sm shrink-0">{match.awayFlag}</span>
+          <TeamBadge flag={match.awayFlag} name={match.awayTeam} />
           <span className="text-white/75 text-xs leading-tight">{match.awayTeam}</span>
         </div>
 

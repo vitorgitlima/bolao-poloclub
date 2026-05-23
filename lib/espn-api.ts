@@ -7,8 +7,8 @@ export type EspnMatch = {
   date: string;
   status: "pre" | "in" | "post";
   statusDetail: string;
-  homeTeam: { name: string; abbr: string; score: number };
-  awayTeam: { name: string; abbr: string; score: number };
+  homeTeam: { name: string; abbr: string; score: number; logo?: string };
+  awayTeam: { name: string; abbr: string; score: number; logo?: string };
   completed: boolean;
 };
 
@@ -26,6 +26,9 @@ function parseEvent(event: Record<string, unknown>): EspnMatch | null {
     const homeTeamData = home.team as Record<string, unknown>;
     const awayTeamData = away.team as Record<string, unknown>;
 
+    const homeLogo = (homeTeamData.logo ?? (homeTeamData.logos as Record<string, unknown>[])?.[0]?.href) as string | undefined;
+    const awayLogo = (awayTeamData.logo ?? (awayTeamData.logos as Record<string, unknown>[])?.[0]?.href) as string | undefined;
+
     return {
       id: event.id as string,
       date: event.date as string,
@@ -35,11 +38,13 @@ function parseEvent(event: Record<string, unknown>): EspnMatch | null {
         name: homeTeamData.displayName as string,
         abbr: homeTeamData.abbreviation as string,
         score: parseInt(home.score as string) || 0,
+        logo: homeLogo,
       },
       awayTeam: {
         name: awayTeamData.displayName as string,
         abbr: awayTeamData.abbreviation as string,
         score: parseInt(away.score as string) || 0,
+        logo: awayLogo,
       },
       completed: statusType.completed as boolean,
     };

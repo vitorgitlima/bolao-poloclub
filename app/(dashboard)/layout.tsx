@@ -27,6 +27,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
           <div className="flex items-center gap-1">
             <Link
+              href="/como-jogar"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-300 hover:bg-green-500/20 text-sm font-medium transition-all"
+            >
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:block whitespace-nowrap">Comece Aqui</span>
+              <span className="text-[9px] font-black bg-green-400/20 text-green-300 px-1 py-0.5 rounded leading-none hidden sm:inline">NOVO</span>
+            </Link>
+            <Link
               href="/"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 text-sm font-medium transition-all"
             >
@@ -39,13 +47,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             >
               <Trophy className="w-4 h-4" />
               <span className="hidden sm:block">Ranking</span>
-            </Link>
-            <Link
-              href="/como-jogar"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 text-sm font-medium transition-all"
-            >
-              <BookOpen className="w-4 h-4" />
-              <span className="hidden sm:block">Guia</span>
             </Link>
             <Link
               href="/brasileirao"

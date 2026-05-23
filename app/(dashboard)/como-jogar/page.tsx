@@ -16,6 +16,30 @@ export default function ComoJogarPage() {
         </p>
       </div>
 
+      {/* O que é */}
+      <div className="glass-card p-5 space-y-3">
+        <h2 className="text-white font-bold text-base flex items-center gap-2">
+          <span className="text-xl">⚽</span> O que é o Bolão da Copa?
+        </h2>
+        <p className="text-white/60 text-sm leading-relaxed">
+          O <strong className="text-white/90">Bolão da Copa</strong> é uma plataforma de palpites criada para transformar cada jogo da Copa do Mundo 2026 em disputa, rivalidade e caos entre amigos.
+        </p>
+        <p className="text-white/60 text-sm leading-relaxed">
+          Cada participante prevê placares, acumula pontos e sobe no ranking em tempo real enquanto a competição avança rodada após rodada.
+        </p>
+        <p className="text-white/60 text-sm leading-relaxed">
+          As <strong className="text-white/90">ligas privadas</strong> são o coração do bolão: cada grupo cria sua própria disputa, acompanha os líderes, celebra os placares improváveis e presencia viradas dolorosas nos últimos minutos.
+        </p>
+        <p className="text-white/60 text-sm leading-relaxed">
+          Porque no fim, a Copa passa.<br />
+          Mas a glória de terminar em primeiro permanece.
+        </p>
+        <p className="text-white/60 text-sm leading-relaxed">
+          E o título de <strong className="text-white/90">Bola Murcha</strong>…<br />
+          também. 🤡
+        </p>
+      </div>
+
       {/* Beta notice */}
       <div className="p-4 rounded-xl bg-yellow-400/5 border border-yellow-400/20">
         <p className="text-yellow-300/80 text-sm flex items-start gap-2">
