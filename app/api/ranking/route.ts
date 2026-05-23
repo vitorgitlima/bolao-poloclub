@@ -14,6 +14,7 @@ export async function GET() {
         where: { points: { not: null } },
         select: { points: true, isDoublePoints: true },
       },
+      _count: { select: { predictions: true } },
     },
   });
 
@@ -31,7 +32,7 @@ export async function GET() {
           ? (p.points ?? 0) === 6 || (p.points ?? 0) === 8
           : (p.points ?? 0) === 3 || (p.points ?? 0) === 4
       ).length,
-      predictions: user.predictions.length,
+      predictions: user._count.predictions,
     }))
     .sort((a, b) => b.totalPoints - a.totalPoints);
 
