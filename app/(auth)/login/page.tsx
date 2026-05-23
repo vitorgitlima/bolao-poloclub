@@ -17,8 +17,8 @@ export default function LoginPage() {
           <p className="text-white/60 text-lg font-medium">
             Mundial 2026 · EUA, México & Canadá
           </p>
-          <div className="flex justify-center gap-1 mt-3 text-2xl">
-            🇧🇷 🇦🇷 🇫🇷 🇩🇪 🇵🇹 🇪🇸 🇺🇸 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+          <div className="flex justify-center items-center gap-3 mt-3 text-4xl">
+            🇺🇸 🇲🇽 🇨🇦
           </div>
         </div>
 
@@ -72,6 +72,9 @@ export default function LoginPage() {
 
         <p className="text-center text-white/20 text-xs mt-6">
           Bolão Copa do Mundo 2026 · Apenas para diversão
+        </p>
+        <p className="text-center text-white/15 text-xs mt-1">
+          Built by <span className="text-white/25 font-medium">SatoshiStandard</span>
         </p>
       </div>
     </div>
