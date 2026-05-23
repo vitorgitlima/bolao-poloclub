@@ -110,7 +110,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved }: MatchRowProps) {
 
         {/* Home team */}
         <div className="flex items-center gap-1 flex-1 min-w-0 justify-end">
-          <span className="text-white/75 text-xs truncate">{match.homeTeam}</span>
+          <span className="text-white/75 text-xs text-right leading-tight">{match.homeTeam}</span>
           <span className="text-sm shrink-0">{match.homeFlag}</span>
         </div>
 
@@ -154,7 +154,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved }: MatchRowProps) {
         {/* Away team */}
         <div className="flex items-center gap-1 flex-1 min-w-0 justify-start">
           <span className="text-sm shrink-0">{match.awayFlag}</span>
-          <span className="text-white/75 text-xs truncate">{match.awayTeam}</span>
+          <span className="text-white/75 text-xs leading-tight">{match.awayTeam}</span>
         </div>
 
         {/* Action buttons or result info */}
