@@ -65,7 +65,7 @@ export function RankingTable({ data, currentUserId }: { data: RankingEntry[]; cu
                   <span className="truncate">{entry.name ?? "Anônimo"}</span>
                   {isMe && <span className="text-xs text-green-400 font-normal shrink-0">(você)</span>}
                   {entry.isContributor && (
-                    <span className="text-[9px] font-bold bg-purple-400/15 text-purple-300 border border-purple-400/25 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                    <span className="text-[9px] font-bold bg-purple-500/25 text-purple-200 border border-purple-400/40 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
                       ✦ Contribuidor
                     </span>
                   )}
