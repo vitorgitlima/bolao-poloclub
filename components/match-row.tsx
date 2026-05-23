@@ -252,8 +252,16 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
         )}
 
         {isLive && pred && (
-          <div className="shrink-0 text-right min-w-[52px]">
-            <div className="text-white/40 text-[10px]">
+          <div className="shrink-0 text-right min-w-[60px]">
+            {pred.points != null ? (
+              <div className={cn("text-xs font-bold flex items-center justify-end gap-1",
+                pred.points >= 6 ? "text-green-400" : pred.points >= 3 ? "text-yellow-400" : "text-white/40"
+              )}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
+                +{pred.points}pts{pred.isDoublePoints ? " ⚡" : ""}
+              </div>
+            ) : null}
+            <div className="text-white/30 text-[10px]">
               seu: {pred.homeScore}–{pred.awayScore}
             </div>
           </div>

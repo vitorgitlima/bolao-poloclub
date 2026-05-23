@@ -27,7 +27,8 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     });
     updatedMatches++;
 
-    if (em.completed) {
+    // Calculate points for both LIVE (provisional) and FINISHED (final)
+    if (status === "LIVE" || em.completed) {
       const predictions = await prisma.prediction.findMany({
         where: { matchId: match.id },
       });
