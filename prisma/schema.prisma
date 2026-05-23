@@ -16,6 +16,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   predictions   Prediction[]
+  isContributor Boolean      @default(false)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 }

@@ -8,6 +8,7 @@ type RankingEntry = {
   id: string;
   name: string | null;
   image: string | null;
+  isContributor: boolean;
   totalPoints: number;
   exactScores: number;
   correctWinners: number;

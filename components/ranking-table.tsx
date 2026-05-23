@@ -5,6 +5,7 @@ type RankingEntry = {
   id: string;
   name: string | null;
   image: string | null;
+  isContributor: boolean;
   totalPoints: number;
   exactScores: number;
   correctWinners: number;
@@ -60,9 +61,14 @@ export function RankingTable({ data, currentUserId }: { data: RankingEntry[]; cu
                 </div>
               )}
               <div className="min-w-0">
-                <div className="font-bold text-white truncate text-sm">
-                  {entry.name ?? "Anônimo"}
-                  {isMe && <span className="ml-1.5 text-xs text-green-400 font-normal">(você)</span>}
+                <div className="font-bold text-white text-sm flex items-center gap-1.5 flex-wrap">
+                  <span className="truncate">{entry.name ?? "Anônimo"}</span>
+                  {isMe && <span className="text-xs text-green-400 font-normal shrink-0">(você)</span>}
+                  {entry.isContributor && (
+                    <span className="text-[9px] font-bold bg-purple-400/15 text-purple-300 border border-purple-400/25 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                      ✦ Contribuidor
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-white/40">
                   {entry.predictions} palpite{entry.predictions !== 1 ? "s" : ""}

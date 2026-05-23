@@ -23,6 +23,7 @@ export async function GET() {
       id: user.id,
       name: user.name,
       image: user.image,
+      isContributor: user.isContributor,
       totalPoints: user.predictions.reduce((sum, p) => sum + (p.points ?? 0), 0),
       exactScores: user.predictions.filter((p) =>
         p.isDoublePoints ? (p.points ?? 0) === 12 : (p.points ?? 0) === 6
