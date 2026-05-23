@@ -2,7 +2,7 @@ import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Trophy, Home, LogOut, Settings } from "lucide-react";
+import { Trophy, Home, LogOut, Settings, FlaskConical } from "lucide-react";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -17,7 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <span className="text-2xl group-hover:scale-110 transition-transform">⚽</span>
             <div>
               <span className="font-black text-white text-lg leading-none copa-gradient">
-                Bolão Copa
+                Bolão da Copa
               </span>
               <span className="hidden sm:block text-white/30 text-xs leading-none">
                 Mundial 2026
@@ -39,6 +39,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
             >
               <Trophy className="w-4 h-4" />
               <span className="hidden sm:block">Ranking</span>
+            </Link>
+            <Link
+              href="/brasileirao"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 text-sm font-medium transition-all"
+            >
+              <FlaskConical className="w-4 h-4 text-yellow-400" />
+              <span className="hidden sm:block">
+                Série A
+                <span className="ml-1 text-[9px] font-bold bg-yellow-400/20 text-yellow-300 px-1 py-0.5 rounded">BETA</span>
+              </span>
             </Link>
             {process.env.ADMIN_EMAILS?.split(",").map(e => e.trim()).includes(session.user?.email ?? "") && (
               <Link
@@ -83,6 +93,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </nav>
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-10">{children}</main>
+      <footer className="text-center text-white/20 text-xs pb-6">
+        Built by <span className="text-white/40 font-medium">SatoshiStandard</span>
+      </footer>
     </div>
   );
 }

@@ -23,14 +23,14 @@ export async function GET() {
       name: user.name,
       image: user.image,
       totalPoints: user.predictions.reduce((sum, p) => sum + (p.points ?? 0), 0),
-      exactScores: user.predictions.filter((p) => {
-        if (p.isDoublePoints) return (p.points ?? 0) >= 20;
-        return (p.points ?? 0) === 10;
-      }).length,
-      correctWinners: user.predictions.filter((p) => {
-        if (p.isDoublePoints) return (p.points ?? 0) >= 10 && (p.points ?? 0) < 20;
-        return (p.points ?? 0) === 5;
-      }).length,
+      exactScores: user.predictions.filter((p) =>
+        p.isDoublePoints ? (p.points ?? 0) === 12 : (p.points ?? 0) === 6
+      ).length,
+      correctWinners: user.predictions.filter((p) =>
+        p.isDoublePoints
+          ? (p.points ?? 0) === 6 || (p.points ?? 0) === 8
+          : (p.points ?? 0) === 3 || (p.points ?? 0) === 4
+      ).length,
       predictions: user.predictions.length,
     }))
     .sort((a, b) => b.totalPoints - a.totalPoints);

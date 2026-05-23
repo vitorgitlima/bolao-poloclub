@@ -27,14 +27,14 @@ type Match = {
   predictions: Prediction[];
 };
 
-const PHASE_TABS = [
+const BASE_PHASE_TABS = [
   { key: "grupos",  label: "⚽ Grupos",    filter: (p: string) => p.startsWith("Grupo") },
   { key: "r32",     label: "Rodada 32",    filter: (p: string) => p === "Rodada de 32" },
   { key: "oitavas", label: "Oitavas",      filter: (p: string) => p === "Oitavas de Final" },
   { key: "quartas", label: "Quartas",      filter: (p: string) => p === "Quartas de Final" },
   { key: "semi",    label: "Semifinal",    filter: (p: string) => p === "Semifinal" },
   { key: "final",   label: "🏆 Final",     filter: (p: string) => p === "Final" || p === "Disputa do 3º Lugar" },
-] as const;
+];
 
 const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"] as const;
 
@@ -68,6 +68,8 @@ export default function DashboardPage() {
     if (m.predictions[0]?.isDoublePoints) acc[m.phase] = true;
     return acc;
   }, {});
+
+  const PHASE_TABS = BASE_PHASE_TABS;
 
   const activeTab = PHASE_TABS.find((t) => t.key === activePhase) ?? PHASE_TABS[0];
   const phaseMatches = matches.filter((m) => activeTab.filter(m.phase));
@@ -183,6 +185,7 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+
     </div>
   );
 }

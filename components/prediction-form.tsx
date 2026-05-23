@@ -150,7 +150,7 @@ export function PredictionForm({
       </div>
 
       <p className="text-xs text-center text-white/25 mt-2.5">
-        Exato: 10pts · Vencedor: 5pts · Double = ×2
+        Exato: 6pts · Saldo: 4pts · Vencedor: 3pts · Double = ×2
       </p>
     </form>
   );

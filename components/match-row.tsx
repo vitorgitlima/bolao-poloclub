@@ -207,9 +207,9 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved }: MatchRowProps) {
           <div className="shrink-0 text-right min-w-[60px]">
             {pred ? (
               <>
-                <div className={cn("text-xs font-bold", pred.points != null && pred.points >= 10
+                <div className={cn("text-xs font-bold", pred.points != null && pred.points >= 6
                   ? "text-green-400"
-                  : pred.points != null && pred.points >= 5
+                  : pred.points != null && pred.points >= 3
                     ? "text-yellow-400"
                     : "text-white/40"
                 )}>

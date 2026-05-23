@@ -12,13 +12,26 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="text-8xl mb-3 drop-shadow-2xl">⚽</div>
           <h1 className="text-5xl font-black mb-1 copa-gradient">
-            Bolão Copa
+            Bolão da Copa
           </h1>
           <p className="text-white/60 text-lg font-medium">
             Mundial 2026 · EUA, México & Canadá
           </p>
-          <div className="flex justify-center gap-1 mt-3 text-2xl">
-            🇧🇷 🇦🇷 🇫🇷 🇩🇪 🇵🇹 🇪🇸 🇺🇸 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+          <div className="flex justify-center items-center gap-4 mt-3">
+            {[
+              { code: "us", label: "EUA" },
+              { code: "mx", label: "México" },
+              { code: "ca", label: "Canadá" },
+            ].map((f) => (
+              <img
+                key={f.code}
+                src={`https://flagcdn.com/w80/${f.code}.png`}
+                alt={f.label}
+                width={48}
+                height={32}
+                className="rounded shadow-md shadow-black/40"
+              />
+            ))}
           </div>
         </div>
 
@@ -54,10 +67,11 @@ export default function LoginPage() {
           </form>
 
           {/* Regras rápidas */}
-          <div className="mt-7 grid grid-cols-3 gap-2 text-center">
+          <div className="mt-7 grid grid-cols-2 gap-2 text-center">
             {[
-              { icon: "🎯", label: "Placar exato", pts: "10 pts", color: "text-green-400" },
-              { icon: "✅", label: "Vencedor certo", pts: "5 pts", color: "text-blue-400" },
+              { icon: "🎯", label: "Placar exato", pts: "6 pts", color: "text-green-400" },
+              { icon: "⚖️", label: "Saldo de gols", pts: "4 pts", color: "text-purple-400" },
+              { icon: "✅", label: "Vencedor certo", pts: "3 pts", color: "text-blue-400" },
               { icon: "⚡", label: "Double Points", pts: "×2", color: "text-yellow-400" },
             ].map((r) => (
               <div key={r.label} className="p-2.5 rounded-xl bg-white/5 border border-white/8">
@@ -70,7 +84,10 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-white/20 text-xs mt-6">
-          Bolão Copa do Mundo 2026 · Apenas para diversão
+          Bolão da Copa do Mundo 2026 · Polo Club Oficial
+        </p>
+        <p className="text-center text-white/15 text-xs mt-1">
+          Built by <span className="text-white/25 font-medium">SatoshiStandard</span>
         </p>
       </div>
     </div>

@@ -1,5 +1,6 @@
 // ESPN unofficial API — free, no key required
 const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world";
+const ESPN_BRA  = "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1";
 
 export type EspnMatch = {
   id: string;
@@ -61,6 +62,17 @@ export async function getEspnMatchesByDate(date: string): Promise<EspnMatch[]> {
 export async function getEspnLiveAndToday(): Promise<EspnMatch[]> {
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   return getEspnMatchesByDate(today);
+}
+
+export async function getEspnBrasileiraoByDate(date: string): Promise<EspnMatch[]> {
+  // date format: YYYYMMDD — usa bra.1 (mesmo formato de response que fifa.world)
+  const res = await fetch(`${ESPN_BRA}/scoreboard?dates=${date}&limit=20`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`ESPN bra.1 error: ${res.status}`);
+  const json = await res.json();
+  const events = (json.events ?? []) as Record<string, unknown>[];
+  return events.map(parseEvent).filter(Boolean) as EspnMatch[];
 }
 
 // Normaliza nome ESPN (inglês) → nome no nosso DB (português)

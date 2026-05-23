@@ -11,6 +11,10 @@ export function calculatePoints(
   const exactMatch =
     predicted.home === actual.home && predicted.away === actual.away;
 
+  const predictedDiff = predicted.home - predicted.away;
+  const actualDiff = actual.home - actual.away;
+  const correctGoalDiff = predictedDiff === actualDiff;
+
   const predictedResult = getResult(predicted.home, predicted.away);
   const actualResult = getResult(actual.home, actual.away);
   const correctWinner = predictedResult === actualResult;
@@ -19,10 +23,13 @@ export function calculatePoints(
   let reason = "Errou";
 
   if (exactMatch) {
-    points = 10;
+    points = 6;
     reason = "Placar exato!";
+  } else if (correctGoalDiff) {
+    points = 4;
+    reason = "Saldo de gols certo";
   } else if (correctWinner) {
-    points = 5;
+    points = 3;
     reason = "Vencedor certo";
   }
 
