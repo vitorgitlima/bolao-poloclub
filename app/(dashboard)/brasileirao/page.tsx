@@ -117,11 +117,11 @@ export default function BrasileiraoPage() {
       )}
 
       {/* Regras rápidas */}
-      <div className="glass rounded-xl px-4 py-3 border border-white/10 text-white/40 text-xs flex flex-wrap gap-x-4 gap-y-1">
-        <span>🎯 Placar exato = <strong className="text-white/60">6 pts</strong></span>
-        <span>⚖️ Saldo de gols = <strong className="text-white/60">4 pts</strong></span>
-        <span>✅ Vencedor certo = <strong className="text-white/60">3 pts</strong></span>
-        <span>⚡ Double points = <strong className="text-white/60">×2</strong> (1 por fase)</span>
+      <div className="glass rounded-xl px-4 py-3 border border-white/10 text-white/60 text-xs flex flex-wrap gap-x-4 gap-y-1 bg-black/50">
+        <span>🎯 Placar exato = <strong className="text-white/90">6 pts</strong></span>
+        <span>⚖️ Saldo de gols = <strong className="text-white/90">4 pts</strong></span>
+        <span>✅ Vencedor certo = <strong className="text-white/90">3 pts</strong></span>
+        <span>⚡ Double points = <strong className="text-white/90">×2</strong> (1 por fase)</span>
       </div>
 
       {/* Rodadas */}
