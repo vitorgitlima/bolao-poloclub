@@ -74,7 +74,7 @@ export default function BrasileiraoPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            🇧🇷 Brasileirão Série A
+            PoloClub - Brasileirão Série A
             <span className="text-xs font-bold bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 px-2 py-0.5 rounded-full">
               BETA
             </span>
