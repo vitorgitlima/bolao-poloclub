@@ -2,7 +2,7 @@ import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Trophy, Home, LogOut, Settings, FlaskConical } from "lucide-react";
+import { Trophy, Home, LogOut, Settings, FlaskConical, BookOpen } from "lucide-react";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -39,6 +39,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
             >
               <Trophy className="w-4 h-4" />
               <span className="hidden sm:block">Ranking</span>
+            </Link>
+            <Link
+              href="/como-jogar"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 text-sm font-medium transition-all"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span className="hidden sm:block">Guia</span>
             </Link>
             <Link
               href="/brasileirao"

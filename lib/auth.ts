@@ -28,5 +28,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return token;
     },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith(baseUrl)) {
+        if (url === baseUrl || url === `${baseUrl}/`) return `${baseUrl}/brasileirao`;
+        return url;
+      }
+      if (url.startsWith("/")) {
+        if (url === "/") return `${baseUrl}/brasileirao`;
+        return `${baseUrl}${url}`;
+      }
+      return `${baseUrl}/brasileirao`;
+    },
   },
 });
