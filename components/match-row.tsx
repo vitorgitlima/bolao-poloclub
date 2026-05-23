@@ -34,7 +34,7 @@ type MatchRowProps = {
 };
 
 function canPredict(dateStr: string): boolean {
-  return new Date() < new Date(new Date(dateStr).getTime() - 60 * 60 * 1000);
+  return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
 }
 
 export function MatchRow({ match, usedDoubleInPhase, onSaved }: MatchRowProps) {

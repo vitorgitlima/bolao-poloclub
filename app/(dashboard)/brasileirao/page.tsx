@@ -54,7 +54,7 @@ export default function BrasileiraoPage() {
     (m) =>
       m.status === "SCHEDULED" &&
       m.predictions.length === 0 &&
-      new Date() < new Date(new Date(m.date).getTime() - 60 * 60 * 1000)
+      new Date() < new Date(new Date(m.date).getTime() - 10 * 60 * 1000)
   ).length;
 
   if (loading) {
