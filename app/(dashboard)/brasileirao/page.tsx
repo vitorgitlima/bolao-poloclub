@@ -25,11 +25,10 @@ type Match = {
   predictions: Prediction[];
 };
 
-const RODADAS = ["🧪 Rodada 1", "🧪 Rodada 2"];
-const RODADA_LABELS: Record<string, string> = {
-  "🧪 Rodada 1": "Rodada 1 — 23/05",
-  "🧪 Rodada 2": "Rodada 2 — 24/05",
-};
+function rodadaLabel(phase: string): string {
+  // "🧪 Rodada 17" → "Rodada 17"
+  return phase.replace(/^🧪\s*/, "");
+}
 
 export default function BrasileiraoPage() {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -119,8 +118,9 @@ export default function BrasileiraoPage() {
 
       {/* Regras rápidas */}
       <div className="glass rounded-xl px-4 py-3 border border-white/10 text-white/40 text-xs flex flex-wrap gap-x-4 gap-y-1">
-        <span>✅ Placar exato = <strong className="text-white/60">10 pts</strong></span>
-        <span>👍 Vencedor certo = <strong className="text-white/60">5 pts</strong></span>
+        <span>🎯 Placar exato = <strong className="text-white/60">6 pts</strong></span>
+        <span>⚖️ Saldo de gols = <strong className="text-white/60">4 pts</strong></span>
+        <span>✅ Vencedor certo = <strong className="text-white/60">3 pts</strong></span>
         <span>⚡ Double points = <strong className="text-white/60">×2</strong> (1 por fase)</span>
       </div>
 
@@ -131,13 +131,12 @@ export default function BrasileiraoPage() {
           <p>Nenhum jogo disponível</p>
         </div>
       ) : (
-        RODADAS.map((rodada) => {
+        Array.from(new Set(matches.map((m) => m.phase))).map((rodada) => {
           const rodadaMatches = matches.filter((m) => m.phase === rodada);
-          if (rodadaMatches.length === 0) return null;
           return (
             <div key={rodada}>
               <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-2 px-1">
-                {RODADA_LABELS[rodada]}
+                {rodadaLabel(rodada)}
               </p>
               <div className="glass-card">
                 {rodadaMatches.map((match) => (

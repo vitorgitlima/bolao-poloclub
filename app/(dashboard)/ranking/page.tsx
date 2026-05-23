@@ -21,12 +21,12 @@ async function getRanking() {
       image: user.image,
       totalPoints: user.predictions.reduce((sum, p) => sum + (p.points ?? 0), 0),
       exactScores: user.predictions.filter((p) =>
-        p.isDoublePoints ? (p.points ?? 0) >= 20 : (p.points ?? 0) === 10
+        p.isDoublePoints ? (p.points ?? 0) === 12 : (p.points ?? 0) === 6
       ).length,
       correctWinners: user.predictions.filter((p) =>
         p.isDoublePoints
-          ? (p.points ?? 0) >= 10 && (p.points ?? 0) < 20
-          : (p.points ?? 0) === 5
+          ? (p.points ?? 0) === 6 || (p.points ?? 0) === 8
+          : (p.points ?? 0) === 3 || (p.points ?? 0) === 4
       ).length,
       predictions: user.predictions.length,
     }))
@@ -88,10 +88,11 @@ export default async function RankingPage() {
       </div>
 
       {/* Legenda */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {[
-          { icon: <Target className="w-4 h-4" />, label: "Placar exato", pts: "10 pts", color: "text-green-400", bg: "bg-green-400/10" },
-          { icon: <Check className="w-4 h-4" />, label: "Vencedor certo", pts: "5 pts", color: "text-blue-400", bg: "bg-blue-400/10" },
+          { icon: <Target className="w-4 h-4" />, label: "Placar exato", pts: "6 pts", color: "text-green-400", bg: "bg-green-400/10" },
+          { icon: <Check className="w-4 h-4" />, label: "Saldo de gols", pts: "4 pts", color: "text-purple-400", bg: "bg-purple-400/10" },
+          { icon: <Check className="w-4 h-4" />, label: "Vencedor certo", pts: "3 pts", color: "text-blue-400", bg: "bg-blue-400/10" },
           { icon: <Zap className="w-4 h-4" />, label: "Double Points", pts: "×2 tudo", color: "text-yellow-400", bg: "bg-yellow-400/10" },
         ].map((item) => (
           <div key={item.label} className={`glass-card p-3 text-center ${item.bg} border-0`}>

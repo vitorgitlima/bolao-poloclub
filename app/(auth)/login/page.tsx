@@ -54,10 +54,11 @@ export default function LoginPage() {
           </form>
 
           {/* Regras rápidas */}
-          <div className="mt-7 grid grid-cols-3 gap-2 text-center">
+          <div className="mt-7 grid grid-cols-2 gap-2 text-center">
             {[
-              { icon: "🎯", label: "Placar exato", pts: "10 pts", color: "text-green-400" },
-              { icon: "✅", label: "Vencedor certo", pts: "5 pts", color: "text-blue-400" },
+              { icon: "🎯", label: "Placar exato", pts: "6 pts", color: "text-green-400" },
+              { icon: "⚖️", label: "Saldo de gols", pts: "4 pts", color: "text-purple-400" },
+              { icon: "✅", label: "Vencedor certo", pts: "3 pts", color: "text-blue-400" },
               { icon: "⚡", label: "Double Points", pts: "×2", color: "text-yellow-400" },
             ].map((r) => (
               <div key={r.label} className="p-2.5 rounded-xl bg-white/5 border border-white/8">
