@@ -27,14 +27,14 @@ type Match = {
   predictions: Prediction[];
 };
 
-const PHASE_TABS = [
+const BASE_PHASE_TABS = [
   { key: "grupos",  label: "⚽ Grupos",    filter: (p: string) => p.startsWith("Grupo") },
   { key: "r32",     label: "Rodada 32",    filter: (p: string) => p === "Rodada de 32" },
   { key: "oitavas", label: "Oitavas",      filter: (p: string) => p === "Oitavas de Final" },
   { key: "quartas", label: "Quartas",      filter: (p: string) => p === "Quartas de Final" },
   { key: "semi",    label: "Semifinal",    filter: (p: string) => p === "Semifinal" },
   { key: "final",   label: "🏆 Final",     filter: (p: string) => p === "Final" || p === "Disputa do 3º Lugar" },
-] as const;
+];
 
 const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"] as const;
 
@@ -68,6 +68,11 @@ export default function DashboardPage() {
     if (m.predictions[0]?.isDoublePoints) acc[m.phase] = true;
     return acc;
   }, {});
+
+  const hasTestMatches = matches.some((m) => m.phase.startsWith("🧪"));
+  const PHASE_TABS = hasTestMatches
+    ? [...BASE_PHASE_TABS, { key: "teste", label: "🧪 Teste", filter: (p: string) => p.startsWith("🧪") }]
+    : BASE_PHASE_TABS;
 
   const activeTab = PHASE_TABS.find((t) => t.key === activePhase) ?? PHASE_TABS[0];
   const phaseMatches = matches.filter((m) => activeTab.filter(m.phase));
@@ -164,7 +169,7 @@ export default function DashboardPage() {
       )}
 
       {/* Knockout phases */}
-      {activePhase !== "grupos" && (
+      {activePhase !== "grupos" && activePhase !== "teste" && (
         <div className="glass-card">
           {phaseMatches.length > 0 ? (
             phaseMatches.map((match) => (
@@ -181,6 +186,34 @@ export default function DashboardPage() {
               <p>Nenhum jogo nesta fase ainda</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Brasileirão test tab */}
+      {activePhase === "teste" && (
+        <div className="space-y-3">
+          <div className="glass rounded-xl px-4 py-2.5 border border-yellow-400/20 bg-yellow-400/5 text-yellow-300/70 text-xs">
+            🧪 Jogos de teste — Brasileirão Série A. Usado para validar o sync da ESPN antes da Copa.
+          </div>
+          {["🧪 Rodada 1", "🧪 Rodada 2"].map((rodada) => {
+            const rodadaMatches = phaseMatches.filter((m) => m.phase === rodada);
+            if (rodadaMatches.length === 0) return null;
+            return (
+              <div key={rodada}>
+                <p className="text-white/30 text-xs uppercase tracking-wider mb-2 px-1">{rodada}</p>
+                <div className="glass-card">
+                  {rodadaMatches.map((match) => (
+                    <MatchRow
+                      key={match.id}
+                      match={match}
+                      usedDoubleInPhase={usedDoubleByPhase[match.phase] ?? false}
+                      onSaved={loadMatches}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
