@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { RankingTable } from "@/components/ranking-table";
+import { RankingHighlights } from "@/components/ranking-highlights";
 import { Trophy, Target, Check, Zap, RefreshCw } from "lucide-react";
 
 type RankingEntry = {
@@ -13,12 +14,26 @@ type RankingEntry = {
   exactScores: number;
   correctWinners: number;
   predictions: number;
+  isLeader: boolean;
+  isTopStreak: boolean;
+  isTopExact: boolean;
+  isTopRiser: boolean;
+  isBolasMurcha: boolean;
+};
+
+type Highlights = {
+  roundName: string;
+  craque: { name: string | null; points: number } | null;
+  reiExatos: { name: string | null; count: number } | null;
+  maiorSubida: { name: string | null; positions: number } | null;
+  bolaMurcha: Array<string | null> | null;
 };
 
 const POLL_INTERVAL = 30_000;
 
 export function RankingLive({ userId }: { userId?: string }) {
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
+  const [highlights, setHighlights] = useState<Highlights | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -26,7 +41,9 @@ export function RankingLive({ userId }: { userId?: string }) {
     try {
       const res = await fetch("/api/ranking");
       if (res.ok) {
-        setRanking(await res.json());
+        const data = await res.json();
+        setRanking(data.ranking ?? []);
+        setHighlights(data.highlights ?? null);
         setLastUpdated(new Date());
       }
     } finally {
@@ -86,7 +103,10 @@ export function RankingLive({ userId }: { userId?: string }) {
         )}
       </div>
 
-      {/* Ranking */}
+      {/* Destaques da Rodada */}
+      {highlights && <RankingHighlights highlights={highlights} />}
+
+      {/* Classificação */}
       <div className="glass-card p-4">
         <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
           🏆 Classificação Geral
@@ -101,7 +121,20 @@ export function RankingLive({ userId }: { userId?: string }) {
         )}
       </div>
 
-      {/* Legenda */}
+      {/* Legenda dos ícones */}
+      <div className="glass rounded-xl px-4 py-3 border border-white/8">
+        <p className="text-white/25 text-[10px] uppercase tracking-wider font-semibold mb-2">Legenda</p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/35">
+          <span>👑 Líder</span>
+          <span>🔥 Maior sequência</span>
+          <span>🎯 Rei dos exatos</span>
+          <span>📈 Maior subida</span>
+          <span>🤡 Bola Murcha</span>
+          <span>✦ Contribuidor</span>
+        </div>
+      </div>
+
+      {/* Pontuação */}
       <div className="grid grid-cols-2 gap-3">
         {[
           { icon: <Target className="w-4 h-4" />, label: "Placar exato", pts: "6 pts", color: "text-green-400", bg: "bg-green-400/10" },
