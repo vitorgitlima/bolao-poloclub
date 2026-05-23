@@ -27,21 +27,30 @@ type Match = {
   predictions: Prediction[];
 };
 
+type PendingEdit = { homeScore: string; awayScore: string; isDouble: boolean };
+
 type MatchRowProps = {
   match: Match;
   usedDoubleInPhase: boolean;
   onSaved: () => void;
+  onPendingChange?: (matchId: string, edit: PendingEdit | null) => void;
 };
 
 function canPredict(dateStr: string): boolean {
   return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
 }
 
-export function MatchRow({ match, usedDoubleInPhase, onSaved }: MatchRowProps) {
+export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }: MatchRowProps) {
   const pred = match.predictions[0];
   const [homeVal, setHomeVal] = useState(pred?.homeScore?.toString() ?? "");
   const [awayVal, setAwayVal] = useState(pred?.awayScore?.toString() ?? "");
   const [isDouble, setIsDouble] = useState(pred?.isDoublePoints ?? false);
+
+  function notifyPending(home: string, away: string, dbl: boolean) {
+    if (!onPendingChange) return;
+    const hasValue = home !== "" && away !== "";
+    onPendingChange(match.id, hasValue ? { homeScore: home, awayScore: away, isDouble: dbl } : null);
+  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
@@ -123,7 +132,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved }: MatchRowProps) {
                 min="0"
                 max="99"
                 value={homeVal}
-                onChange={(e) => setHomeVal(e.target.value)}
+                onChange={(e) => { setHomeVal(e.target.value); notifyPending(e.target.value, awayVal, isDouble); }}
                 onKeyDown={(e) => e.key === "Enter" && handleSave()}
                 className="w-8 h-8 bg-white/10 border border-white/20 rounded-lg text-white text-center text-sm font-bold focus:outline-none focus:border-green-400/60 focus:bg-white/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
@@ -133,7 +142,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved }: MatchRowProps) {
                 min="0"
                 max="99"
                 value={awayVal}
-                onChange={(e) => setAwayVal(e.target.value)}
+                onChange={(e) => { setAwayVal(e.target.value); notifyPending(homeVal, e.target.value, isDouble); }}
                 onKeyDown={(e) => e.key === "Enter" && handleSave()}
                 className="w-8 h-8 bg-white/10 border border-white/20 rounded-lg text-white text-center text-sm font-bold focus:outline-none focus:border-green-400/60 focus:bg-white/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
@@ -161,7 +170,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved }: MatchRowProps) {
         {isPredictable && (
           <div className="flex items-center gap-1 shrink-0">
             <button
-              onClick={() => canToggleDouble && setIsDouble(!isDouble)}
+              onClick={() => { if (canToggleDouble) { const next = !isDouble; setIsDouble(next); notifyPending(homeVal, awayVal, next); } }}
               disabled={!canToggleDouble}
               title={
                 isDouble

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { MatchRow } from "@/components/match-row";
-import { Loader2, Target, Star } from "lucide-react";
+import { Loader2, Target, Star, Save, CheckCircle } from "lucide-react";
 
 type Prediction = {
   homeScore: number;
@@ -30,9 +30,14 @@ function rodadaLabel(phase: string): string {
   return phase.replace(/^🧪\s*/, "");
 }
 
+type PendingEdit = { homeScore: string; awayScore: string; isDouble: boolean };
+
 export default function BrasileiraoPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingEdits, setPendingEdits] = useState<Record<string, PendingEdit>>({});
+  const [savingAll, setSavingAll] = useState(false);
+  const [saveAllResult, setSaveAllResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const loadMatches = useCallback(async () => {
     const res = await fetch("/api/matches");
@@ -40,6 +45,47 @@ export default function BrasileiraoPage() {
     setMatches(data.filter((m) => m.phase.startsWith("🧪")));
     setLoading(false);
   }, []);
+
+  function handlePendingChange(matchId: string, edit: PendingEdit | null) {
+    setPendingEdits((prev) => {
+      const next = { ...prev };
+      if (edit === null) delete next[matchId];
+      else next[matchId] = edit;
+      return next;
+    });
+  }
+
+  async function handleSaveAll() {
+    const entries = Object.entries(pendingEdits);
+    if (entries.length === 0) return;
+    setSavingAll(true);
+    setSaveAllResult(null);
+    try {
+      const predictions = entries.map(([matchId, edit]) => ({
+        matchId,
+        homeScore: parseInt(edit.homeScore),
+        awayScore: parseInt(edit.awayScore),
+        isDoublePoints: edit.isDouble,
+      }));
+      const res = await fetch("/api/predictions/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ predictions }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSaveAllResult({ ok: true, msg: `${data.saved} palpite${data.saved !== 1 ? "s" : ""} salvos!` });
+        setPendingEdits({});
+        loadMatches();
+      } else {
+        setSaveAllResult({ ok: false, msg: data.error ?? "Erro ao salvar" });
+      }
+    } catch {
+      setSaveAllResult({ ok: false, msg: "Erro de conexão" });
+    } finally {
+      setSavingAll(false);
+    }
+  }
 
   useEffect(() => { loadMatches(); }, [loadMatches]);
 
@@ -146,6 +192,7 @@ export default function BrasileiraoPage() {
                     match={match}
                     usedDoubleInPhase={usedDoubleByPhase[match.phase] ?? false}
                     onSaved={loadMatches}
+                    onPendingChange={handlePendingChange}
                   />
                 ))}
               </div>
@@ -157,6 +204,38 @@ export default function BrasileiraoPage() {
       <p className="text-center text-white/20 text-xs pt-2">
         🧪 Modo beta — os palpites aqui não valem para o ranking da Copa 2026
       </p>
+
+      {/* Botão flutuante Salvar Todos */}
+      {Object.keys(pendingEdits).length > 0 && (
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50 px-4">
+          <div className="flex flex-col items-center gap-2">
+            {saveAllResult && (
+              <div className={`text-xs px-3 py-1.5 rounded-lg font-medium ${saveAllResult.ok ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
+                {saveAllResult.msg}
+              </div>
+            )}
+            <button
+              onClick={handleSaveAll}
+              disabled={savingAll}
+              className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-2xl shadow-2xl shadow-black/50 transition-all disabled:opacity-60 text-sm"
+            >
+              {savingAll ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</>
+              ) : (
+                <><Save className="w-4 h-4" /> Salvar {Object.keys(pendingEdits).length} palpite{Object.keys(pendingEdits).length !== 1 ? "s" : ""}</>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {saveAllResult?.ok && Object.keys(pendingEdits).length === 0 && (
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-green-500/20 border border-green-500/30 text-green-300 rounded-2xl text-sm font-medium">
+            <CheckCircle className="w-4 h-4" /> {saveAllResult.msg}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
