@@ -48,7 +48,7 @@ export default function DashboardPage() {
   const loadMatches = useCallback(async () => {
     const res = await fetch("/api/matches");
     const data = await res.json();
-    setMatches(data);
+    setMatches(data.filter((m: Match) => !m.phase.startsWith("🧪")));
     setLoading(false);
   }, []);
 
@@ -117,89 +117,105 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Beta banner — Copa ainda não começou */}
-      {matches.length === 0 && (
-        <Link href="/brasileirao" className="block">
-          <div className="glass rounded-xl p-4 border border-yellow-400/20 bg-yellow-400/5 flex items-start gap-3 hover:bg-yellow-400/10 transition-all">
-            <FlaskConical className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+      {matches.length === 0 ? (
+        /* ── Em breve ── */
+        <div className="space-y-4">
+          <div className="glass-card p-8 flex flex-col items-center text-center gap-4">
+            <div className="text-6xl">🏆</div>
             <div>
-              <p className="text-yellow-300 font-semibold text-sm">Versão Beta — Brasileirão Série A</p>
-              <p className="text-yellow-300/60 text-xs mt-0.5">
-                Os jogos da Copa do Mundo 2026 estarão disponíveis em junho. Por enquanto, teste o sistema e faça seus palpites no Brasileirão! →
-              </p>
+              <h2 className="text-white font-black text-xl">Copa do Mundo 2026</h2>
+              <p className="text-white/40 text-sm mt-1">Estados Unidos · México · Canadá</p>
             </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-3">
+              <p className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-1">Início</p>
+              <p className="text-white font-black text-2xl">11 de Junho, 2026</p>
+            </div>
+            <p className="text-white/40 text-sm max-w-xs leading-relaxed">
+              Os jogos estarão disponíveis para palpite assim que a Copa começar. Fique ligado!
+            </p>
           </div>
-        </Link>
-      )}
 
-      {/* Phase tabs */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-        {PHASE_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActivePhase(tab.key)}
-            className={`tab-pill whitespace-nowrap ${
-              activePhase === tab.key ? "tab-pill-active" : "tab-pill-inactive"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Group stage: letter sub-tabs + group view */}
-      {activePhase === "grupos" && (
+          <Link href="/brasileirao" className="block">
+            <div className="glass rounded-xl p-4 border border-yellow-400/20 bg-yellow-400/5 flex items-center gap-3 hover:bg-yellow-400/10 transition-all">
+              <FlaskConical className="w-5 h-5 text-yellow-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-yellow-300 font-semibold text-sm">Enquanto isso, teste no Brasileirão</p>
+                <p className="text-yellow-300/50 text-xs mt-0.5">Palpites, ranking e double points já funcionando →</p>
+              </div>
+            </div>
+          </Link>
+        </div>
+      ) : (
         <>
-          <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
-            {GROUPS.map((g) => (
+          {/* Phase tabs */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+            {PHASE_TABS.map((tab) => (
               <button
-                key={g}
-                onClick={() => setActiveGroup(g)}
-                className={`shrink-0 w-9 h-9 rounded-xl text-sm font-bold transition-all ${
-                  activeGroup === g
-                    ? "bg-green-600 text-white shadow-lg shadow-green-900/30"
-                    : "glass text-white/50 hover:text-white hover:bg-white/10 border border-white/10"
+                key={tab.key}
+                onClick={() => setActivePhase(tab.key)}
+                className={`tab-pill whitespace-nowrap ${
+                  activePhase === tab.key ? "tab-pill-active" : "tab-pill-inactive"
                 }`}
               >
-                {g}
+                {tab.label}
               </button>
             ))}
           </div>
 
-          {groupMatches.length > 0 ? (
-            <GroupView
-              matches={groupMatches}
-              usedDoubleInPhase={usedDoubleByPhase[`Grupo ${activeGroup}`] ?? false}
-              onPredictionSaved={loadMatches}
-            />
-          ) : (
-            <div className="text-center py-16 text-white/30">
-              <div className="text-5xl mb-3">⚽</div>
-              <p>Nenhum jogo encontrado no Grupo {activeGroup}</p>
+          {/* Group stage */}
+          {activePhase === "grupos" && (
+            <>
+              <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
+                {GROUPS.map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setActiveGroup(g)}
+                    className={`shrink-0 w-9 h-9 rounded-xl text-sm font-bold transition-all ${
+                      activeGroup === g
+                        ? "bg-green-600 text-white shadow-lg shadow-green-900/30"
+                        : "glass text-white/50 hover:text-white hover:bg-white/10 border border-white/10"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+              {groupMatches.length > 0 ? (
+                <GroupView
+                  matches={groupMatches}
+                  usedDoubleInPhase={usedDoubleByPhase[`Grupo ${activeGroup}`] ?? false}
+                  onPredictionSaved={loadMatches}
+                />
+              ) : (
+                <div className="text-center py-16 text-white/30">
+                  <div className="text-5xl mb-3">⚽</div>
+                  <p>Nenhum jogo encontrado no Grupo {activeGroup}</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Knockout phases */}
+          {activePhase !== "grupos" && (
+            <div className="glass-card">
+              {phaseMatches.length > 0 ? (
+                phaseMatches.map((match) => (
+                  <MatchRow
+                    key={match.id}
+                    match={match}
+                    usedDoubleInPhase={usedDoubleByPhase[match.phase] ?? false}
+                    onSaved={loadMatches}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-16 text-white/30">
+                  <div className="text-5xl mb-3">⚽</div>
+                  <p>Nenhum jogo nesta fase ainda</p>
+                </div>
+              )}
             </div>
           )}
         </>
-      )}
-
-      {/* Knockout phases */}
-      {activePhase !== "grupos" && (
-        <div className="glass-card">
-          {phaseMatches.length > 0 ? (
-            phaseMatches.map((match) => (
-              <MatchRow
-                key={match.id}
-                match={match}
-                usedDoubleInPhase={usedDoubleByPhase[match.phase] ?? false}
-                onSaved={loadMatches}
-              />
-            ))
-          ) : (
-            <div className="text-center py-16 text-white/30">
-              <div className="text-5xl mb-3">⚽</div>
-              <p>Nenhum jogo nesta fase ainda</p>
-            </div>
-          )}
-        </div>
       )}
 
     </div>
