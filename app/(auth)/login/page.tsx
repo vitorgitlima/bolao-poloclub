@@ -17,8 +17,21 @@ export default function LoginPage() {
           <p className="text-white/60 text-lg font-medium">
             Mundial 2026 · EUA, México & Canadá
           </p>
-          <div className="flex justify-center items-center gap-3 mt-3 text-4xl">
-            🇺🇸 🇲🇽 🇨🇦
+          <div className="flex justify-center items-center gap-4 mt-3">
+            {[
+              { code: "us", label: "EUA" },
+              { code: "mx", label: "México" },
+              { code: "ca", label: "Canadá" },
+            ].map((f) => (
+              <img
+                key={f.code}
+                src={`https://flagcdn.com/w80/${f.code}.png`}
+                alt={f.label}
+                width={48}
+                height={32}
+                className="rounded shadow-md shadow-black/40"
+              />
+            ))}
           </div>
         </div>
 
