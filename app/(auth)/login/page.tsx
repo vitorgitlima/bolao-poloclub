@@ -12,7 +12,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="text-8xl mb-3 drop-shadow-2xl">⚽</div>
           <h1 className="text-5xl font-black mb-1 copa-gradient">
-            Bolão Copa
+            Bolão da Copa
           </h1>
           <p className="text-white/60 text-lg font-medium">
             Mundial 2026 · EUA, México & Canadá
@@ -84,7 +84,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-white/20 text-xs mt-6">
-          Bolão Copa do Mundo 2026 · Polo Club Oficial
+          Bolão da Copa do Mundo 2026 · Polo Club Oficial
         </p>
         <p className="text-center text-white/15 text-xs mt-1">
           Built by <span className="text-white/25 font-medium">SatoshiStandard</span>

@@ -17,7 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <span className="text-2xl group-hover:scale-110 transition-transform">⚽</span>
             <div>
               <span className="font-black text-white text-lg leading-none copa-gradient">
-                Bolão Copa
+                Bolão da Copa
               </span>
               <span className="hidden sm:block text-white/30 text-xs leading-none">
                 Mundial 2026
