@@ -45,10 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 text-sm font-medium transition-all"
             >
               <FlaskConical className="w-4 h-4 text-yellow-400" />
-              <span className="hidden sm:block">
-                Série A
-                <span className="ml-1 text-[9px] font-bold bg-yellow-400/20 text-yellow-300 px-1 py-0.5 rounded">BETA</span>
-              </span>
+              <span>Série A <span className="text-[9px] font-bold bg-yellow-400/20 text-yellow-300 px-1 py-0.5 rounded">BETA</span></span>
             </Link>
             {process.env.ADMIN_EMAILS?.split(",").map(e => e.trim()).includes(session.user?.email ?? "") && (
               <Link

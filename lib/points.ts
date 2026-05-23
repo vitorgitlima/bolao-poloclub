@@ -49,6 +49,6 @@ function getResult(home: number, away: number): "home" | "away" | "draw" {
 
 export function canPredictMatch(matchDate: Date): boolean {
   const now = new Date();
-  const oneHourBefore = new Date(matchDate.getTime() - 60 * 60 * 1000);
+  const oneHourBefore = new Date(matchDate.getTime() - 10 * 60 * 1000);
   return now < oneHourBefore;
 }
