@@ -10,10 +10,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
 
+  // Exibe palpites de qualquer jogo cujas apostas já fecharam (10min antes do início)
+  const lockCutoff = new Date(Date.now() + 10 * 60 * 1000);
+
   const predictions = await prisma.prediction.findMany({
     where: {
       userId: id,
-      match: { status: "FINISHED" },
+      match: { date: { lte: lockCutoff } },
     },
     include: {
       match: {
@@ -26,6 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
           awayScore: true,
           date: true,
           phase: true,
+          status: true,
         },
       },
     },
@@ -41,6 +45,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       awayFlag: p.match.awayFlag,
       date: p.match.date,
       phase: p.match.phase,
+      status: p.match.status,
       actualHome: p.match.homeScore,
       actualAway: p.match.awayScore,
       predHome: p.homeScore,

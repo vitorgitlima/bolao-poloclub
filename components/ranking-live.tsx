@@ -58,7 +58,9 @@ export function RankingLive({ userId }: { userId?: string }) {
   }, [fetchRanking]);
 
   const me = ranking.find((r) => r.id === userId);
-  const myPosition = ranking.findIndex((r) => r.id === userId) + 1;
+  const myPosition = me
+    ? ranking.filter((r) => r.totalPoints > me.totalPoints).length + 1
+    : 0;
 
   return (
     <div className="space-y-6">

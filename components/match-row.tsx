@@ -239,8 +239,13 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
                     ? "text-yellow-400"
                     : "text-white/40"
                 )}>
-                  {pred.points != null ? `+${pred.points}pts${pred.isDoublePoints ? " ⚡" : ""}` : "—"}
+                  {pred.points != null
+                    ? `+${pred.points}pts${pred.isDoublePoints && pred.points > 0 ? " ⚡" : ""}`
+                    : "—"}
                 </div>
+                {pred.isDoublePoints && pred.points != null && pred.points > 0 && (
+                  <div className="text-white/30 text-[9px]">{pred.points / 2}pts × 2</div>
+                )}
                 <div className="text-white/30 text-[10px]">
                   palpite: {pred.homeScore}–{pred.awayScore}
                 </div>
@@ -258,9 +263,12 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
                 pred.points >= 6 ? "text-green-400" : pred.points >= 3 ? "text-yellow-400" : "text-white/40"
               )}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
-                +{pred.points}pts{pred.isDoublePoints ? " ⚡" : ""}
+                +{pred.points}pts{pred.isDoublePoints && pred.points > 0 ? " ⚡" : ""}
               </div>
             ) : null}
+            {pred.isDoublePoints && pred.points != null && pred.points > 0 && (
+              <div className="text-white/30 text-[9px] text-right">{pred.points / 2}pts × 2</div>
+            )}
             <div className="text-white/30 text-[10px]">
               seu: {pred.homeScore}–{pred.awayScore}
             </div>

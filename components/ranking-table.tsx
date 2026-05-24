@@ -29,6 +29,7 @@ type PredictionDetail = {
   awayFlag: string | null;
   date: string;
   phase: string;
+  status: string;
   actualHome: number | null;
   actualAway: number | null;
   predHome: number;
@@ -114,7 +115,7 @@ function PredictionPanel({ userId }: { userId: string }) {
   }
 
   if (preds.length === 0) {
-    return <p className="text-center py-4 text-white/30 text-sm">Nenhum palpite em jogo encerrado ainda.</p>;
+    return <p className="text-center py-4 text-white/30 text-sm">Nenhum palpite com apostas encerradas ainda.</p>;
   }
 
   // Group by phase
@@ -132,9 +133,12 @@ function PredictionPanel({ userId }: { userId: string }) {
           </p>
           <div className="space-y-1">
             {items.map((p) => {
+              const isLive = p.status === "LIVE";
+              const isFinished = p.status === "FINISHED";
+              const hasScore = p.actualHome !== null && p.actualAway !== null;
               const isExact =
-                p.actualHome !== null &&
-                p.actualAway !== null &&
+                isFinished &&
+                hasScore &&
                 p.predHome === p.actualHome &&
                 p.predAway === p.actualAway;
 
@@ -143,7 +147,7 @@ function PredictionPanel({ userId }: { userId: string }) {
                   key={p.matchId}
                   className="flex items-center gap-2 bg-white/4 rounded-lg px-3 py-2"
                 >
-                  {/* Teams */}
+                  {/* Home team */}
                   <div className="flex items-center gap-1 flex-1 min-w-0 text-xs text-white/70">
                     <TeamFlag flag={p.homeFlag} name={p.homeTeam} />
                     <span className="truncate">{p.homeTeam}</span>
@@ -151,10 +155,18 @@ function PredictionPanel({ userId }: { userId: string }) {
 
                   {/* Scores */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Actual */}
-                    <span className="text-white/40 text-xs">
-                      {p.actualHome ?? "?"} — {p.actualAway ?? "?"}
-                    </span>
+                    {/* Actual score or status */}
+                    {isLive ? (
+                      <span className="text-red-400 text-[10px] font-bold animate-pulse">
+                        {hasScore ? `${p.actualHome}–${p.actualAway}` : "AO VIVO"}
+                      </span>
+                    ) : hasScore ? (
+                      <span className="text-white/40 text-xs">
+                        {p.actualHome} — {p.actualAway}
+                      </span>
+                    ) : (
+                      <span className="text-white/25 text-[10px]">em breve</span>
+                    )}
                     <span className="text-white/20 text-[10px]">|</span>
                     {/* Prediction */}
                     <span className={cn("text-xs font-mono", isExact ? "text-green-400" : "text-white/60")}>
@@ -163,15 +175,17 @@ function PredictionPanel({ userId }: { userId: string }) {
                     {isExact && <Star className="w-3 h-3 text-green-400 fill-green-400 shrink-0" />}
                   </div>
 
+                  {/* Away team */}
                   <div className="flex items-center gap-1 shrink-0">
-                    {/* Away team */}
                     <span className="text-xs text-white/70 truncate max-w-[4rem]">{p.awayTeam}</span>
                     <TeamFlag flag={p.awayFlag} name={p.awayTeam} />
                   </div>
 
                   {/* Points */}
                   <div className={cn("text-sm font-bold shrink-0 w-8 text-right", pointsColor(p.points))}>
-                    {p.isDoublePoints && p.points > 0 ? (
+                    {!isFinished ? (
+                      <span className="text-white/20 text-[10px]">—</span>
+                    ) : p.isDoublePoints && p.points > 0 ? (
                       <span title="Double Points">{p.points}✦</span>
                     ) : (
                       p.points
@@ -206,11 +220,18 @@ export function RankingTable({
     );
   }
 
+  // Ranking olímpico: empatados compartilham a mesma posição
+  const ranks = data.map((entry) =>
+    data.filter((e) => e.totalPoints > entry.totalPoints).length + 1
+  );
+
   return (
     <div className="space-y-2">
       {data.map((entry, idx) => {
+        const rank = ranks[idx];
         const isMe = entry.id === currentUserId;
-        const podium = PODIUM[idx];
+        const podium = rank <= 3 ? PODIUM[rank - 1] : undefined;
+        const medal = rank <= 3 ? MEDAL[rank - 1] : null;
         const isExpanded = expandedId === entry.id;
 
         return (
@@ -221,7 +242,7 @@ export function RankingTable({
               onClick={() => setExpandedId(isExpanded ? null : entry.id)}
               className={cn(
                 "flex items-center gap-3 p-3 w-full text-left transition-all",
-                isMe && idx >= 3
+                isMe && rank > 3
                   ? "bg-green-500/15 border border-green-500/30"
                   : podium
                     ? podium.row
@@ -231,8 +252,8 @@ export function RankingTable({
             >
               {/* Position */}
               <div className="text-2xl w-8 text-center flex-shrink-0">
-                {MEDAL[idx] ?? (
-                  <span className="text-white/40 font-bold text-sm">{idx + 1}º</span>
+                {medal ?? (
+                  <span className="text-white/40 font-bold text-sm">{rank}º</span>
                 )}
               </div>
 
@@ -295,7 +316,7 @@ export function RankingTable({
                 <div
                   className={cn(
                     "text-right",
-                    isMe && idx >= 3
+                    isMe && rank > 3
                       ? "text-green-400"
                       : podium
                         ? podium.pts

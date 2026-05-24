@@ -95,18 +95,19 @@ export async function GET() {
     change: (prevRankMap.get(u.id) ?? i + 1) - (i + 1),
   }));
 
-  // Badge winners
+  // Badge winners — empates exibem badge para todos os empatados
   const maxStreak = Math.max(...ranked.map((u) => u.streak), 0);
-  const streakWinners = ranked.filter((u) => u.streak === maxStreak && maxStreak > 0);
-  const topStreakId = streakWinners.length === 1 ? streakWinners[0].id : null;
+  const streakWinnerIds = new Set(
+    ranked.filter((u) => u.streak === maxStreak && maxStreak > 0).map((u) => u.id)
+  );
 
   const maxExacts = Math.max(...ranked.map((u) => u.lastRoundExacts), 0);
   const exactWinners = ranked.filter((u) => u.lastRoundExacts === maxExacts && maxExacts > 0);
-  const topExactId = exactWinners.length === 1 ? exactWinners[0].id : null;
+  const exactWinnerIds = new Set(exactWinners.map((u) => u.id));
 
   const maxRise = Math.max(...positionChanges.map((u) => u.change), 0);
   const riseWinners = positionChanges.filter((u) => u.change === maxRise && maxRise > 0);
-  const topRiserId = riseWinners.length === 1 ? riseWinners[0].id : null;
+  const riseWinnerIds = new Set(riseWinners.map((u) => u.id));
 
   const bolaMurchaIds = new Set(
     ranked
@@ -114,22 +115,27 @@ export async function GET() {
       .map((u) => u.id)
   );
 
-  // Highlights
+  // Highlights — empates mostram todos os nomes; só omite se nenhum existir
   const highlights = lastPhase
     ? (() => {
         const maxRoundPts = Math.max(...ranked.map((u) => u.lastRoundPoints), 0);
         const craqueList = ranked.filter((u) => u.lastRoundPoints === maxRoundPts && maxRoundPts > 0);
-        const craque = craqueList.length === 1
-          ? { name: craqueList[0].name, points: maxRoundPts }
+        const craque = craqueList.length > 0
+          ? { name: craqueList.map((u) => u.name).filter(Boolean).join(" e "), points: maxRoundPts }
           : null;
 
-        const reiExatos = topExactId
-          ? { name: ranked.find((u) => u.id === topExactId)!.name, count: maxExacts }
+        const reiExatos = exactWinners.length > 0
+          ? { name: exactWinners.map((u) => u.name).filter(Boolean).join(" e "), count: maxExacts }
           : null;
 
-        const topRiserEntry = topRiserId ? positionChanges.find((u) => u.id === topRiserId) : null;
-        const maiorSubida = topRiserEntry
-          ? { name: ranked.find((u) => u.id === topRiserId)!.name, positions: topRiserEntry.change }
+        const maiorSubida = riseWinners.length > 0
+          ? {
+              name: riseWinners
+                .map((u) => ranked.find((r) => r.id === u.id)?.name)
+                .filter(Boolean)
+                .join(" e "),
+              positions: maxRise,
+            }
           : null;
 
         const bolaMurchaNames = ranked
@@ -146,7 +152,9 @@ export async function GET() {
       })()
     : null;
 
-  const ranking = ranked.map((u, i) => ({
+  const maxPoints = ranked[0]?.totalPoints ?? 0;
+
+  const ranking = ranked.map((u) => ({
     id: u.id,
     name: u.name,
     image: u.image,
@@ -155,10 +163,10 @@ export async function GET() {
     exactScores: u.exactScores,
     correctWinners: u.correctWinners,
     predictions: u.predictions,
-    isLeader: i === 0 && u.totalPoints > 0,
-    isTopStreak: u.id === topStreakId,
-    isTopExact: u.id === topExactId,
-    isTopRiser: u.id === topRiserId,
+    isLeader: maxPoints > 0 && u.totalPoints === maxPoints,
+    isTopStreak: streakWinnerIds.has(u.id),
+    isTopExact: exactWinnerIds.has(u.id),
+    isTopRiser: riseWinnerIds.has(u.id),
     isBolasMurcha: bolaMurchaIds.has(u.id),
   }));
 
