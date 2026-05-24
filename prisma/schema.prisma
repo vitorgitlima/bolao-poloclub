@@ -73,6 +73,11 @@ model Match {
   updatedAt   DateTime     @updatedAt
 }
 
+model Config {
+  key   String @id
+  value String
+}
+
 model Prediction {
   id             String   @id @default(cuid())
   userId         String

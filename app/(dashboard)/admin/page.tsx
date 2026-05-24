@@ -107,6 +107,7 @@ function ManualScoreRow({ match, onSaved }: { match: TestMatch; onSaved: () => v
 export default function AdminPage() {
   const [syncing, setSyncing] = useState<"today" | "all" | null>(null);
   const [result, setResult] = useState<SyncResult | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   const [testDate, setTestDate] = useState(() =>
     new Date().toISOString().slice(0, 10).replace(/-/g, "")
@@ -115,6 +116,14 @@ export default function AdminPage() {
   const [testResult, setTestResult] = useState<TestSyncResult | null>(null);
   const [testMatches, setTestMatches] = useState<TestMatch[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
+
+  const loadLastSync = useCallback(async () => {
+    const res = await fetch("/api/admin/last-sync");
+    if (res.ok) {
+      const data = await res.json();
+      setLastSyncedAt(data.lastSyncedAt ?? null);
+    }
+  }, []);
 
   const loadTestMatches = useCallback(async () => {
     setLoadingMatches(true);
@@ -126,14 +135,16 @@ export default function AdminPage() {
     }
   }, []);
 
-  useEffect(() => { loadTestMatches(); }, [loadTestMatches]);
+  useEffect(() => { loadTestMatches(); loadLastSync(); }, [loadTestMatches, loadLastSync]);
 
   async function handleSync(mode: "today" | "all") {
     setSyncing(mode);
     setResult(null);
     try {
       const res = await fetch(`/api/admin/sync?mode=${mode}`, { method: "POST" });
-      setResult(await res.json());
+      const data = await res.json();
+      setResult(data);
+      if (data.ok) loadLastSync();
     } catch {
       setResult({ ok: false, error: "Erro de conexão" });
     } finally {
@@ -163,7 +174,14 @@ export default function AdminPage() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-black text-white mb-1">⚙️ Painel Admin</h1>
-        <p className="text-white/40 text-sm">Sincronização de resultados via ESPN API</p>
+        <div className="flex items-center gap-3">
+          <p className="text-white/40 text-sm">Sincronização de resultados via ESPN API</p>
+          {lastSyncedAt && (
+            <span className="text-white/25 text-xs">
+              · sync {new Date(lastSyncedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* ESPN API info */}
