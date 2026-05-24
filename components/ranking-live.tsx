@@ -23,9 +23,9 @@ type RankingEntry = {
 
 type Highlights = {
   roundName: string;
-  craque: { name: string | null; points: number } | null;
-  reiExatos: { name: string | null; count: number } | null;
-  maiorSubida: { name: string | null; positions: number } | null;
+  craque: { names: string[]; points: number } | null;
+  reiExatos: { names: string[]; count: number } | null;
+  maiorSubida: { names: string[]; positions: number } | null;
   bolaMurcha: Array<string | null> | null;
 };
 

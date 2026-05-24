@@ -121,19 +121,18 @@ export async function GET() {
         const maxRoundPts = Math.max(...ranked.map((u) => u.lastRoundPoints), 0);
         const craqueList = ranked.filter((u) => u.lastRoundPoints === maxRoundPts && maxRoundPts > 0);
         const craque = craqueList.length > 0
-          ? { name: craqueList.map((u) => u.name).filter(Boolean).join(" e "), points: maxRoundPts }
+          ? { names: craqueList.map((u) => u.name).filter((n): n is string => !!n), points: maxRoundPts }
           : null;
 
         const reiExatos = exactWinners.length > 0
-          ? { name: exactWinners.map((u) => u.name).filter(Boolean).join(" e "), count: maxExacts }
+          ? { names: exactWinners.map((u) => u.name).filter((n): n is string => !!n), count: maxExacts }
           : null;
 
         const maiorSubida = riseWinners.length > 0
           ? {
-              name: riseWinners
+              names: riseWinners
                 .map((u) => ranked.find((r) => r.id === u.id)?.name)
-                .filter(Boolean)
-                .join(" e "),
+                .filter((n): n is string => !!n),
               positions: maxRise,
             }
           : null;

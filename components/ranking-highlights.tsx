@@ -1,8 +1,8 @@
 type Highlights = {
   roundName: string;
-  craque: { name: string | null; points: number } | null;
-  reiExatos: { name: string | null; count: number } | null;
-  maiorSubida: { name: string | null; positions: number } | null;
+  craque: { names: string[]; points: number } | null;
+  reiExatos: { names: string[]; count: number } | null;
+  maiorSubida: { names: string[]; positions: number } | null;
   bolaMurcha: Array<string | null> | null;
 };
 
@@ -13,23 +13,29 @@ function rodadaLabel(phase: string): string {
 function Card({
   icon,
   title,
-  name,
+  names,
   stat,
 }: {
   icon: string;
   title: string;
-  name: string | null;
+  names: string[];
   stat: string;
 }) {
   return (
     <div className="bg-white/8 backdrop-blur-sm rounded-xl p-3 flex items-start gap-2.5 border border-white/15">
       <span className="text-xl leading-none shrink-0 mt-0.5">{icon}</span>
-      <div className="min-w-0">
+      <div className="min-w-0 w-full">
         <p className="text-white/35 text-[10px] uppercase tracking-wider font-semibold leading-none mb-1">
           {title}
         </p>
-        <p className="text-white font-bold text-sm truncate">{name ?? "—"}</p>
-        <p className="text-white/40 text-xs mt-0.5">{stat}</p>
+        <div className="space-y-0.5">
+          {names.map((name, i) => (
+            <p key={i} className="text-white font-bold text-sm leading-snug">
+              {name}
+            </p>
+          ))}
+        </div>
+        <p className="text-white/40 text-xs mt-1">{stat}</p>
       </div>
     </div>
   );
@@ -41,7 +47,7 @@ export function RankingHighlights({ highlights }: { highlights: Highlights }) {
   const hasSomething = craque || reiExatos || maiorSubida || bolaMurcha;
   if (!hasSomething) return null;
 
-  const bolaNomes = bolaMurcha?.filter(Boolean).join(" e ") ?? null;
+  const bolaNomes = (bolaMurcha?.filter(Boolean) as string[]) ?? [];
 
   return (
     <div className="space-y-2">
@@ -53,7 +59,7 @@ export function RankingHighlights({ highlights }: { highlights: Highlights }) {
           <Card
             icon="👑"
             title="Craque da Rodada"
-            name={craque.name}
+            names={craque.names}
             stat={`${craque.points} pts na rodada`}
           />
         )}
@@ -61,23 +67,23 @@ export function RankingHighlights({ highlights }: { highlights: Highlights }) {
           <Card
             icon="🎯"
             title="Rei dos Exatos"
-            name={reiExatos.name}
+            names={reiExatos.names}
             stat={`${reiExatos.count} placar${reiExatos.count !== 1 ? "es" : ""} exato${reiExatos.count !== 1 ? "s" : ""}`}
           />
         )}
         {maiorSubida && (
           <Card
-            icon="📈"
+            icon="🚀"
             title="Maior Subida"
-            name={maiorSubida.name}
+            names={maiorSubida.names}
             stat={`+${maiorSubida.positions} posição${maiorSubida.positions !== 1 ? "s" : ""}`}
           />
         )}
-        {bolaNomes && (
+        {bolaNomes.length > 0 && (
           <Card
             icon="🤡"
             title="Bola Murcha"
-            name={bolaNomes}
+            names={bolaNomes}
             stat="0 pts na rodada"
           />
         )}
