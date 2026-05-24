@@ -108,7 +108,9 @@ export default function AdminPage() {
   const [syncing, setSyncing] = useState<"today" | "all" | null>(null);
   const [result, setResult] = useState<SyncResult | null>(null);
 
-  const [testDate, setTestDate] = useState("20260523");
+  const [testDate, setTestDate] = useState(() =>
+    new Date().toISOString().slice(0, 10).replace(/-/g, "")
+  );
   const [testSyncing, setTestSyncing] = useState(false);
   const [testResult, setTestResult] = useState<TestSyncResult | null>(null);
   const [testMatches, setTestMatches] = useState<TestMatch[]>([]);
