@@ -65,8 +65,21 @@ export async function getEspnMatchesByDate(date: string): Promise<EspnMatch[]> {
 }
 
 export async function getEspnLiveAndToday(): Promise<EspnMatch[]> {
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  return getEspnMatchesByDate(today);
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const yesterdayDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const yesterday = yesterdayDate.toISOString().slice(0, 10).replace(/-/g, "");
+  const [todayMatches, yesterdayMatches] = await Promise.all([
+    getEspnMatchesByDate(today),
+    getEspnMatchesByDate(yesterday),
+  ]);
+  // Deduplica por id (caso ESPN retorne o mesmo jogo nos dois dias)
+  const seen = new Set<string>();
+  return [...todayMatches, ...yesterdayMatches].filter((m) => {
+    if (seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
 }
 
 export async function getEspnBrasileiraoByDate(date: string): Promise<EspnMatch[]> {

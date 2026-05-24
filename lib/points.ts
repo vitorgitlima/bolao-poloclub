@@ -8,15 +8,21 @@ export function calculatePoints(
   actual: { home: number; away: number },
   isDouble: boolean
 ): PointsResult {
-  const exactMatch =
-    predicted.home === actual.home && predicted.away === actual.away;
+  const predHome = Number(predicted.home);
+  const predAway = Number(predicted.away);
+  const actHome = Number(actual.home);
+  const actAway = Number(actual.away);
 
-  const predictedDiff = predicted.home - predicted.away;
-  const actualDiff = actual.home - actual.away;
-  const correctGoalDiff = predictedDiff === actualDiff;
+  const exactMatch = predHome === actHome && predAway === actAway;
 
-  const predictedResult = getResult(predicted.home, predicted.away);
-  const actualResult = getResult(actual.home, actual.away);
+  const predictedDiff = predHome - predAway;
+  const actualDiff = actHome - actAway;
+  // Saldo de gols só se aplica em resultados não empatados (diff ≠ 0)
+  // Empate vs empate diferente é apenas "vencedor certo" (3 pts)
+  const correctGoalDiff = predictedDiff === actualDiff && predictedDiff !== 0;
+
+  const predictedResult = getResult(predHome, predAway);
+  const actualResult = getResult(actHome, actAway);
   const correctWinner = predictedResult === actualResult;
 
   let points = 0;
