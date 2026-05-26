@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { espnNameToPt, type EspnMatch } from "@/lib/espn-api";
+import { espnNameToPt, ESPN_LOGO_MAP, type EspnMatch } from "@/lib/espn-api";
 import { calculatePoints } from "@/lib/points";
 
 export async function processEspnMatches(espnMatches: EspnMatch[]) {
@@ -21,9 +21,18 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     const homeScore = em.homeTeam.score;
     const awayScore = em.awayTeam.score;
 
+    const homeLogoUrl = em.homeTeam.logo ?? ESPN_LOGO_MAP[em.homeTeam.name];
+    const awayLogoUrl = em.awayTeam.logo ?? ESPN_LOGO_MAP[em.awayTeam.name];
+
     await prisma.match.update({
       where: { id: match.id },
-      data: { status, homeScore, awayScore },
+      data: {
+        status,
+        homeScore,
+        awayScore,
+        ...(homeLogoUrl && { homeFlag: homeLogoUrl }),
+        ...(awayLogoUrl && { awayFlag: awayLogoUrl }),
+      },
     });
     updatedMatches++;
 

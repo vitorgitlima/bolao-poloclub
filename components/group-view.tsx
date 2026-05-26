@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { MatchRow } from "@/components/match-row";
 
@@ -116,7 +117,11 @@ export function GroupView({ matches, usedDoubleInPhase, onPredictionSaved }: Gro
                 </td>
                 <td className="py-2">
                   <div className="flex items-center gap-1.5">
-                    <span>{t.flag}</span>
+                    {t.flag.startsWith("http") ? (
+                      <Image src={t.flag} alt={t.team} width={16} height={16} className="object-contain flex-shrink-0" unoptimized />
+                    ) : (
+                      <span>{t.flag}</span>
+                    )}
                     <span className="text-white/80 font-medium truncate max-w-[70px] sm:max-w-[140px]">
                       {t.team}
                     </span>

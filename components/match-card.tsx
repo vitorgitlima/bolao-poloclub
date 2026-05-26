@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { PredictionForm } from "./prediction-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -76,7 +77,11 @@ export function MatchCard({ match, usedDoubleInPhase, onPredictionSaved }: Match
         {/* Times */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex-1 flex flex-col items-center gap-1.5">
-            <span className="text-5xl leading-none drop-shadow-lg">{match.homeFlag}</span>
+            {match.homeFlag.startsWith("http") ? (
+              <Image src={match.homeFlag} alt={match.homeTeam} width={56} height={56} className="object-contain drop-shadow-lg" unoptimized />
+            ) : (
+              <span className="text-5xl leading-none drop-shadow-lg">{match.homeFlag}</span>
+            )}
             <span className="text-white font-bold text-sm text-center leading-tight">
               {match.homeTeam}
             </span>
@@ -101,7 +106,11 @@ export function MatchCard({ match, usedDoubleInPhase, onPredictionSaved }: Match
           </div>
 
           <div className="flex-1 flex flex-col items-center gap-1.5">
-            <span className="text-5xl leading-none drop-shadow-lg">{match.awayFlag}</span>
+            {match.awayFlag.startsWith("http") ? (
+              <Image src={match.awayFlag} alt={match.awayTeam} width={56} height={56} className="object-contain drop-shadow-lg" unoptimized />
+            ) : (
+              <span className="text-5xl leading-none drop-shadow-lg">{match.awayFlag}</span>
+            )}
             <span className="text-white font-bold text-sm text-center leading-tight">
               {match.awayTeam}
             </span>
