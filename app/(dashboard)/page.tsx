@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { GroupView } from "@/components/group-view";
-import { MatchRow } from "@/components/match-row";
+import { MatchList } from "@/components/match-list";
 import { Loader2, Calendar, Target, Star, FlaskConical } from "lucide-react";
 import Link from "next/link";
 
@@ -59,23 +59,68 @@ export default function DashboardPage() {
   const myPredictions = matches.filter((m) => m.predictions.length > 0).length;
   const myPoints = matches.reduce((sum, m) => sum + (m.predictions[0]?.points ?? 0), 0);
 
-  // Progresso por fase — só jogos ainda abertos para palpite
-  const phaseProgress = (() => {
+  // Progresso por fase — agrupa grupos, mostra só o que tem faltando
+  const pendingSummary = (() => {
     const now = Date.now();
-    const map: Record<string, { open: number; predicted: number }> = {};
+    let groupsOpen = 0, groupsPredicted = 0, groupsWithMissing = 0;
+    const knockout: { label: string; open: number; predicted: number }[] = [];
+
+    // Fases eliminatórias em ordem da Copa
+    const KNOCKOUT_ORDER = [
+      "Rodada de 32", "Oitavas de Final", "Quartas de Final",
+      "Semifinal", "Disputa do 3º Lugar", "Final",
+    ];
+    const knockoutMap: Record<string, { open: number; predicted: number }> = {};
+
     for (const m of matches) {
       const isOpen = m.status === "SCHEDULED" && now < new Date(m.date).getTime() - 10 * 60 * 1000;
       if (!isOpen) continue;
-      if (!map[m.phase]) map[m.phase] = { open: 0, predicted: 0 };
-      map[m.phase].open++;
-      if (m.predictions.length > 0) map[m.phase].predicted++;
+      const hasPred = m.predictions.length > 0;
+      if (m.phase.startsWith("Grupo")) {
+        groupsOpen++;
+        if (hasPred) groupsPredicted++;
+        else if (!knockoutMap[m.phase]) groupsWithMissing++;
+      } else {
+        if (!knockoutMap[m.phase]) knockoutMap[m.phase] = { open: 0, predicted: 0 };
+        knockoutMap[m.phase].open++;
+        if (hasPred) knockoutMap[m.phase].predicted++;
+      }
     }
-    return map;
-  })();
 
-  const pendingPhases = Object.entries(phaseProgress)
-    .filter(([, v]) => v.predicted < v.open)
-    .sort(([a], [b]) => a.localeCompare(b, "pt-BR"));
+    // Recount groupsWithMissing properly
+    groupsWithMissing = 0;
+    const groupMap: Record<string, { open: number; predicted: number }> = {};
+    for (const m of matches) {
+      const isOpen = m.status === "SCHEDULED" && now < new Date(m.date).getTime() - 10 * 60 * 1000;
+      if (!isOpen || !m.phase.startsWith("Grupo")) continue;
+      if (!groupMap[m.phase]) groupMap[m.phase] = { open: 0, predicted: 0 };
+      groupMap[m.phase].open++;
+      if (m.predictions.length > 0) groupMap[m.phase].predicted++;
+    }
+    groupsWithMissing = Object.values(groupMap).filter(v => v.predicted < v.open).length;
+
+    for (const phase of KNOCKOUT_ORDER) {
+      if (knockoutMap[phase] && knockoutMap[phase].predicted < knockoutMap[phase].open) {
+        const label = phase
+          .replace("Rodada de ", "R")
+          .replace(" de Final", "")
+          .replace("Disputa do 3º Lugar", "3º Lugar");
+        knockout.push({ label, ...knockoutMap[phase] });
+      }
+    }
+
+    const entries: { label: string; open: number; predicted: number; extra?: string }[] = [];
+    if (groupsOpen > 0 && groupsPredicted < groupsOpen) {
+      entries.push({
+        label: "Grupos",
+        open: groupsOpen,
+        predicted: groupsPredicted,
+        extra: groupsWithMissing > 1 ? `${groupsWithMissing} grupos` : undefined,
+      });
+    }
+    entries.push(...knockout);
+    return entries;
+  })();
 
   const usedDoubleByPhase = matches.reduce<Record<string, boolean>>((acc, m) => {
     if (m.predictions[0]?.isDoublePoints) acc[m.phase] = true;
@@ -116,33 +161,17 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {pendingPhases.length > 0 && (
-        <div className="glass rounded-xl px-4 py-3 border border-yellow-400/20 bg-yellow-400/5 space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-yellow-400 text-base">⚡</span>
-            <p className="text-yellow-300/80 text-sm font-semibold">Palpites em aberto</p>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {pendingPhases.map(([phase, { open, predicted }]) => {
-              const missing = open - predicted;
-              const label = phase.startsWith("Grupo ")
-                ? phase.replace("Grupo ", "G")
-                : phase.replace("Rodada de ", "R").replace(" de Final", "").replace("Disputa do 3º Lugar", "3º Lugar");
-              return (
-                <span
-                  key={phase}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-yellow-400/10 border border-yellow-400/20 text-yellow-300 text-xs"
-                >
-                  <span className="font-bold">{label}</span>
-                  <span className="text-yellow-400/60">·</span>
-                  <span className="text-yellow-400/80">{predicted}/{open}</span>
-                  {missing > 0 && (
-                    <span className="text-yellow-300/50 text-[10px]">({missing} falt.)</span>
-                  )}
-                </span>
-              );
-            })}
-          </div>
+      {pendingSummary.length > 0 && (
+        <div className="glass rounded-xl px-4 py-3 border border-yellow-400/20 bg-yellow-400/5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <span className="text-yellow-400 text-sm font-semibold shrink-0">⚡ Em aberto:</span>
+          {pendingSummary.map((entry) => (
+            <span key={entry.label} className="inline-flex items-center gap-1 text-xs">
+              <span className="font-bold text-yellow-300">{entry.label}</span>
+              <span className="text-yellow-400/50">·</span>
+              <span className="text-yellow-400/70">{entry.predicted}/{entry.open}</span>
+              {entry.extra && <span className="text-yellow-300/40 text-[10px]">({entry.extra})</span>}
+            </span>
+          ))}
         </div>
       )}
 
@@ -226,44 +255,18 @@ export default function DashboardPage() {
 
           {/* Knockout phases */}
           {activePhase !== "grupos" && (
-            <div className="space-y-3">
-              {phaseMatches.length > 0 ? (
-                <>
-                  {/* Progresso da fase */}
-                  {(() => {
-                    const open = phaseMatches.filter(
-                      m => m.status === "SCHEDULED" &&
-                        new Date() < new Date(new Date(m.date).getTime() - 10 * 60 * 1000)
-                    );
-                    const predicted = open.filter(m => m.predictions.length > 0).length;
-                    const missing = open.length - predicted;
-                    if (!open.length) return null;
-                    return (
-                      <p className="text-white/35 text-xs px-1">
-                        <span className="font-semibold text-white/50">{open.length} jogos</span> para palpitar
-                        {predicted > 0 && <> · <span className="text-green-400 font-semibold">{predicted} palpitados</span></>}
-                        {missing > 0 && <> · <span className="text-yellow-400/80 font-semibold">{missing} faltando</span></>}
-                      </p>
-                    );
-                  })()}
-                  <div className="glass-card">
-                    {phaseMatches.map((match) => (
-                      <MatchRow
-                        key={match.id}
-                        match={match}
-                        usedDoubleInPhase={usedDoubleByPhase[match.phase] ?? false}
-                        onSaved={loadMatches}
-                      />
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="glass-card text-center py-16 text-white/30">
-                  <div className="text-5xl mb-3">⚽</div>
-                  <p>Nenhum jogo nesta fase ainda</p>
-                </div>
-              )}
-            </div>
+            phaseMatches.length > 0 ? (
+              <MatchList
+                matches={phaseMatches}
+                usedDoubleInPhase={usedDoubleByPhase[phaseMatches[0]?.phase] ?? false}
+                onPredictionSaved={loadMatches}
+              />
+            ) : (
+              <div className="glass-card text-center py-16 text-white/30">
+                <div className="text-5xl mb-3">⚽</div>
+                <p>Nenhum jogo nesta fase ainda</p>
+              </div>
+            )
           )}
         </>
       )}
