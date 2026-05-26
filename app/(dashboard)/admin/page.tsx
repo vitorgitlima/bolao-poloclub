@@ -159,7 +159,7 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/sync-test?date=${testDate}`, { method: "POST" });
       const data = await res.json();
       setTestResult(data);
-      if (data.ok) loadTestMatches();
+      if (data.ok) { loadTestMatches(); loadLastSync(); }
     } catch {
       setTestResult({ ok: false, error: "Erro de conexão" });
     } finally {
