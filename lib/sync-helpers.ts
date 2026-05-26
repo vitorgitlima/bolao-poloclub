@@ -46,5 +46,15 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     }
   }
 
+  try {
+    await prisma.config.upsert({
+      where: { key: "lastSyncedAt" },
+      update: { value: new Date().toISOString() },
+      create: { key: "lastSyncedAt", value: new Date().toISOString() },
+    });
+  } catch {
+    // Config table may not exist yet in production
+  }
+
   return { updatedMatches, updatedPredictions };
 }
