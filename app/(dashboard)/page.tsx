@@ -197,18 +197,39 @@ export default function DashboardPage() {
 
           {/* Knockout phases */}
           {activePhase !== "grupos" && (
-            <div className="glass-card">
+            <div className="space-y-3">
               {phaseMatches.length > 0 ? (
-                phaseMatches.map((match) => (
-                  <MatchRow
-                    key={match.id}
-                    match={match}
-                    usedDoubleInPhase={usedDoubleByPhase[match.phase] ?? false}
-                    onSaved={loadMatches}
-                  />
-                ))
+                <>
+                  {/* Progresso da fase */}
+                  {(() => {
+                    const open = phaseMatches.filter(
+                      m => m.status === "SCHEDULED" &&
+                        new Date() < new Date(new Date(m.date).getTime() - 10 * 60 * 1000)
+                    );
+                    const predicted = open.filter(m => m.predictions.length > 0).length;
+                    const missing = open.length - predicted;
+                    if (!open.length) return null;
+                    return (
+                      <p className="text-white/35 text-xs px-1">
+                        <span className="font-semibold text-white/50">{open.length} jogos</span> para palpitar
+                        {predicted > 0 && <> · <span className="text-green-400 font-semibold">{predicted} palpitados</span></>}
+                        {missing > 0 && <> · <span className="text-yellow-400/80 font-semibold">{missing} faltando</span></>}
+                      </p>
+                    );
+                  })()}
+                  <div className="glass-card">
+                    {phaseMatches.map((match) => (
+                      <MatchRow
+                        key={match.id}
+                        match={match}
+                        usedDoubleInPhase={usedDoubleByPhase[match.phase] ?? false}
+                        onSaved={loadMatches}
+                      />
+                    ))}
+                  </div>
+                </>
               ) : (
-                <div className="text-center py-16 text-white/30">
+                <div className="glass-card text-center py-16 text-white/30">
                   <div className="text-5xl mb-3">⚽</div>
                   <p>Nenhum jogo nesta fase ainda</p>
                 </div>

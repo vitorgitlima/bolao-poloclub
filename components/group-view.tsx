@@ -1,4 +1,8 @@
+"use client";
+
+import { useState, useCallback } from "react";
 import Image from "next/image";
+import { Loader2, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MatchRow } from "@/components/match-row";
 
@@ -26,50 +30,37 @@ type Match = {
 type TeamStats = {
   team: string;
   flag: string;
-  pj: number;
-  v: number;
-  e: number;
-  d: number;
-  gf: number;
-  gc: number;
-  sg: number;
-  pts: number;
+  pj: number; v: number; e: number; d: number;
+  gf: number; gc: number; sg: number; pts: number;
 };
+
+type PendingEdit = { homeScore: string; awayScore: string; isDouble: boolean };
+
+function canPredict(dateStr: string) {
+  return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
+}
 
 function computeStandings(matches: Match[]): TeamStats[] {
   const teams = new Map<string, Omit<TeamStats, "sg" | "pts">>();
-
   for (const m of matches) {
     if (!teams.has(m.homeTeam))
       teams.set(m.homeTeam, { team: m.homeTeam, flag: m.homeFlag, pj: 0, v: 0, e: 0, d: 0, gf: 0, gc: 0 });
     if (!teams.has(m.awayTeam))
       teams.set(m.awayTeam, { team: m.awayTeam, flag: m.awayFlag, pj: 0, v: 0, e: 0, d: 0, gf: 0, gc: 0 });
   }
-
   for (const m of matches) {
     if (m.status !== "FINISHED" || m.homeScore === null || m.awayScore === null) continue;
     const home = teams.get(m.homeTeam)!;
     const away = teams.get(m.awayTeam)!;
-    home.pj++;
-    away.pj++;
-    home.gf += m.homeScore;
-    home.gc += m.awayScore;
-    away.gf += m.awayScore;
-    away.gc += m.homeScore;
-    if (m.homeScore > m.awayScore) {
-      home.v++;
-      away.d++;
-    } else if (m.homeScore < m.awayScore) {
-      away.v++;
-      home.d++;
-    } else {
-      home.e++;
-      away.e++;
-    }
+    home.pj++; away.pj++;
+    home.gf += m.homeScore; home.gc += m.awayScore;
+    away.gf += m.awayScore; away.gc += m.homeScore;
+    if (m.homeScore > m.awayScore) { home.v++; away.d++; }
+    else if (m.homeScore < m.awayScore) { away.v++; home.d++; }
+    else { home.e++; away.e++; }
   }
-
   return Array.from(teams.values())
-    .map((t) => ({ ...t, sg: t.gf - t.gc, pts: t.v * 3 + t.e }))
+    .map(t => ({ ...t, sg: t.gf - t.gc, pts: t.v * 3 + t.e }))
     .sort((a, b) => b.pts - a.pts || b.sg - a.sg || b.gf - a.gf);
 }
 
@@ -80,11 +71,64 @@ type GroupViewProps = {
 };
 
 export function GroupView({ matches, usedDoubleInPhase, onPredictionSaved }: GroupViewProps) {
+  const [pending, setPending] = useState<Record<string, PendingEdit>>({});
+  const [localDoubleId, setLocalDoubleId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handlePendingChange = useCallback((matchId: string, edit: PendingEdit | null) => {
+    setPending(prev => {
+      if (!edit) { const next = { ...prev }; delete next[matchId]; return next; }
+      return { ...prev, [matchId]: edit };
+    });
+    if (edit?.isDouble) setLocalDoubleId(matchId);
+    else if (!edit?.isDouble && localDoubleId === matchId) setLocalDoubleId(null);
+  }, [localDoubleId]);
+
+  async function saveAll() {
+    const entries = Object.entries(pending);
+    if (!entries.length) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const results = await Promise.all(
+        entries.map(([matchId, edit]) =>
+          fetch("/api/predictions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              matchId,
+              homeScore: parseInt(edit.homeScore),
+              awayScore: parseInt(edit.awayScore),
+              isDoublePoints: edit.isDouble,
+            }),
+          }).then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+        )
+      );
+      const failed = results.filter(r => !r.ok);
+      if (failed.length) {
+        setSaveError(failed[0].data.error ?? "Erro ao salvar alguns palpites");
+      } else {
+        setPending({});
+        setLocalDoubleId(null);
+        onPredictionSaved();
+      }
+    } catch {
+      setSaveError("Erro de conexão");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const standings = computeStandings(matches);
+  const openMatches = matches.filter(m => m.status === "SCHEDULED" && canPredict(m.date));
+  const predictedOpen = openMatches.filter(m => m.predictions.length > 0).length;
+  const pendingCount = Object.values(pending).filter(e => e.homeScore !== "" && e.awayScore !== "").length;
+  const missingCount = openMatches.filter(m => m.predictions.length === 0 && !pending[m.id]).length;
 
   return (
     <div className="space-y-3">
-      {/* Standings table */}
+      {/* Standings */}
       <div className="glass-card overflow-hidden">
         <table className="w-full text-xs">
           <thead>
@@ -103,17 +147,9 @@ export function GroupView({ matches, usedDoubleInPhase, onPredictionSaved }: Gro
           </thead>
           <tbody>
             {standings.map((t, i) => (
-              <tr
-                key={t.team}
-                className={cn(
-                  "border-b border-white/5 last:border-0",
-                  i < 2 && "bg-green-500/5"
-                )}
-              >
+              <tr key={t.team} className={cn("border-b border-white/5 last:border-0", i < 2 && "bg-green-500/5")}>
                 <td className="py-2 pl-3">
-                  <span className={cn("font-bold", i < 2 ? "text-green-400" : "text-white/25")}>
-                    {i + 1}
-                  </span>
+                  <span className={cn("font-bold", i < 2 ? "text-green-400" : "text-white/25")}>{i + 1}</span>
                 </td>
                 <td className="py-2">
                   <div className="flex items-center gap-1.5">
@@ -122,9 +158,7 @@ export function GroupView({ matches, usedDoubleInPhase, onPredictionSaved }: Gro
                     ) : (
                       <span>{t.flag}</span>
                     )}
-                    <span className="text-white/80 font-medium truncate max-w-[70px] sm:max-w-[140px]">
-                      {t.team}
-                    </span>
+                    <span className="text-white/80 font-medium truncate max-w-[70px] sm:max-w-[140px]">{t.team}</span>
                   </div>
                 </td>
                 <td className="text-center text-white/55 py-2">{t.pj}</td>
@@ -133,12 +167,7 @@ export function GroupView({ matches, usedDoubleInPhase, onPredictionSaved }: Gro
                 <td className="text-center text-white/55 py-2">{t.d}</td>
                 <td className="text-center text-white/40 py-2 hidden sm:table-cell">{t.gf}</td>
                 <td className="text-center text-white/40 py-2 hidden sm:table-cell">{t.gc}</td>
-                <td
-                  className={cn(
-                    "text-center py-2 font-medium",
-                    t.sg > 0 ? "text-green-400" : t.sg < 0 ? "text-red-400" : "text-white/40"
-                  )}
-                >
+                <td className={cn("text-center py-2 font-medium", t.sg > 0 ? "text-green-400" : t.sg < 0 ? "text-red-400" : "text-white/40")}>
                   {t.sg > 0 ? `+${t.sg}` : t.sg}
                 </td>
                 <td className="text-center pr-3 py-2">
@@ -156,17 +185,62 @@ export function GroupView({ matches, usedDoubleInPhase, onPredictionSaved }: Gro
         </div>
       </div>
 
+      {/* Progresso da rodada */}
+      {openMatches.length > 0 && (
+        <div className="flex items-center justify-between px-1">
+          <p className="text-white/35 text-xs">
+            <span className="font-semibold text-white/50">{openMatches.length} jogos</span> para palpitar
+            {predictedOpen > 0 && (
+              <> · <span className="text-green-400 font-semibold">{predictedOpen} palpitados</span></>
+            )}
+            {missingCount > 0 && (
+              <> · <span className="text-yellow-400/80 font-semibold">{missingCount} faltando</span></>
+            )}
+          </p>
+          {pendingCount > 0 && (
+            <span className="text-white/30 text-[10px]">{pendingCount} não salvo{pendingCount !== 1 ? 's' : ''}</span>
+          )}
+        </div>
+      )}
+
       {/* Match rows */}
       <div className="glass-card">
-        {matches.map((match) => (
-          <MatchRow
-            key={match.id}
-            match={match}
-            usedDoubleInPhase={usedDoubleInPhase}
-            onSaved={onPredictionSaved}
-          />
-        ))}
+        {matches.map((match) => {
+          const effectiveDoubleUsed =
+            usedDoubleInPhase ||
+            (localDoubleId !== null && localDoubleId !== match.id);
+
+          return (
+            <MatchRow
+              key={`${match.id}-${match.predictions[0]?.isDoublePoints ?? 'x'}`}
+              match={match}
+              usedDoubleInPhase={effectiveDoubleUsed}
+              onSaved={onPredictionSaved}
+              onPendingChange={handlePendingChange}
+            />
+          );
+        })}
       </div>
+
+      {/* Save All */}
+      {pendingCount > 0 && (
+        <div className="space-y-2">
+          {saveError && (
+            <p className="text-red-400 text-xs text-center bg-red-400/10 py-2 rounded-xl">{saveError}</p>
+          )}
+          <button
+            onClick={saveAll}
+            disabled={saving}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-sm transition-all shadow-lg shadow-green-900/40 disabled:opacity-50"
+          >
+            {saving ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</>
+            ) : (
+              <><Save className="w-4 h-4" /> Salvar {pendingCount} palpite{pendingCount !== 1 ? 's' : ''}</>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

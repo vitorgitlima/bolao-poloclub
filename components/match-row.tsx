@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Zap, Save, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -63,6 +63,13 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
   const [awayVal, setAwayVal] = useState(pred?.awayScore?.toString() ?? "");
   const [isDouble, setIsDouble] = useState(pred?.isDoublePoints ?? false);
 
+  // Sync local state when server data changes (e.g. after save + reload)
+  useEffect(() => {
+    setHomeVal(pred?.homeScore?.toString() ?? "");
+    setAwayVal(pred?.awayScore?.toString() ?? "");
+    setIsDouble(pred?.isDoublePoints ?? false);
+  }, [pred?.homeScore, pred?.awayScore, pred?.isDoublePoints]);
+
   function notifyPending(home: string, away: string, dbl: boolean) {
     if (!onPendingChange) return;
     const hasValue = home !== "" && away !== "";
@@ -109,6 +116,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
       }
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
+      onPendingChange?.(match.id, null);
       onSaved();
     } catch {
       setError("Erro de conexão");
