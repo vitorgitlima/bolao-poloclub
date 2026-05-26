@@ -58,12 +58,24 @@ export default function DashboardPage() {
 
   const myPredictions = matches.filter((m) => m.predictions.length > 0).length;
   const myPoints = matches.reduce((sum, m) => sum + (m.predictions[0]?.points ?? 0), 0);
-  const pendingMatches = matches.filter(
-    (m) =>
-      m.status === "SCHEDULED" &&
-      m.predictions.length === 0 &&
-      new Date() < new Date(new Date(m.date).getTime() - 10 * 60 * 1000)
-  ).length;
+
+  // Progresso por fase — só jogos ainda abertos para palpite
+  const phaseProgress = (() => {
+    const now = Date.now();
+    const map: Record<string, { open: number; predicted: number }> = {};
+    for (const m of matches) {
+      const isOpen = m.status === "SCHEDULED" && now < new Date(m.date).getTime() - 10 * 60 * 1000;
+      if (!isOpen) continue;
+      if (!map[m.phase]) map[m.phase] = { open: 0, predicted: 0 };
+      map[m.phase].open++;
+      if (m.predictions.length > 0) map[m.phase].predicted++;
+    }
+    return map;
+  })();
+
+  const pendingPhases = Object.entries(phaseProgress)
+    .filter(([, v]) => v.predicted < v.open)
+    .sort(([a], [b]) => a.localeCompare(b, "pt-BR"));
 
   const usedDoubleByPhase = matches.reduce<Record<string, boolean>>((acc, m) => {
     if (m.predictions[0]?.isDoublePoints) acc[m.phase] = true;
@@ -104,16 +116,33 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {pendingMatches > 0 && (
-        <div className="glass rounded-xl px-4 py-3 flex items-center gap-3 border border-yellow-400/20 bg-yellow-400/5">
-          <span className="text-yellow-400 text-lg">⚡</span>
-          <p className="text-yellow-300/80 text-sm">
-            Você tem{" "}
-            <span className="font-bold text-yellow-300">
-              {pendingMatches} jogo{pendingMatches > 1 ? "s" : ""}
-            </span>{" "}
-            sem palpite!
-          </p>
+      {pendingPhases.length > 0 && (
+        <div className="glass rounded-xl px-4 py-3 border border-yellow-400/20 bg-yellow-400/5 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-yellow-400 text-base">⚡</span>
+            <p className="text-yellow-300/80 text-sm font-semibold">Palpites em aberto</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {pendingPhases.map(([phase, { open, predicted }]) => {
+              const missing = open - predicted;
+              const label = phase.startsWith("Grupo ")
+                ? phase.replace("Grupo ", "G")
+                : phase.replace("Rodada de ", "R").replace(" de Final", "").replace("Disputa do 3º Lugar", "3º Lugar");
+              return (
+                <span
+                  key={phase}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-yellow-400/10 border border-yellow-400/20 text-yellow-300 text-xs"
+                >
+                  <span className="font-bold">{label}</span>
+                  <span className="text-yellow-400/60">·</span>
+                  <span className="text-yellow-400/80">{predicted}/{open}</span>
+                  {missing > 0 && (
+                    <span className="text-yellow-300/50 text-[10px]">({missing} falt.)</span>
+                  )}
+                </span>
+              );
+            })}
+          </div>
         </div>
       )}
 
