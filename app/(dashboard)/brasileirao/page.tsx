@@ -145,7 +145,7 @@ export default function BrasileiraoPage() {
   }
 
   return (
-    <div className="space-y-5 max-w-2xl">
+    <div className="space-y-5 max-w-2xl w-full">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

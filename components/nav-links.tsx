@@ -50,9 +50,9 @@ export function NavLinks({ isAdmin }: Props) {
         <span className="hidden sm:block">Ranking</span>
       </Link>
 
-      <Link href="/brasileirao" className={cn(linkClass("/brasileirao"), "gap-1.5")}>
+      <Link href="/brasileirao" className={cn(linkClass("/brasileirao"), "gap-1")}>
         <FlaskConical className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
-        <span className="whitespace-nowrap text-xs">
+        <span className="hidden sm:inline whitespace-nowrap text-xs">
           Série A{" "}
           <span className="text-[9px] font-bold bg-yellow-400/20 text-yellow-300 px-1 py-0.5 rounded align-middle">
             BETA

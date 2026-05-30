@@ -10,50 +10,35 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!session) redirect("/login");
 
   return (
-    <div className="min-h-screen stadium-bg">
+    <div className="min-h-screen stadium-bg overflow-x-hidden">
       {/* Navbar glassmorphism */}
       <nav className="sticky top-0 z-50 glass border-b border-white/10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <span className="text-2xl group-hover:scale-110 transition-transform">⚽</span>
-            <div>
-              <span className="font-black text-white text-lg leading-none copa-gradient whitespace-nowrap">
-                Bolão da Copa
-              </span>
-              <div className="hidden lg:flex items-center gap-1.5 mt-0.5">
-                <span className="text-white/30 text-xs leading-none whitespace-nowrap">Mundial 2026</span>
-                <div className="flex items-center gap-0.5">
-                  {["us", "mx", "ca"].map((code) => (
-                    <Image
-                      key={code}
-                      src={`https://flagcdn.com/w40/${code}.png`}
-                      alt={code}
-                      width={16}
-                      height={11}
-                      className="rounded-sm opacity-60"
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 flex items-center justify-between gap-2 overflow-hidden">
+          {/* Logo — shrink para não empurrar a nav */}
+          <Link href="/" className="flex items-center gap-1.5 group shrink-0">
+            <span className="text-xl group-hover:scale-110 transition-transform">⚽</span>
+            <span className="font-black text-white text-base leading-none copa-gradient whitespace-nowrap hidden xs:inline">
+              Bolão da Copa
+            </span>
           </Link>
 
-          <div className="flex items-center gap-1">
+          {/* Nav + user — ocupa o espaço restante sem vazar */}
+          <div className="flex items-center gap-1 min-w-0 overflow-hidden">
             <NavLinks
               isAdmin={process.env.ADMIN_EMAILS?.split(",").map(e => e.trim()).includes(session.user?.email ?? "") ?? false}
             />
 
-            <div className="flex items-center gap-2 ml-2 pl-3 border-l border-white/10">
+            <div className="flex items-center gap-1.5 ml-1.5 pl-2 border-l border-white/10 shrink-0">
               {session.user?.image && (
                 <Image
                   src={session.user.image}
                   alt={session.user.name ?? ""}
-                  width={32}
-                  height={32}
-                  className="rounded-full ring-2 ring-white/20"
+                  width={28}
+                  height={28}
+                  className="rounded-full ring-2 ring-white/20 shrink-0"
                 />
               )}
-              <span className="hidden sm:block text-sm text-white/70 font-medium truncate max-w-[100px]">
+              <span className="hidden md:block text-sm text-white/70 font-medium truncate max-w-[80px]">
                 {session.user?.name?.split(" ")[0]}
               </span>
               <form
@@ -64,7 +49,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               >
                 <button
                   type="submit"
-                  className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                  className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all shrink-0"
                   title="Sair"
                 >
                   <LogOut className="w-4 h-4" />
@@ -75,7 +60,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </nav>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 pb-10">{children}</main>
+      <main className="max-w-4xl mx-auto px-3 sm:px-4 py-6 pb-10 w-full">{children}</main>
       <footer className="text-center text-white/20 text-xs pb-6">
         Built by <span className="text-white/40 font-medium">SatoshiStandard</span>
       </footer>
