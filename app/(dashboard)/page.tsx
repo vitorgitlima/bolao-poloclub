@@ -205,6 +205,26 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
+          {/* Aviso Copa em breve + link Brasileirão */}
+          <div className="space-y-2">
+            <div className="glass-card p-4 flex items-center gap-4">
+              <div className="text-3xl shrink-0">🏆</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-bold text-sm">Copa do Mundo 2026</p>
+                <p className="text-white/40 text-xs mt-0.5">Os palpites abrem em <span className="text-white/70 font-semibold">11 de Junho</span> — fique de olho!</p>
+              </div>
+            </div>
+            <Link href="/brasileirao" className="block">
+              <div className="glass rounded-xl px-4 py-3 border border-yellow-400/20 bg-yellow-400/5 flex items-center gap-3 hover:bg-yellow-400/10 transition-all">
+                <FlaskConical className="w-4 h-4 text-yellow-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-yellow-300 font-semibold text-sm">Teste agora no Brasileirão Série A</p>
+                  <p className="text-yellow-300/50 text-xs">Palpites reais, ranking e double points já funcionando →</p>
+                </div>
+              </div>
+            </Link>
+          </div>
+
           {/* Phase tabs */}
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
             {PHASE_TABS.map((tab) => (
