@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { MatchRow } from "@/components/match-row";
-import { Loader2, Target, Star, Save, CheckCircle } from "lucide-react";
+import { Loader2, Target, Star, Save, CheckCircle, ChevronDown } from "lucide-react";
 
 type Prediction = {
   homeScore: number;
@@ -30,6 +30,12 @@ function rodadaLabel(phase: string): string {
   return phase.replace(/^🧪\s*/, "");
 }
 
+function rodadaNumber(phase: string): number {
+  // "🧪 Rodada 17" → 17 (para ordenar; sem número vai pro fim)
+  const m = phase.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : -1;
+}
+
 type PendingEdit = { homeScore: string; awayScore: string; isDouble: boolean };
 
 export default function BrasileiraoPage() {
@@ -38,6 +44,9 @@ export default function BrasileiraoPage() {
   const [pendingEdits, setPendingEdits] = useState<Record<string, PendingEdit>>({});
   const [savingAll, setSavingAll] = useState(false);
   const [saveAllResult, setSaveAllResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
+  const [roundMenuOpen, setRoundMenuOpen] = useState(false);
+  const roundMenuRef = useRef<HTMLDivElement>(null);
 
   const loadMatches = useCallback(async () => {
     const res = await fetch("/api/matches");
@@ -89,14 +98,35 @@ export default function BrasileiraoPage() {
 
   useEffect(() => { loadMatches(); }, [loadMatches]);
 
+  // Rodadas disponíveis, da mais recente para a mais antiga (18, 17, ...)
+  const phases = Array.from(new Set(matches.map((m) => m.phase))).sort(
+    (a, b) => rodadaNumber(b) - rodadaNumber(a)
+  );
+
+  // Fecha o dropdown ao clicar fora
+  useEffect(() => {
+    if (!roundMenuOpen) return;
+    function onClick(e: MouseEvent) {
+      if (roundMenuRef.current && !roundMenuRef.current.contains(e.target as Node)) {
+        setRoundMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [roundMenuOpen]);
+
+  const activePhase = selectedPhase && phases.includes(selectedPhase) ? selectedPhase : phases[0] ?? null;
+  const roundMatches = activePhase ? matches.filter((m) => m.phase === activePhase) : [];
+
   const usedDoubleByPhase = matches.reduce<Record<string, boolean>>((acc, m) => {
     if (m.predictions[0]?.isDoublePoints) acc[m.phase] = true;
     return acc;
   }, {});
 
-  const myPredictions = matches.filter((m) => m.predictions.length > 0).length;
-  const myPoints = matches.reduce((sum, m) => sum + (m.predictions[0]?.points ?? 0), 0);
-  const pendingMatches = matches.filter(
+  // Stats da rodada selecionada
+  const myPredictions = roundMatches.filter((m) => m.predictions.length > 0).length;
+  const myPoints = roundMatches.reduce((sum, m) => sum + (m.predictions[0]?.points ?? 0), 0);
+  const pendingMatches = roundMatches.filter(
     (m) =>
       m.status === "SCHEDULED" &&
       m.predictions.length === 0 &&
@@ -171,34 +201,72 @@ export default function BrasileiraoPage() {
         <span>🔒 Apostas fecham <strong className="text-white/90">10min</strong> antes do jogo</span>
       </div>
 
-      {/* Rodadas */}
+      {/* Seletor de rodada */}
+      {phases.length > 0 && activePhase && (
+        <div ref={roundMenuRef} className="relative">
+          <button
+            onClick={() => setRoundMenuOpen((o) => !o)}
+            className="w-full flex items-center justify-between gap-2 glass-card px-4 py-3 text-left hover:bg-white/5 transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <span className="text-white/40 text-xs uppercase tracking-wider font-semibold">
+                Rodada
+              </span>
+              <span className="text-white font-bold text-sm">
+                {rodadaLabel(activePhase).replace(/^Rodada\s*/i, "")}
+                {activePhase === phases[0] && (
+                  <span className="ml-2 text-[10px] font-bold bg-green-500/20 text-green-300 border border-green-500/30 px-1.5 py-0.5 rounded-full align-middle">
+                    ATUAL
+                  </span>
+                )}
+              </span>
+            </span>
+            <ChevronDown
+              className={`w-4 h-4 text-white/40 transition-transform ${roundMenuOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+
+          {roundMenuOpen && (
+            <div className="absolute z-30 mt-1 w-full glass-card overflow-hidden p-1 shadow-2xl shadow-black/50">
+              {phases.map((phase, i) => (
+                <button
+                  key={phase}
+                  onClick={() => { setSelectedPhase(phase); setRoundMenuOpen(false); }}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-left transition-colors ${
+                    phase === activePhase
+                      ? "bg-green-500/15 text-green-300 font-bold"
+                      : "text-white/70 hover:bg-white/5"
+                  }`}
+                >
+                  <span>{rodadaLabel(phase)}</span>
+                  {i === 0 && (
+                    <span className="text-[10px] font-bold text-green-300/70">atual</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Jogos da rodada selecionada */}
       {matches.length === 0 ? (
         <div className="text-center py-16 text-white/30">
           <div className="text-5xl mb-3">🇧🇷</div>
           <p>Nenhum jogo disponível</p>
         </div>
       ) : (
-        Array.from(new Set(matches.map((m) => m.phase))).map((rodada) => {
-          const rodadaMatches = matches.filter((m) => m.phase === rodada);
-          return (
-            <div key={rodada}>
-              <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-2 px-1">
-                {rodadaLabel(rodada)}
-              </p>
-              <div className="glass-card">
-                {rodadaMatches.map((match) => (
-                  <MatchRow
-                    key={match.id}
-                    match={match}
-                    usedDoubleInPhase={usedDoubleByPhase[match.phase] ?? false}
-                    onSaved={loadMatches}
-                    onPendingChange={handlePendingChange}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })
+        <div className="glass-card">
+          {roundMatches.map((match) => (
+            <MatchRow
+              key={match.id}
+              match={match}
+              usedDoubleInPhase={usedDoubleByPhase[match.phase] ?? false}
+              onSaved={loadMatches}
+              onPendingChange={handlePendingChange}
+            />
+          ))}
+        </div>
       )}
 
       <p className="text-center text-white/20 text-xs pt-2">
