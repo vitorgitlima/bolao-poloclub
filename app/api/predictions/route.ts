@@ -28,12 +28,16 @@ export async function POST(req: NextRequest) {
 
   if (
     !matchId ||
-    homeScore === undefined ||
-    awayScore === undefined ||
+    typeof homeScore !== "number" ||
+    typeof awayScore !== "number" ||
+    !Number.isInteger(homeScore) ||
+    !Number.isInteger(awayScore) ||
     homeScore < 0 ||
-    awayScore < 0
+    awayScore < 0 ||
+    homeScore > 99 ||
+    awayScore > 99
   ) {
-    return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+    return NextResponse.json({ error: "Placar inválido" }, { status: 400 });
   }
 
   const match = await prisma.match.findUnique({ where: { id: matchId } });

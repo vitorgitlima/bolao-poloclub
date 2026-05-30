@@ -36,6 +36,8 @@ export function PredictionForm({
 }: PredictionFormProps) {
   const [homeScore, setHomeScore] = useState(existingPrediction?.homeScore?.toString() ?? "");
   const [awayScore, setAwayScore] = useState(existingPrediction?.awayScore?.toString() ?? "");
+
+  function onlyDigits(v: string) { return v.replace(/\D/g, "").slice(0, 2); }
   const [isDouble, setIsDouble] = useState(existingPrediction?.isDoublePoints ?? false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,11 +78,12 @@ export function PredictionForm({
         <div className="flex-1 text-center">
           <div className="text-xs text-white/40 mb-1.5">{match.homeTeam}</div>
           <input
-            type="number"
-            min="0"
-            max="99"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={2}
             value={homeScore}
-            onChange={(e) => setHomeScore(e.target.value)}
+            onChange={(e) => setHomeScore(onlyDigits(e.target.value))}
             className="score-input w-full"
             placeholder="0"
           />
@@ -89,11 +92,12 @@ export function PredictionForm({
         <div className="flex-1 text-center">
           <div className="text-xs text-white/40 mb-1.5">{match.awayTeam}</div>
           <input
-            type="number"
-            min="0"
-            max="99"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={2}
             value={awayScore}
-            onChange={(e) => setAwayScore(e.target.value)}
+            onChange={(e) => setAwayScore(onlyDigits(e.target.value))}
             className="score-input w-full"
             placeholder="0"
           />

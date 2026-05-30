@@ -57,6 +57,11 @@ function canPredict(dateStr: string): boolean {
   return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
 }
 
+// Mantém apenas dígitos (0-9), no máximo 2 — placar nunca passa de 99.
+function onlyDigits(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 2);
+}
+
 export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }: MatchRowProps) {
   const pred = match.predictions[0];
   const [homeVal, setHomeVal] = useState(pred?.homeScore?.toString() ?? "");
@@ -153,21 +158,23 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
           {isPredictable ? (
             <>
               <input
-                type="number"
-                min="0"
-                max="99"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={2}
                 value={homeVal}
-                onChange={(e) => { setHomeVal(e.target.value); notifyPending(e.target.value, awayVal, isDouble); }}
+                onChange={(e) => { const v = onlyDigits(e.target.value); setHomeVal(v); notifyPending(v, awayVal, isDouble); }}
                 onKeyDown={(e) => e.key === "Enter" && handleSave()}
                 className="w-8 h-8 bg-white/10 border border-white/20 rounded-lg text-white text-center text-sm font-bold focus:outline-none focus:border-green-400/60 focus:bg-white/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <span className="text-white/25 text-xs font-bold">×</span>
               <input
-                type="number"
-                min="0"
-                max="99"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={2}
                 value={awayVal}
-                onChange={(e) => { setAwayVal(e.target.value); notifyPending(homeVal, e.target.value, isDouble); }}
+                onChange={(e) => { const v = onlyDigits(e.target.value); setAwayVal(v); notifyPending(homeVal, v, isDouble); }}
                 onKeyDown={(e) => e.key === "Enter" && handleSave()}
                 className="w-8 h-8 bg-white/10 border border-white/20 rounded-lg text-white text-center text-sm font-bold focus:outline-none focus:border-green-400/60 focus:bg-white/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />

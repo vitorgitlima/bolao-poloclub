@@ -24,7 +24,15 @@ export async function POST(req: NextRequest) {
 
   // Validate all scores
   for (const p of predictions) {
-    if (!p.matchId || p.homeScore === undefined || p.awayScore === undefined || p.homeScore < 0 || p.awayScore < 0) {
+    if (
+      !p.matchId ||
+      typeof p.homeScore !== "number" ||
+      typeof p.awayScore !== "number" ||
+      !Number.isInteger(p.homeScore) ||
+      !Number.isInteger(p.awayScore) ||
+      p.homeScore < 0 || p.awayScore < 0 ||
+      p.homeScore > 99 || p.awayScore > 99
+    ) {
       return NextResponse.json({ error: "Placar inválido em um dos jogos" }, { status: 400 });
     }
   }
