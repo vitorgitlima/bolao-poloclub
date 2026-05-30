@@ -16,6 +16,19 @@ export async function GET() {
   });
   const lastPhase = lastFinished?.phase ?? null;
 
+  // Fase 🧪 mais recente (para contagem de palpites da rodada atual)
+  const allTestPhases = await prisma.match.findMany({
+    where: { phase: { startsWith: "🧪" } },
+    select: { phase: true },
+    distinct: ["phase"],
+  });
+  const currentPhase = allTestPhases
+    .map((m) => m.phase)
+    .sort((a, b) => {
+      const num = (s: string) => parseInt(s.match(/(\d+)/)?.[1] ?? "0", 10);
+      return num(b) - num(a);
+    })[0] ?? null;
+
   const users = await prisma.user.findMany({
     include: {
       predictions: {
@@ -71,7 +84,9 @@ export async function GET() {
       totalPoints,
       exactScores,
       correctWinners,
-      predictions: user._count.predictions,
+      predictions: currentPhase
+        ? user.predictions.filter((p) => p.match.phase === currentPhase).length
+        : user._count.predictions,
       lastRoundPoints,
       lastRoundExacts,
       hadLastRoundPred,
