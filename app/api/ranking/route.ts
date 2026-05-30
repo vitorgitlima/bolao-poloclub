@@ -49,8 +49,6 @@ export async function GET() {
     const lastRoundExacts = lastRoundPreds.filter((p) =>
       p.isDoublePoints ? (p.points ?? 0) === 12 : (p.points ?? 0) === 6
     ).length;
-    // hadLastRoundPred: participou da rodada (qualquer palpite, mesmo não pontuado ainda)
-    // hadLastRoundScoredPred: tem ao menos um palpite já avaliado na rodada
     const hadLastRoundPred = lastRoundAllPreds.length > 0;
     const hadLastRoundScoredPred = lastRoundPreds.length > 0;
 
@@ -69,6 +67,7 @@ export async function GET() {
       name: user.name,
       image: user.image,
       isContributor: user.isContributor,
+      isDeveloper: user.isDeveloper,
       totalPoints,
       exactScores,
       correctWinners,
@@ -81,13 +80,18 @@ export async function GET() {
     };
   });
 
-  // Current ranking
-  const ranked = [...usersWithStats].sort((a, b) => b.totalPoints - a.totalPoints);
+  // Ranking competitivo: exclui developers do cálculo de posições e badges
+  const ranked = [...usersWithStats]
+    .filter((u) => !u.isDeveloper)
+    .sort((a, b) => b.totalPoints - a.totalPoints);
 
-  // Previous ranking (without last round) for position change
-  const prevRanked = [...usersWithStats].sort(
-    (a, b) => (b.totalPoints - b.lastRoundPoints) - (a.totalPoints - a.lastRoundPoints)
-  );
+  // Lista completa ordenada por pontos (developers intercalados visualmente)
+  const allSorted = [...usersWithStats].sort((a, b) => b.totalPoints - a.totalPoints);
+
+  // Previous ranking (without last round) for position change — só não-devs
+  const prevRanked = [...usersWithStats]
+    .filter((u) => !u.isDeveloper)
+    .sort((a, b) => (b.totalPoints - b.lastRoundPoints) - (a.totalPoints - a.lastRoundPoints));
   const prevRankMap = new Map(prevRanked.map((u, i) => [u.id, i + 1]));
 
   const positionChanges = ranked.map((u, i) => ({
@@ -95,7 +99,7 @@ export async function GET() {
     change: (prevRankMap.get(u.id) ?? i + 1) - (i + 1),
   }));
 
-  // Badge winners — empates exibem badge para todos os empatados
+  // Badge winners — apenas entre não-devs
   const maxStreak = Math.max(...ranked.map((u) => u.streak), 0);
   const streakWinnerIds = new Set(
     ranked.filter((u) => u.streak === maxStreak && maxStreak > 0).map((u) => u.id)
@@ -115,7 +119,7 @@ export async function GET() {
       .map((u) => u.id)
   );
 
-  // Highlights — empates mostram todos os nomes; só omite se nenhum existir
+  // Highlights — baseado só nos não-devs
   const highlights = lastPhase
     ? (() => {
         const maxRoundPts = Math.max(...ranked.map((u) => u.lastRoundPoints), 0);
@@ -153,16 +157,18 @@ export async function GET() {
 
   const maxPoints = ranked[0]?.totalPoints ?? 0;
 
-  const ranking = ranked.map((u) => ({
+  // Monta ranking final: todos ordenados por pontos, posições calculadas sem devs
+  const ranking = allSorted.map((u) => ({
     id: u.id,
     name: u.name,
     image: u.image,
     isContributor: u.isContributor,
+    isDeveloper: u.isDeveloper,
     totalPoints: u.totalPoints,
     exactScores: u.exactScores,
     correctWinners: u.correctWinners,
     predictions: u.predictions,
-    isLeader: maxPoints > 0 && u.totalPoints === maxPoints,
+    isLeader: !u.isDeveloper && maxPoints > 0 && u.totalPoints === maxPoints,
     isTopStreak: streakWinnerIds.has(u.id),
     isTopExact: exactWinnerIds.has(u.id),
     isTopRiser: riseWinnerIds.has(u.id),

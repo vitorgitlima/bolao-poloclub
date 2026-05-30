@@ -17,6 +17,7 @@ model User {
   sessions      Session[]
   predictions   Prediction[]
   isContributor Boolean      @default(false)
+  isDeveloper   Boolean      @default(false)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 }

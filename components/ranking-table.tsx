@@ -10,6 +10,7 @@ type RankingEntry = {
   name: string | null;
   image: string | null;
   isContributor: boolean;
+  isDeveloper: boolean;
   totalPoints: number;
   exactScores: number;
   correctWinners: number;
@@ -220,18 +221,19 @@ export function RankingTable({
     );
   }
 
-  // Ranking olímpico: empatados compartilham a mesma posição
-  const ranks = data.map((entry) =>
-    data.filter((e) => e.totalPoints > entry.totalPoints).length + 1
-  );
+  // Ranking olímpico excluindo developers — devs não afetam posições dos outros
+  const ranks = data.map((entry) => {
+    if (entry.isDeveloper) return null;
+    return data.filter((e) => !e.isDeveloper && e.totalPoints > entry.totalPoints).length + 1;
+  });
 
   return (
     <div className="space-y-2">
       {data.map((entry, idx) => {
         const rank = ranks[idx];
         const isMe = entry.id === currentUserId;
-        const podium = rank <= 3 ? PODIUM[rank - 1] : undefined;
-        const medal = rank <= 3 ? MEDAL[rank - 1] : null;
+        const podium = rank !== null && rank <= 3 ? PODIUM[rank - 1] : undefined;
+        const medal = rank !== null && rank <= 3 ? MEDAL[rank - 1] : null;
         const isExpanded = expandedId === entry.id;
 
         return (
@@ -242,17 +244,21 @@ export function RankingTable({
               onClick={() => setExpandedId(isExpanded ? null : entry.id)}
               className={cn(
                 "flex items-center gap-3 p-3 w-full text-left transition-all",
-                isMe && rank > 3
-                  ? "bg-green-500/15 border border-green-500/30"
-                  : podium
-                    ? podium.row
-                    : "bg-white/4 border border-white/8 hover:bg-white/7",
+                entry.isDeveloper
+                  ? "bg-white/4 border border-white/8 hover:bg-white/7 opacity-75"
+                  : isMe && rank !== null && rank > 3
+                    ? "bg-green-500/15 border border-green-500/30"
+                    : podium
+                      ? podium.row
+                      : "bg-white/4 border border-white/8 hover:bg-white/7",
                 isExpanded && "rounded-b-none border-b-0"
               )}
             >
               {/* Position */}
               <div className="text-2xl w-8 text-center flex-shrink-0">
-                {medal ?? (
+                {entry.isDeveloper ? (
+                  <span title="Developer — fora do ranking">🛠️</span>
+                ) : medal ?? (
                   <span className="text-white/40 font-bold text-sm">{rank}º</span>
                 )}
               </div>
@@ -287,6 +293,11 @@ export function RankingTable({
                     {entry.isTopExact && <span title="Rei dos exatos" className="text-sm leading-none">🎯</span>}
                     {entry.isTopRiser && <span title="Maior subida" className="text-sm leading-none">📈</span>}
                     {entry.isBolasMurcha && <span title="Bola Murcha da rodada" className="text-sm leading-none">🤡</span>}
+                    {entry.isDeveloper && (
+                      <span className="text-[9px] font-bold bg-blue-500/25 text-blue-200 border border-blue-400/40 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                        🛠️ Developer
+                      </span>
+                    )}
                     {entry.isContributor && (
                       <span className="text-[9px] font-bold bg-purple-500/25 text-purple-200 border border-purple-400/40 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
                         ✦ Contribuidor
@@ -316,11 +327,13 @@ export function RankingTable({
                 <div
                   className={cn(
                     "text-right",
-                    isMe && rank > 3
-                      ? "text-green-400"
-                      : podium
-                        ? podium.pts
-                        : "text-white"
+                    entry.isDeveloper
+                      ? "text-white/40"
+                      : isMe && rank !== null && rank > 3
+                        ? "text-green-400"
+                        : podium
+                          ? podium.pts
+                          : "text-white"
                   )}
                 >
                   <div className="text-2xl font-black leading-none">{entry.totalPoints}</div>
@@ -337,15 +350,17 @@ export function RankingTable({
               <div
                 className={cn(
                   "px-3 pt-2 pb-3 border border-t-0 rounded-b-xl",
-                  isMe && idx >= 3
-                    ? "bg-green-500/8 border-green-500/30"
-                    : podium
-                      ? podium.row.includes("yellow")
-                        ? "bg-yellow-400/6 border-yellow-400/30"
-                        : podium.row.includes("slate")
-                          ? "bg-slate-300/6 border-slate-300/25"
-                          : "bg-amber-700/6 border-amber-600/25"
-                      : "bg-white/2 border-white/8"
+                  entry.isDeveloper
+                    ? "bg-white/2 border-white/8"
+                    : isMe && idx >= 3
+                      ? "bg-green-500/8 border-green-500/30"
+                      : podium
+                        ? podium.row.includes("yellow")
+                          ? "bg-yellow-400/6 border-yellow-400/30"
+                          : podium.row.includes("slate")
+                            ? "bg-slate-300/6 border-slate-300/25"
+                            : "bg-amber-700/6 border-amber-600/25"
+                        : "bg-white/2 border-white/8"
                 )}
               >
                 <PredictionPanel userId={entry.id} />

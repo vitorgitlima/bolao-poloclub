@@ -10,6 +10,7 @@ type RankingEntry = {
   name: string | null;
   image: string | null;
   isContributor: boolean;
+  isDeveloper: boolean;
   totalPoints: number;
   exactScores: number;
   correctWinners: number;
@@ -58,8 +59,9 @@ export function RankingLive({ userId }: { userId?: string }) {
   }, [fetchRanking]);
 
   const me = ranking.find((r) => r.id === userId);
-  const myPosition = me
-    ? ranking.filter((r) => r.totalPoints > me.totalPoints).length + 1
+  // Posição calculada excluindo outros developers (rank competitivo)
+  const myPosition = me && !me.isDeveloper
+    ? ranking.filter((r) => !r.isDeveloper && r.totalPoints > me.totalPoints).length + 1
     : 0;
 
   return (
@@ -73,7 +75,11 @@ export function RankingLive({ userId }: { userId?: string }) {
           <div className="flex-1">
             <h1 className="text-2xl font-black text-white">Ranking</h1>
             <p className="text-white/40 text-sm">
-              {myPosition > 0 ? `Você está em ${myPosition}º lugar` : "Faça palpites para aparecer!"}
+              {me?.isDeveloper
+                ? "🛠️ Modo desenvolvedor — fora do ranking"
+                : myPosition > 0
+                  ? `Você está em ${myPosition}º lugar`
+                  : "Faça palpites para aparecer!"}
             </p>
           </div>
           <div className="text-right">
