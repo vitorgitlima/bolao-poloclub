@@ -76,7 +76,7 @@ export function RankingLive({ userId }: { userId?: string }) {
             <h1 className="text-2xl font-black text-white">Ranking</h1>
             <p className="text-white/40 text-sm">
               {me?.isDeveloper
-                ? "🛠️ Modo desenvolvedor — fora do ranking"
+                ? "⚙️ Modo desenvolvedor — fora do ranking"
                 : myPosition > 0
                   ? `Você está em ${myPosition}º lugar`
                   : "Faça palpites para aparecer!"}

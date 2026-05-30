@@ -257,7 +257,7 @@ export function RankingTable({
               {/* Position */}
               <div className="text-2xl w-8 text-center flex-shrink-0">
                 {entry.isDeveloper ? (
-                  <span title="Developer — fora do ranking">🛠️</span>
+                  <span title="Developer — fora do ranking">⚙️</span>
                 ) : medal ?? (
                   <span className="text-white/40 font-bold text-sm">{rank}º</span>
                 )}
@@ -295,7 +295,7 @@ export function RankingTable({
                     {entry.isBolasMurcha && <span title="Bola Murcha da rodada" className="text-sm leading-none">🤡</span>}
                     {entry.isDeveloper && (
                       <span className="text-[9px] font-bold bg-blue-500/25 text-blue-200 border border-blue-400/40 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
-                        🛠️ Developer
+                        ⚙️ Developer
                       </span>
                     )}
                     {entry.isContributor && (
