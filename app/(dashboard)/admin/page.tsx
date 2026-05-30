@@ -116,6 +116,7 @@ export default function AdminPage() {
   const [testResult, setTestResult] = useState<TestSyncResult | null>(null);
   const [testMatches, setTestMatches] = useState<TestMatch[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
+  const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
 
   const loadLastSync = useCallback(async () => {
     const res = await fetch("/api/admin/last-sync");
@@ -167,8 +168,14 @@ export default function AdminPage() {
     }
   }
 
-  // Group test matches dynamically by phase
-  const phases = Array.from(new Set(testMatches.map((m) => m.phase)));
+  // Fases ordenadas da mais recente para a mais antiga
+  const phases = Array.from(new Set(testMatches.map((m) => m.phase))).sort((a, b) => {
+    const num = (s: string) => parseInt(s.match(/(\d+)/)?.[1] ?? "0", 10);
+    return num(b) - num(a);
+  });
+  // Default: fase mais recente
+  const activePhase = selectedPhase && phases.includes(selectedPhase) ? selectedPhase : phases[0] ?? null;
+  const activeMatches = activePhase ? testMatches.filter((m) => m.phase === activePhase) : [];
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -312,44 +319,55 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Tabela de jogos de teste com placar manual */}
+        {/* Dropdown de rodada + tabela de jogos */}
         <div className="space-y-3">
           {loadingMatches ? (
             <div className="flex items-center justify-center py-6 text-white/30 text-sm gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Carregando jogos de teste...
+              <Loader2 className="w-4 h-4 animate-spin" /> Carregando jogos...
             </div>
           ) : testMatches.length === 0 ? (
             <div className="text-center py-6 text-white/30 text-sm">
               <div className="text-2xl mb-1">🧪</div>
               <p>Nenhum jogo de teste no banco.</p>
-              <code className="text-xs text-yellow-400/60 mt-1 block">bun run prisma/seed-brasileirao-test.ts</code>
+              <code className="text-xs text-yellow-400/60 mt-1 block">bun run prisma/seed-brasileirao-r18.ts</code>
             </div>
           ) : (
-            phases.map((phase) => {
-              const phaseMatches = testMatches.filter((m) => m.phase === phase);
-              const label = phase.replace(/^🧪\s*/, "");
-              // Suggest date from first match in phase
-              const dateSuggestion = new Date(phaseMatches[0].date)
-                .toISOString().slice(0, 10).replace(/-/g, "");
-              return (
-                <div key={phase}>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-white/40 text-[10px] uppercase tracking-wider">{label}</span>
-                    <button
-                      onClick={() => setTestDate(dateSuggestion)}
-                      className="text-yellow-400/50 text-[10px] hover:text-yellow-400 transition-colors"
-                    >
-                      ← usar esta data
-                    </button>
-                  </div>
-                  <div className="bg-white/5 rounded-xl overflow-hidden">
-                    {phaseMatches.map((m) => (
-                      <ManualScoreRow key={m.id} match={m} onSaved={loadTestMatches} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })
+            <>
+              {/* Seletor de rodada */}
+              <div className="flex items-center gap-2">
+                <span className="text-white/40 text-[10px] uppercase tracking-wider shrink-0">Rodada</span>
+                <select
+                  value={activePhase ?? ""}
+                  onChange={(e) => setSelectedPhase(e.target.value)}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-400/40"
+                >
+                  {phases.map((phase, i) => (
+                    <option key={phase} value={phase} className="bg-slate-900">
+                      {phase.replace(/^🧪\s*/, "")}{i === 0 ? " (atual)" : ""}
+                    </option>
+                  ))}
+                </select>
+                {activeMatches[0] && (
+                  <button
+                    onClick={() =>
+                      setTestDate(
+                        new Date(activeMatches[0].date).toISOString().slice(0, 10).replace(/-/g, "")
+                      )
+                    }
+                    className="text-yellow-400/50 text-[10px] hover:text-yellow-400 transition-colors whitespace-nowrap"
+                  >
+                    ← usar data
+                  </button>
+                )}
+              </div>
+
+              {/* Jogos da rodada selecionada */}
+              <div className="bg-white/5 rounded-xl overflow-hidden">
+                {activeMatches.map((m) => (
+                  <ManualScoreRow key={m.id} match={m} onSaved={loadTestMatches} />
+                ))}
+              </div>
+            </>
           )}
         </div>
 

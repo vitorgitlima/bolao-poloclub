@@ -10,13 +10,28 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
 
-  // Exibe palpites de qualquer jogo cujas apostas já fecharam (10min antes do início)
+  // Determina a fase 🧪 mais recente (maior número de rodada)
+  const allPhases = await prisma.match.findMany({
+    where: { phase: { startsWith: "🧪" } },
+    select: { phase: true },
+    distinct: ["phase"],
+  });
+  const currentPhase = allPhases
+    .map((m) => m.phase)
+    .sort((a, b) => {
+      const num = (s: string) => parseInt(s.match(/(\d+)/)?.[1] ?? "0", 10);
+      return num(b) - num(a);
+    })[0] ?? null;
+
+  if (!currentPhase) return NextResponse.json([]);
+
+  // Exibe palpites da rodada atual cujas apostas já fecharam (10min antes do início)
   const lockCutoff = new Date(Date.now() + 10 * 60 * 1000);
 
   const predictions = await prisma.prediction.findMany({
     where: {
       userId: id,
-      match: { date: { lte: lockCutoff } },
+      match: { phase: currentPhase, date: { lte: lockCutoff } },
     },
     include: {
       match: {
