@@ -16,10 +16,33 @@ model User {
   accounts      Account[]
   sessions      Session[]
   predictions   Prediction[]
-  isContributor Boolean      @default(false)
-  isDeveloper   Boolean      @default(false)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  isContributor     Boolean        @default(false)
+  isDeveloper       Boolean        @default(false)
+  ownedLeagues      League[]       @relation("LeagueOwner")
+  leagueMemberships LeagueMember[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model League {
+  id         String         @id @default(cuid())
+  name       String
+  inviteCode String         @unique @default(cuid())
+  ownerId    String
+  owner      User           @relation("LeagueOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members    LeagueMember[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model LeagueMember {
+  leagueId String
+  userId   String
+  league   League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+
+  @@id([leagueId, userId])
 }
 
 model Account {
