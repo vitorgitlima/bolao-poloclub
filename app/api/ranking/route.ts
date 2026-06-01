@@ -8,6 +8,9 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await computeRanking(); // todos os usuários
-  return NextResponse.json(result);
+  const result = await computeRanking();
+  return NextResponse.json({
+    ...result,
+    ranking: result.ranking.filter((u) => !u.isDeveloper),
+  });
 }
