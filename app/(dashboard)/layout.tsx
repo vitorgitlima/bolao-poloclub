@@ -40,12 +40,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </Link>
 
           {/* Nav + user — ocupa o espaço restante sem vazar */}
-          <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-            <NavLinks
-              isAdmin={process.env.ADMIN_EMAILS?.split(",").map(e => e.trim()).includes(session.user?.email ?? "") ?? false}
-            />
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+              <NavLinks
+                isAdmin={process.env.ADMIN_EMAILS?.split(",").map(e => e.trim()).includes(session.user?.email ?? "") ?? false}
+              />
+            </div>
 
-            <div className="flex items-center gap-1.5 ml-1.5 pl-2 border-l border-white/10 shrink-0">
+            <div className="flex items-center gap-1.5 pl-2 border-l border-white/10 shrink-0">
               {session.user?.image && (
                 <Image
                   src={session.user.image}
