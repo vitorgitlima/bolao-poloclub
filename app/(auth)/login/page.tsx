@@ -1,6 +1,12 @@
 import { signIn } from "@/lib/auth";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
+  const { callbackUrl } = await searchParams;
+  const redirectTo = callbackUrl ?? "/brasileirao";
   return (
     <div className="min-h-screen stadium-bg flex items-center justify-center p-4">
       {/* Noise overlay */}
@@ -47,7 +53,7 @@ export default function LoginPage() {
           <form
             action={async () => {
               "use server";
-              await signIn("google");
+              await signIn("google", { redirectTo });
             }}
           >
             <button
