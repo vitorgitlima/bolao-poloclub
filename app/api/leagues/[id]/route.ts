@@ -5,6 +5,8 @@ import { randomUUID } from "crypto";
 
 type Params = { params: Promise<{ id: string }> };
 
+const MAX_DESCRIPTION_LENGTH = 280;
+
 export async function GET(_req: NextRequest, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -32,6 +34,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   return NextResponse.json({
     id: league.id,
     name: league.name,
+    description: league.description,
     inviteCode: league.inviteCode,
     isOwner: league.ownerId === session.user.id,
     owner: league.owner,
@@ -59,7 +62,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (league.ownerId !== session.user.id) return NextResponse.json({ error: "Apenas o dono pode editar" }, { status: 403 });
 
   const body = await req.json();
-  const data: { name?: string; inviteCode?: string } = {};
+  const data: { name?: string; description?: string | null; inviteCode?: string } = {};
 
   if (body.name !== undefined) {
     if (typeof body.name !== "string" || body.name.trim().length < 2 || body.name.trim().length > 50) {
@@ -68,12 +71,22 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     data.name = body.name.trim();
   }
 
+  if (body.description !== undefined) {
+    if (body.description === null || body.description === "") {
+      data.description = null;
+    } else if (typeof body.description !== "string" || body.description.trim().length > MAX_DESCRIPTION_LENGTH) {
+      return NextResponse.json({ error: `Descrição deve ter no máximo ${MAX_DESCRIPTION_LENGTH} caracteres` }, { status: 400 });
+    } else {
+      data.description = body.description.trim();
+    }
+  }
+
   if (body.regenerateCode) {
     data.inviteCode = randomUUID();
   }
 
   const updated = await prisma.league.update({ where: { id }, data });
-  return NextResponse.json({ id: updated.id, name: updated.name, inviteCode: updated.inviteCode });
+  return NextResponse.json({ id: updated.id, name: updated.name, description: updated.description, inviteCode: updated.inviteCode });
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {

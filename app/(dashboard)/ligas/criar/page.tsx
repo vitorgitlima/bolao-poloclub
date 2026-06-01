@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Users, Loader2 } from "lucide-react";
 
+const MAX_DESCRIPTION = 280;
+
 export default function CriarLigaPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +23,7 @@ export default function CriarLigaPage() {
       const res = await fetch("/api/leagues", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, description: description.trim() || null }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Erro ao criar liga"); return; }
@@ -33,7 +36,7 @@ export default function CriarLigaPage() {
   }
 
   return (
-    <div className="max-w-md w-full space-y-5">
+    <div className="max-w-md w-full mx-auto space-y-5">
       <div className="flex items-center gap-3">
         <Link href="/ligas" className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all">
           <ArrowLeft className="w-5 h-5" />
@@ -65,6 +68,23 @@ export default function CriarLigaPage() {
             autoFocus
           />
           <p className="text-white/25 text-xs mt-1.5 text-right">{name.length}/50</p>
+        </div>
+
+        <div>
+          <label className="block text-white/60 text-xs uppercase tracking-wider font-semibold mb-2">
+            Descrição <span className="normal-case text-white/30 font-normal">(opcional)</span>
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Ex: Grupo do zap: wa.me/... · Prêmio: R$50 por rodada"
+            maxLength={MAX_DESCRIPTION}
+            rows={3}
+            className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-white placeholder:text-white/25 focus:outline-none focus:border-blue-400/50 text-sm resize-none leading-relaxed"
+          />
+          <p className={`text-xs mt-1.5 text-right ${description.length > MAX_DESCRIPTION * 0.9 ? "text-yellow-400/60" : "text-white/25"}`}>
+            {description.length}/{MAX_DESCRIPTION}
+          </p>
         </div>
 
         {error && (

@@ -7,11 +7,13 @@ import Link from "next/link";
 import {
   ArrowLeft, Users, Crown, Copy, Check, Loader2,
   Settings, Trash2, LogOut, RefreshCw, Trophy,
-  UserPlus, Search, X,
+  UserPlus, Search, X, Bell,
 } from "lucide-react";
 import { RankingTable } from "@/components/ranking-table";
 import { RankingHighlights } from "@/components/ranking-highlights";
 import { cn } from "@/lib/utils";
+
+const MAX_DESCRIPTION = 280;
 
 type Member = {
   userId: string;
@@ -22,9 +24,18 @@ type Member = {
   joinedAt: string;
 };
 
+type JoinRequest = {
+  id: string;
+  userId: string;
+  name: string | null;
+  image: string | null;
+  createdAt: string;
+};
+
 type LeagueDetail = {
   id: string;
   name: string;
+  description: string | null;
   inviteCode: string;
   isOwner: boolean;
   owner: { id: string; name: string | null; image: string | null };
@@ -50,6 +61,15 @@ type Highlights = {
 
 type UserResult = { id: string; name: string | null; image: string | null };
 
+function OwnerBadge() {
+  return (
+    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-400/30 px-1.5 py-0.5 rounded-full shrink-0">
+      <Crown className="w-2.5 h-2.5" />
+      Dono
+    </span>
+  );
+}
+
 export default function LeaguePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -58,6 +78,7 @@ export default function LeaguePage() {
   const [league, setLeague] = useState<LeagueDetail | null>(null);
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [highlights, setHighlights] = useState<Highlights | null>(null);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [activeTab, setActiveTab] = useState<"ranking" | "membros">("ranking");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,11 +88,15 @@ export default function LeaguePage() {
   // Settings
   const [showSettings, setShowSettings] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
 
   // Remove member
   const [removingId, setRemovingId] = useState<string | null>(null);
+
+  // Join request actions
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
 
   // Invite existing user
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,6 +117,7 @@ export default function LeaguePage() {
       const data: LeagueDetail = await leagueRes.json();
       setLeague(data);
       setEditName(data.name);
+      setEditDescription(data.description ?? "");
       if (rankingRes.ok) {
         const r = await rankingRes.json();
         setRanking(r.ranking ?? []);
@@ -101,10 +127,19 @@ export default function LeaguePage() {
     finally { setLoading(false); }
   }, [id]);
 
+  const fetchJoinRequests = useCallback(async () => {
+    const res = await fetch(`/api/leagues/${id}/join-requests`);
+    if (res.ok) setJoinRequests(await res.json());
+  }, [id]);
+
   useEffect(() => {
     fetchLeague();
     fetch("/api/auth/session").then(r => r.json()).then(s => setCurrentUserId(s?.user?.id));
   }, [fetchLeague]);
+
+  useEffect(() => {
+    if (league?.isOwner) fetchJoinRequests();
+  }, [league?.isOwner, fetchJoinRequests]);
 
   // Busca usuários com debounce
   useEffect(() => {
@@ -126,18 +161,24 @@ export default function LeaguePage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  async function handleSaveName() {
-    if (!league || !editName.trim() || editName.trim() === league.name) return;
+  async function handleSave() {
+    if (!league) return;
+    const nameChanged = editName.trim() !== league.name && editName.trim().length >= 2;
+    const descChanged = editDescription.trim() !== (league.description ?? "");
+    if (!nameChanged && !descChanged) return;
     setSaving(true); setSettingsError(null);
     try {
+      const body: Record<string, string | null> = {};
+      if (nameChanged) body.name = editName.trim();
+      if (descChanged) body.description = editDescription.trim() || null;
       const res = await fetch(`/api/leagues/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) { setSettingsError(data.error); return; }
-      setLeague((l) => l ? { ...l, name: data.name } : l);
+      setLeague((l) => l ? { ...l, name: data.name, description: data.description } : l);
     } catch { setSettingsError("Erro de conexão"); }
     finally { setSaving(false); }
   }
@@ -197,6 +238,23 @@ export default function LeaguePage() {
     finally { setAddingId(null); }
   }
 
+  async function handleJoinRequest(requestId: string, action: "approve" | "reject") {
+    setProcessingRequestId(requestId);
+    try {
+      const res = await fetch(`/api/leagues/${id}/join-requests/${requestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        setJoinRequests((prev) => prev.filter((r) => r.id !== requestId));
+        if (action === "approve") fetchLeague();
+      }
+    } finally {
+      setProcessingRequestId(null);
+    }
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center py-24">
       <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
@@ -204,7 +262,7 @@ export default function LeaguePage() {
   );
 
   if (error || !league) return (
-    <div className="glass-card p-8 text-center space-y-3 max-w-sm w-full">
+    <div className="glass-card p-8 text-center space-y-3 max-w-sm w-full mx-auto">
       <p className="text-white/60">{error ?? "Liga não encontrada."}</p>
       <Link href="/ligas" className="text-blue-400 text-sm hover:underline">← Voltar para Ligas</Link>
     </div>
@@ -214,8 +272,12 @@ export default function LeaguePage() {
     ? `${window.location.origin}/ligas/entrar/${league.inviteCode}`
     : `/ligas/entrar/${league.inviteCode}`;
 
+  const saveDisabled = saving
+    || (editName.trim() === league.name && editDescription.trim() === (league.description ?? ""))
+    || editName.trim().length < 2;
+
   return (
-    <div className="space-y-4 max-w-2xl w-full">
+    <div className="space-y-4 max-w-2xl w-full mx-auto">
 
       {/* Header */}
       <div className="flex items-center gap-2">
@@ -225,11 +287,7 @@ export default function LeaguePage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-lg sm:text-xl font-black text-white truncate">{league.name}</h1>
-            {league.isOwner && (
-              <span className="text-[9px] font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-400/30 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0">
-                <Crown className="w-2.5 h-2.5" /> Dono
-              </span>
-            )}
+            {league.isOwner && <OwnerBadge />}
           </div>
           <p className="text-white/40 text-xs">{league.members.length} membro{league.members.length !== 1 ? "s" : ""}</p>
         </div>
@@ -256,31 +314,53 @@ export default function LeaguePage() {
         </div>
       </div>
 
+      {/* Description */}
+      {league.description && (
+        <div className="glass-card px-4 py-3 text-sm text-white/55 leading-relaxed">
+          {league.description}
+        </div>
+      )}
+
       {/* Settings panel */}
       {showSettings && league.isOwner && (
         <div className="glass-card p-4 space-y-4 border border-white/10">
           <p className="text-white/50 text-[10px] uppercase tracking-wider font-semibold">Configurações</p>
 
-          {/* Rename */}
-          <div>
-            <p className="text-white/40 text-xs mb-1.5">Nome da liga</p>
-            <div className="flex gap-2">
+          {/* Name + Description */}
+          <div className="space-y-3">
+            <div>
+              <p className="text-white/40 text-xs mb-1.5">Nome da liga</p>
               <input
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 maxLength={50}
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-400/40 min-w-0"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-400/40"
               />
-              <button
-                onClick={handleSaveName}
-                disabled={saving || editName.trim() === league.name || editName.trim().length < 2}
-                className="px-3 py-2 bg-blue-600/40 hover:bg-blue-600 text-blue-200 text-sm rounded-lg transition-all disabled:opacity-40 shrink-0"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-              </button>
             </div>
-            {settingsError && <p className="text-red-400 text-xs mt-1">{settingsError}</p>}
+            <div>
+              <p className="text-white/40 text-xs mb-1.5">Descrição <span className="text-white/20">(opcional · {MAX_DESCRIPTION} chars)</span></p>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                maxLength={MAX_DESCRIPTION}
+                rows={2}
+                placeholder="Grupo do zap, prêmios, regras..."
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-400/40 resize-none leading-relaxed placeholder:text-white/20"
+              />
+              <p className={`text-right text-[10px] mt-0.5 ${editDescription.length > MAX_DESCRIPTION * 0.9 ? "text-yellow-400/60" : "text-white/20"}`}>
+                {editDescription.length}/{MAX_DESCRIPTION}
+              </p>
+            </div>
+            <button
+              onClick={handleSave}
+              disabled={saveDisabled}
+              className="px-4 py-2 bg-blue-600/40 hover:bg-blue-600 text-blue-200 text-sm rounded-lg transition-all disabled:opacity-40 flex items-center gap-2"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Salvar alterações
+            </button>
+            {settingsError && <p className="text-red-400 text-xs">{settingsError}</p>}
           </div>
 
           {/* Invite link */}
@@ -394,6 +474,12 @@ export default function LeaguePage() {
           <Users className="w-3.5 h-3.5" />
           Membros
           <span className="text-[10px] opacity-70">({league.members.length})</span>
+          {joinRequests.length > 0 && (
+            <span className="flex items-center gap-0.5 text-[9px] font-bold bg-yellow-500/25 text-yellow-300 border border-yellow-400/30 px-1 py-0.5 rounded-full">
+              <Bell className="w-2.5 h-2.5" />
+              {joinRequests.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -421,50 +507,90 @@ export default function LeaguePage() {
 
       {/* Tab: Membros */}
       {activeTab === "membros" && (
-        <div className="glass-card p-4 space-y-2">
-          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Users className="w-3.5 h-3.5" />
-            Membros ({league.members.length}/50)
-          </h2>
-          {league.members.map((member) => {
-            const isOwner = member.userId === league.owner.id;
-            const isMe = member.userId === currentUserId;
-            return (
-              <div key={member.userId} className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl",
-                isMe ? "bg-green-500/10 border border-green-500/20" : "bg-white/4"
-              )}>
-                {member.image ? (
-                  <Image src={member.image} alt="" width={32} height={32} className="rounded-full ring-1 ring-white/10 shrink-0" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 font-bold text-xs shrink-0">
-                    {member.name?.[0]?.toUpperCase() ?? "?"}
+        <div className="space-y-2">
+          {/* Join requests (owner only) */}
+          {league.isOwner && joinRequests.length > 0 && (
+            <div className="glass-card p-4 space-y-3 border border-yellow-400/20 bg-yellow-400/5">
+              <h2 className="text-xs font-semibold text-yellow-300/70 uppercase tracking-wider flex items-center gap-2">
+                <Bell className="w-3.5 h-3.5" />
+                Solicitações pendentes ({joinRequests.length})
+              </h2>
+              {joinRequests.map((req) => (
+                <div key={req.id} className="flex items-center gap-3">
+                  {req.image ? (
+                    <Image src={req.image} alt="" width={32} height={32} className="rounded-full ring-1 ring-white/10 shrink-0" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 font-bold text-xs shrink-0">
+                      {req.name?.[0]?.toUpperCase() ?? "?"}
+                    </div>
+                  )}
+                  <span className="flex-1 text-white/80 text-sm truncate min-w-0">{req.name ?? "Anônimo"}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleJoinRequest(req.id, "approve")}
+                      disabled={processingRequestId === req.id}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-green-500/20 text-green-300 hover:bg-green-500/30 border border-green-400/20 transition-all disabled:opacity-50"
+                    >
+                      {processingRequestId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Aprovar"}
+                    </button>
+                    <button
+                      onClick={() => handleJoinRequest(req.id, "reject")}
+                      disabled={processingRequestId === req.id}
+                      className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-400/10 transition-all disabled:opacity-50"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-white text-sm font-medium truncate">{member.name ?? "Anônimo"}</span>
-                    {isMe && <span className="text-[10px] text-green-400">(você)</span>}
-                    {isOwner && <Crown className="w-3 h-3 text-yellow-400 shrink-0" />}
-                    {member.isContributor && (
-                      <span className="text-[9px] font-bold bg-purple-500/20 text-purple-200 border border-purple-400/30 px-1 py-0.5 rounded-full shrink-0">✦</span>
-                    )}
-                  </div>
-                  <p className="text-white/30 text-[10px]">entrou {new Date(member.joinedAt).toLocaleDateString("pt-BR")}</p>
                 </div>
-                {league.isOwner && !isOwner && (
-                  <button
-                    onClick={() => handleRemoveMember(member.userId, member.name)}
-                    disabled={removingId === member.userId}
-                    className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0"
-                    title="Remover"
-                  >
-                    {removingId === member.userId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-                  </button>
-                )}
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          )}
+
+          <div className="glass-card p-4 space-y-2">
+            <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Users className="w-3.5 h-3.5" />
+              Membros ({league.members.length}/50)
+            </h2>
+            {league.members.map((member) => {
+              const isOwner = member.userId === league.owner.id;
+              const isMe = member.userId === currentUserId;
+              return (
+                <div key={member.userId} className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl",
+                  isMe ? "bg-green-500/10 border border-green-500/20" : "bg-white/4"
+                )}>
+                  {member.image ? (
+                    <Image src={member.image} alt="" width={32} height={32} className="rounded-full ring-1 ring-white/10 shrink-0" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 font-bold text-xs shrink-0">
+                      {member.name?.[0]?.toUpperCase() ?? "?"}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-white text-sm font-medium truncate">{member.name ?? "Anônimo"}</span>
+                      {isMe && <span className="text-[10px] text-green-400">(você)</span>}
+                      {isOwner && <OwnerBadge />}
+                      {member.isContributor && (
+                        <span className="text-[9px] font-bold bg-purple-500/20 text-purple-200 border border-purple-400/30 px-1 py-0.5 rounded-full shrink-0">✦</span>
+                      )}
+                    </div>
+                    <p className="text-white/30 text-[10px]">entrou {new Date(member.joinedAt).toLocaleDateString("pt-BR")}</p>
+                  </div>
+                  {league.isOwner && !isOwner && (
+                    <button
+                      onClick={() => handleRemoveMember(member.userId, member.name)}
+                      disabled={removingId === member.userId}
+                      className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0"
+                      title="Remover"
+                    >
+                      {removingId === member.userId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

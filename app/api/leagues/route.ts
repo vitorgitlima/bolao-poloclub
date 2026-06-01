@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 const MAX_OWNED_LEAGUES = 5;
+const MAX_DESCRIPTION_LENGTH = 280;
 
 export async function GET() {
   const session = await auth();
@@ -28,9 +29,11 @@ export async function GET() {
     leagues.map((l) => ({
       id: l.id,
       name: l.name,
+      description: l.description,
       inviteCode: l.inviteCode,
       isOwner: l.ownerId === session.user.id,
       ownerName: l.owner.name,
+      ownerImage: l.owner.image,
       memberCount: l._count.members,
       createdAt: l.createdAt,
     }))
@@ -43,9 +46,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { name } = await req.json();
+  const { name, description } = await req.json();
   if (!name || typeof name !== "string" || name.trim().length < 2 || name.trim().length > 50) {
     return NextResponse.json({ error: "Nome da liga deve ter entre 2 e 50 caracteres" }, { status: 400 });
+  }
+  if (description !== undefined && description !== null) {
+    if (typeof description !== "string" || description.trim().length > MAX_DESCRIPTION_LENGTH) {
+      return NextResponse.json({ error: `Descrição deve ter no máximo ${MAX_DESCRIPTION_LENGTH} caracteres` }, { status: 400 });
+    }
   }
 
   const ownedCount = await prisma.league.count({ where: { ownerId: session.user.id } });
@@ -56,6 +64,7 @@ export async function POST(req: NextRequest) {
   const league = await prisma.league.create({
     data: {
       name: name.trim(),
+      description: description?.trim() || null,
       ownerId: session.user.id,
       members: { create: { userId: session.user.id } },
     },

@@ -10,6 +10,10 @@
   --yellow-copa: #fbbf24;
 }
 
+@theme {
+  --breakpoint-xs: 30rem; /* 480px — telas maiores que celular pequeno */
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

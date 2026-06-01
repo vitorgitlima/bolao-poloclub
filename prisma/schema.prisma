@@ -18,21 +18,24 @@ model User {
   predictions   Prediction[]
   isContributor     Boolean        @default(false)
   isDeveloper       Boolean        @default(false)
-  ownedLeagues      League[]       @relation("LeagueOwner")
+  ownedLeagues      League[]            @relation("LeagueOwner")
   leagueMemberships LeagueMember[]
+  joinRequests      LeagueJoinRequest[]
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 }
 
 model League {
-  id         String         @id @default(cuid())
-  name       String
-  inviteCode String         @unique @default(cuid())
-  ownerId    String
-  owner      User           @relation("LeagueOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members    LeagueMember[]
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  id           String               @id @default(cuid())
+  name         String
+  description  String?
+  inviteCode   String               @unique @default(cuid())
+  ownerId      String
+  owner        User                 @relation("LeagueOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members      LeagueMember[]
+  joinRequests LeagueJoinRequest[]
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
 }
 
 model LeagueMember {
@@ -43,6 +46,18 @@ model LeagueMember {
   joinedAt DateTime @default(now())
 
   @@id([leagueId, userId])
+}
+
+model LeagueJoinRequest {
+  id        String   @id @default(cuid())
+  leagueId  String
+  userId    String
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  league    League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([leagueId, userId])
 }
 
 model Account {
