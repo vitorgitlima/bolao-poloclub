@@ -11,7 +11,7 @@
 }
 
 @theme {
-  --breakpoint-xs: 30rem; /* 480px — telas maiores que celular pequeno */
+  --breakpoint-xs: 30rem;
 }
 
 @theme inline {

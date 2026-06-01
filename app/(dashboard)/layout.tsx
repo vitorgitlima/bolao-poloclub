@@ -21,7 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <span className="font-black text-white text-base leading-none copa-gradient whitespace-nowrap block">
                 Bolão da Copa
               </span>
-              <div className="hidden sm:flex items-center gap-1.5 mt-0.5">
+              <div className="hidden lg:flex items-center gap-1.5 mt-0.5">
                 <span className="text-white/30 text-xs leading-none whitespace-nowrap">Mundial 2026</span>
                 <div className="flex items-center gap-0.5">
                   {["us", "mx", "ca"].map((code) => (
@@ -49,7 +49,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               {session.user?.image && (
                 <Image
                   src={session.user.image}
-                  alt={session.user.name ?? ""}
+                  alt=""
                   width={28}
                   height={28}
                   className="rounded-full ring-2 ring-white/20 shrink-0"
