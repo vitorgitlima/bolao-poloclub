@@ -13,8 +13,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="min-h-screen stadium-bg overflow-x-hidden">
       {/* Navbar glassmorphism */}
       <nav className="sticky top-0 z-50 glass border-b border-white/10">
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 flex items-center justify-between gap-2 overflow-hidden">
-          {/* Logo — shrink para não empurrar a nav */}
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 flex items-center justify-between gap-3">
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-1.5 group shrink-0">
             <span className="text-xl group-hover:scale-110 transition-transform">⚽</span>
             <div className="hidden xs:block">
@@ -39,15 +39,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </div>
           </Link>
 
-          {/* Nav + user — ocupa o espaço restante sem vazar */}
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-              <NavLinks
-                isAdmin={process.env.ADMIN_EMAILS?.split(",").map(e => e.trim()).includes(session.user?.email ?? "") ?? false}
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5 pl-2 border-l border-white/10 shrink-0">
+          {/* Nav + user */}
+          <div className="flex items-center gap-1">
+            <NavLinks
+              isAdmin={process.env.ADMIN_EMAILS?.split(",").map(e => e.trim()).includes(session.user?.email ?? "") ?? false}
+            />
+            <div className="flex items-center gap-1.5 ml-1.5 pl-2 border-l border-white/10 shrink-0">
               {session.user?.image && (
                 <Image
                   src={session.user.image}
