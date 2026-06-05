@@ -50,9 +50,6 @@ export default async function SerieABetaPage() {
         <h1 className="text-3xl font-black text-white">
           Hall da Fama Série A Beta
         </h1>
-        <p className="text-white/40 text-sm max-w-sm mx-auto">
-          Ranking final do beta teste — pontuação congelada.
-        </p>
       </div>
 
       {/* Pódio top 3 */}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Trophy, Home, Settings, FlaskConical, BookOpen, Users } from "lucide-react";
+import { Trophy, Home, Settings, BookOpen, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = { isAdmin: boolean };
@@ -53,11 +53,6 @@ export function NavLinks({ isAdmin }: Props) {
       <Link href="/ligas" className={linkClass("/ligas")}>
         <Users className="w-4 h-4" />
         <span className="hidden sm:block">Ligas</span>
-      </Link>
-
-      <Link href="/serie-a-beta" className={cn(linkClass("/serie-a-beta"), "gap-1")}>
-        <FlaskConical className="w-3.5 h-3.5 text-yellow-400/70 shrink-0" />
-        <span className="hidden sm:inline whitespace-nowrap text-xs">Série A</span>
       </Link>
 
       {isAdmin && (
