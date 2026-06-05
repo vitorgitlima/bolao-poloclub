@@ -11,6 +11,8 @@ type RankingEntry = {
   image: string | null;
   isContributor: boolean;
   isDeveloper: boolean;
+  betaRank: number | null;
+  isBetaTester: boolean;
   totalPoints: number;
   exactScores: number;
   correctWinners: number;

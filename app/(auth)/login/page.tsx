@@ -90,7 +90,7 @@ export default async function LoginPage({
         </div>
 
         <p className="text-center text-white/20 text-xs mt-6">
-          Bolão da Copa do Mundo 2026 · Polo Club Oficial
+          Bolão da Copa do Mundo 2026
         </p>
         <p className="text-center text-white/15 text-xs mt-1">
           Built by <span className="text-white/25 font-medium">SatoshiStandard</span>

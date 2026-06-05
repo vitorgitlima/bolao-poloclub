@@ -6,6 +6,8 @@ export type RankingUser = {
   image: string | null;
   isContributor: boolean;
   isDeveloper: boolean;
+  betaRank: number | null;
+  isBetaTester: boolean;
   totalPoints: number;
   exactScores: number;
   correctWinners: number;
@@ -33,7 +35,7 @@ export type RankingResult = {
 // Calcula ranking para um conjunto de userIds (undefined = todos os usuários)
 export async function computeRanking(filterUserIds?: string[]): Promise<RankingResult> {
   const lastFinished = await prisma.match.findFirst({
-    where: { status: "FINISHED" },
+    where: { status: "FINISHED", NOT: { phase: { startsWith: "🧪" } } },
     orderBy: { date: "desc" },
     select: { phase: true },
   });
@@ -62,7 +64,10 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
   });
 
   const usersWithStats = users.map((user) => {
-    const scored = user.predictions.filter((p) => p.points !== null);
+    // Apenas Copa (exclui fases 🧪 do ranking competitivo)
+    const scored = user.predictions.filter(
+      (p) => p.points !== null && !p.match.phase.startsWith("🧪")
+    );
     const totalPoints = scored.reduce((s, p) => s + (p.points ?? 0), 0);
 
     const exactScores = scored.filter((p) =>
@@ -101,6 +106,8 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       image: user.image,
       isContributor: user.isContributor,
       isDeveloper: user.isDeveloper,
+      betaRank: user.betaRank,
+      isBetaTester: user.isBetaTester,
       totalPoints,
       exactScores,
       correctWinners,
@@ -188,6 +195,8 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     image: u.image,
     isContributor: u.isContributor,
     isDeveloper: u.isDeveloper,
+    betaRank: u.betaRank,
+    isBetaTester: u.isBetaTester,
     totalPoints: u.totalPoints,
     exactScores: u.exactScores,
     correctWinners: u.correctWinners,

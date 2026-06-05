@@ -18,6 +18,9 @@ model User {
   predictions   Prediction[]
   isContributor     Boolean        @default(false)
   isDeveloper       Boolean        @default(false)
+  betaRank          Int?
+  isBetaTester      Boolean        @default(false)
+  betaRankEntry     BetaRankingEntry?
   ownedLeagues      League[]            @relation("LeagueOwner")
   leagueMemberships LeagueMember[]
   joinRequests      LeagueJoinRequest[]
@@ -115,6 +118,18 @@ model Match {
 model Config {
   key   String @id
   value String
+}
+
+model BetaRankingEntry {
+  id             String   @id @default(cuid())
+  rank           Int
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalPoints    Int
+  exactScores    Int
+  correctWinners Int
+  predictions    Int
+  createdAt      DateTime @default(now())
 }
 
 model Prediction {

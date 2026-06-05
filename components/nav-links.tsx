@@ -55,12 +55,12 @@ export function NavLinks({ isAdmin }: Props) {
         <span className="hidden sm:block">Ligas</span>
       </Link>
 
-      <Link href="/brasileirao" className={cn(linkClass("/brasileirao"), "gap-1")}>
-        <FlaskConical className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+      <Link href="/serie-a-beta" className={cn(linkClass("/serie-a-beta"), "gap-1")}>
+        <FlaskConical className="w-3.5 h-3.5 text-yellow-400/70 shrink-0" />
         <span className="hidden sm:inline whitespace-nowrap text-xs">
           Série A{" "}
-          <span className="text-[9px] font-bold bg-yellow-400/20 text-yellow-300 px-1 py-0.5 rounded align-middle">
-            BETA
+          <span className="text-[9px] font-bold bg-white/10 text-white/40 px-1 py-0.5 rounded align-middle">
+            HIST
           </span>
         </span>
       </Link>

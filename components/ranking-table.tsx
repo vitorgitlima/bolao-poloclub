@@ -11,6 +11,8 @@ type RankingEntry = {
   image: string | null;
   isContributor: boolean;
   isDeveloper: boolean;
+  betaRank: number | null;
+  isBetaTester: boolean;
   totalPoints: number;
   exactScores: number;
   correctWinners: number;
@@ -301,6 +303,26 @@ export function RankingTable({
                     {entry.isContributor && (
                       <span className="text-[9px] font-bold bg-purple-500/25 text-purple-200 border border-purple-400/40 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
                         ✦ Contribuidor
+                      </span>
+                    )}
+                    {entry.betaRank === 1 && (
+                      <span className="text-[9px] font-bold bg-yellow-500/20 text-yellow-200 border border-yellow-400/35 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                        👑 Rei da Série A
+                      </span>
+                    )}
+                    {entry.betaRank === 2 && (
+                      <span className="text-[9px] font-bold bg-slate-300/15 text-slate-200 border border-slate-300/30 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                        🥈 Vice da Série A
+                      </span>
+                    )}
+                    {entry.betaRank === 3 && (
+                      <span className="text-[9px] font-bold bg-amber-700/20 text-amber-300 border border-amber-600/30 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                        🥉 3º da Série A
+                      </span>
+                    )}
+                    {entry.isBetaTester && !entry.betaRank && (
+                      <span className="text-[9px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-400/25 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                        🧪 Pioneiro Série A
                       </span>
                     )}
                   </div>

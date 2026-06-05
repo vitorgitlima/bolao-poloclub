@@ -21,6 +21,8 @@ type Member = {
   image: string | null;
   isContributor: boolean;
   isDeveloper: boolean;
+  betaRank: number | null;
+  isBetaTester: boolean;
   joinedAt: string;
 };
 
@@ -46,6 +48,7 @@ type LeagueDetail = {
 type RankingEntry = {
   id: string; name: string | null; image: string | null;
   isContributor: boolean; isDeveloper: boolean;
+  betaRank: number | null; isBetaTester: boolean;
   totalPoints: number; exactScores: number; correctWinners: number;
   predictions: number; isLeader: boolean; isTopStreak: boolean;
   isTopExact: boolean; isTopRiser: boolean; isBolasMurcha: boolean;
@@ -573,6 +576,18 @@ export default function LeaguePage() {
                       {isOwner && <OwnerBadge />}
                       {member.isContributor && (
                         <span className="text-[9px] font-bold bg-purple-500/20 text-purple-200 border border-purple-400/30 px-1 py-0.5 rounded-full shrink-0">✦</span>
+                      )}
+                      {member.betaRank === 1 && (
+                        <span className="text-[9px] font-bold bg-yellow-500/20 text-yellow-200 border border-yellow-400/35 px-1 py-0.5 rounded-full shrink-0">👑</span>
+                      )}
+                      {member.betaRank === 2 && (
+                        <span className="text-[9px] font-bold bg-slate-300/15 text-slate-200 border border-slate-300/30 px-1 py-0.5 rounded-full shrink-0">🥈</span>
+                      )}
+                      {member.betaRank === 3 && (
+                        <span className="text-[9px] font-bold bg-amber-700/20 text-amber-300 border border-amber-600/30 px-1 py-0.5 rounded-full shrink-0">🥉</span>
+                      )}
+                      {member.isBetaTester && !member.betaRank && (
+                        <span className="text-[9px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-400/25 px-1 py-0.5 rounded-full shrink-0">🧪</span>
                       )}
                     </div>
                     <p className="text-white/30 text-[10px]">entrou {new Date(member.joinedAt).toLocaleDateString("pt-BR")}</p>

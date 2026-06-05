@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     include: {
       owner: { select: { id: true, name: true, image: true } },
       members: {
-        include: { user: { select: { id: true, name: true, image: true, isContributor: true, isDeveloper: true } } },
+        include: { user: { select: { id: true, name: true, image: true, isContributor: true, isDeveloper: true, betaRank: true, isBetaTester: true } } },
         orderBy: { joinedAt: "asc" },
       },
     },
@@ -44,6 +44,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
       image: m.user.image,
       isContributor: m.user.isContributor,
       isDeveloper: m.user.isDeveloper,
+      betaRank: m.user.betaRank,
+      isBetaTester: m.user.isBetaTester,
       joinedAt: m.joinedAt,
     })),
     createdAt: league.createdAt,
