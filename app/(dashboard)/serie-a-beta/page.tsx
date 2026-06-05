@@ -48,10 +48,10 @@ export default async function SerieABetaPage() {
           <span>Histórico encerrado em {BETA_ENDED}</span>
         </div>
         <h1 className="text-3xl font-black text-white">
-          Série A Beta
+          Hall da Fama Série A Beta
         </h1>
         <p className="text-white/40 text-sm max-w-sm mx-auto">
-          Ranking final do beta test — pontuação congelada. Estes foram os primeiros jogadores do Bolão da Copa.
+          Ranking final do beta teste — pontuação congelada.
         </p>
       </div>
 
