@@ -41,7 +41,6 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       predictions: {
         include: { match: { select: { date: true, phase: true } } },
       },
-      _count: { select: { predictions: true } },
     },
   });
 
@@ -76,7 +75,7 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       totalPoints,
       exactScores,
       correctWinners,
-      predictions: user._count.predictions,
+      predictions: user.predictions.filter((p) => !p.match.phase.startsWith("🧪")).length,
       streak,
     };
   });
