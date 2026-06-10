@@ -82,16 +82,77 @@ function pointsColor(pts: number): string {
   return "text-white/25";
 }
 
+type PredictionPanelData = {
+  predictions: PredictionDetail[];
+  phases: string[];
+};
+
+function PredictionRow({ p }: { p: PredictionDetail }) {
+  const isLive = p.status === "LIVE";
+  const isFinished = p.status === "FINISHED";
+  const hasScore = p.actualHome !== null && p.actualAway !== null;
+  const isExact = isFinished && hasScore && p.predHome === p.actualHome && p.predAway === p.actualAway;
+
+  return (
+    <div className="flex items-center gap-2 bg-white/4 rounded-lg px-3 py-2">
+      {/* Home */}
+      <div className="flex items-center gap-1 flex-1 min-w-0 text-xs text-white/70">
+        <TeamFlag flag={p.homeFlag} name={p.homeTeam} />
+        <span className="truncate">{p.homeTeam}</span>
+      </div>
+
+      {/* Scores */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {isLive ? (
+          <span className="text-red-400 text-[10px] font-bold animate-pulse">
+            {hasScore ? `${p.actualHome}–${p.actualAway}` : "AO VIVO"}
+          </span>
+        ) : hasScore ? (
+          <span className="text-white/40 text-xs tabular-nums">{p.actualHome}–{p.actualAway}</span>
+        ) : (
+          <span className="text-white/25 text-[10px]">—</span>
+        )}
+        <span className="text-white/15 text-[10px]">|</span>
+        <span className={cn("text-xs font-mono tabular-nums", isExact ? "text-green-400 font-bold" : "text-white/60")}>
+          {p.predHome}:{p.predAway}
+        </span>
+        {isExact && <Star className="w-3 h-3 text-green-400 fill-green-400 shrink-0" />}
+      </div>
+
+      {/* Away */}
+      <div className="flex items-center gap-1 shrink-0">
+        <span className="text-xs text-white/70 truncate max-w-[4rem]">{p.awayTeam}</span>
+        <TeamFlag flag={p.awayFlag} name={p.awayTeam} />
+      </div>
+
+      {/* Points */}
+      <div className={cn("text-sm font-bold shrink-0 w-8 text-right", pointsColor(p.points))}>
+        {!isFinished ? (
+          <span className="text-white/20 text-[10px]">—</span>
+        ) : (
+          p.points
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PredictionPanel({ userId }: { userId: string }) {
-  const [preds, setPreds] = useState<PredictionDetail[] | null>(null);
+  const [data, setData] = useState<PredictionPanelData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
 
   const fetchIfNeeded = useCallback(async () => {
     try {
       const res = await fetch(`/api/users/${userId}/predictions`);
       if (!res.ok) throw new Error();
-      setPreds(await res.json());
+      const json: PredictionPanelData = await res.json();
+      setData(json);
+      // auto-seleciona a última fase com palpites
+      if (json.phases.length > 0) {
+        setSelectedPhase(json.phases[json.phases.length - 1]);
+      }
     } catch {
       setError(true);
     } finally {
@@ -99,9 +160,7 @@ function PredictionPanel({ userId }: { userId: string }) {
     }
   }, [userId]);
 
-  useEffect(() => {
-    fetchIfNeeded();
-  }, [fetchIfNeeded]);
+  useEffect(() => { fetchIfNeeded(); }, [fetchIfNeeded]);
 
   if (loading) {
     return (
@@ -111,89 +170,78 @@ function PredictionPanel({ userId }: { userId: string }) {
       </div>
     );
   }
-
-  if (error || preds === null) {
+  if (error || !data) {
     return <p className="text-center py-4 text-white/30 text-sm">Erro ao carregar palpites.</p>;
   }
-
-  if (preds.length === 0) {
-    return <p className="text-center py-4 text-white/30 text-sm">Nenhum palpite com apostas encerradas ainda.</p>;
+  if (data.predictions.length === 0) {
+    return <p className="text-center py-4 text-white/30 text-sm">Nenhum palpite encerrado ainda.</p>;
   }
 
-  // Group by phase
-  const byPhase = preds.reduce<Record<string, PredictionDetail[]>>((acc, p) => {
-    (acc[p.phase] ??= []).push(p);
-    return acc;
-  }, {});
+  const filtered = selectedPhase
+    ? data.predictions.filter((p) => p.phase === selectedPhase)
+    : data.predictions;
+
+  // Quando "Todos", agrupa por fase; quando fase específica, flat
+  const groups: Array<{ label: string; items: PredictionDetail[] }> =
+    selectedPhase === null
+      ? data.phases.map((ph) => ({ label: ph, items: data.predictions.filter((p) => p.phase === ph) })).filter((g) => g.items.length > 0)
+      : [{ label: selectedPhase, items: filtered }];
+
+  const totalPts = filtered.reduce((s, p) => s + (p.status === "FINISHED" ? p.points : 0), 0);
+  const exactCount = filtered.filter((p) => p.status === "FINISHED" && p.points === 6).length;
 
   return (
     <div className="space-y-3">
-      {Object.entries(byPhase).map(([phase, items]) => (
-        <div key={phase}>
-          <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1.5 px-1">
-            {phase}
-          </p>
+      {/* Seletor de fase */}
+      {data.phases.length > 1 && (
+        <div className="flex gap-1 flex-wrap">
+          <button
+            onClick={() => setSelectedPhase(null)}
+            className={cn(
+              "text-[10px] font-semibold px-2.5 py-1 rounded-full transition-colors border",
+              selectedPhase === null
+                ? "bg-white/15 text-white border-white/20"
+                : "text-white/40 border-white/10 hover:text-white/70 hover:border-white/20"
+            )}
+          >
+            Todos
+          </button>
+          {data.phases.map((ph) => (
+            <button
+              key={ph}
+              onClick={() => setSelectedPhase(ph)}
+              className={cn(
+                "text-[10px] font-semibold px-2.5 py-1 rounded-full transition-colors border whitespace-nowrap",
+                selectedPhase === ph
+                  ? "bg-green-600/30 text-green-300 border-green-500/40"
+                  : "text-white/40 border-white/10 hover:text-white/70 hover:border-white/20"
+              )}
+            >
+              {ph}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Resumo da seleção */}
+      {filtered.length > 0 && (
+        <div className="flex items-center gap-3 px-1 text-xs text-white/35">
+          <span>{filtered.length} palpite{filtered.length !== 1 ? "s" : ""}</span>
+          {totalPts > 0 && <span className="text-yellow-400 font-semibold">+{totalPts} pts</span>}
+          {exactCount > 0 && <span className="text-green-400">🎯 {exactCount} exato{exactCount !== 1 ? "s" : ""}</span>}
+        </div>
+      )}
+
+      {/* Lista de palpites */}
+      {groups.map(({ label, items }) => (
+        <div key={label}>
+          {(selectedPhase === null || data.phases.length > 1) && (
+            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1.5 px-1">
+              {label}
+            </p>
+          )}
           <div className="space-y-1">
-            {items.map((p) => {
-              const isLive = p.status === "LIVE";
-              const isFinished = p.status === "FINISHED";
-              const hasScore = p.actualHome !== null && p.actualAway !== null;
-              const isExact =
-                isFinished &&
-                hasScore &&
-                p.predHome === p.actualHome &&
-                p.predAway === p.actualAway;
-
-              return (
-                <div
-                  key={p.matchId}
-                  className="flex items-center gap-2 bg-white/4 rounded-lg px-3 py-2"
-                >
-                  {/* Home team */}
-                  <div className="flex items-center gap-1 flex-1 min-w-0 text-xs text-white/70">
-                    <TeamFlag flag={p.homeFlag} name={p.homeTeam} />
-                    <span className="truncate">{p.homeTeam}</span>
-                  </div>
-
-                  {/* Scores */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Actual score or status */}
-                    {isLive ? (
-                      <span className="text-red-400 text-[10px] font-bold animate-pulse">
-                        {hasScore ? `${p.actualHome}–${p.actualAway}` : "AO VIVO"}
-                      </span>
-                    ) : hasScore ? (
-                      <span className="text-white/40 text-xs">
-                        {p.actualHome} — {p.actualAway}
-                      </span>
-                    ) : (
-                      <span className="text-white/25 text-[10px]">em breve</span>
-                    )}
-                    <span className="text-white/20 text-[10px]">|</span>
-                    {/* Prediction */}
-                    <span className={cn("text-xs font-mono", isExact ? "text-green-400" : "text-white/60")}>
-                      {p.predHome}:{p.predAway}
-                    </span>
-                    {isExact && <Star className="w-3 h-3 text-green-400 fill-green-400 shrink-0" />}
-                  </div>
-
-                  {/* Away team */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-xs text-white/70 truncate max-w-[4rem]">{p.awayTeam}</span>
-                    <TeamFlag flag={p.awayFlag} name={p.awayTeam} />
-                  </div>
-
-                  {/* Points */}
-                  <div className={cn("text-sm font-bold shrink-0 w-8 text-right", pointsColor(p.points))}>
-                    {!isFinished ? (
-                      <span className="text-white/20 text-[10px]">—</span>
-                    ) : (
-                      p.points
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {items.map((p) => <PredictionRow key={p.matchId} p={p} />)}
           </div>
         </div>
       ))}

@@ -5,6 +5,7 @@ import {
   createMissingPredictionNotifications,
   createPointsUpdatedNotifications,
 } from "@/lib/notifications";
+import { snapshotCurrentRanking } from "@/lib/ranking";
 
 type FinishedEntry = {
   matchId: string;
@@ -93,6 +94,11 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
   // Hook B — notificações de palpite faltando (jogos em <2h sem palpite)
   await notifyUpcomingMissingPredictions(espnMatches);
 
+  // Hook C — snapshot de rodada quando todos os jogos de um dia BRT fecham
+  if (updatedMatches > 0) {
+    await maybeSnapshotCopaRound();
+  }
+
   try {
     await prisma.config.upsert({
       where: { key: "lastSyncedAt" },
@@ -104,6 +110,54 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
   }
 
   return { updatedMatches, updatedPredictions };
+}
+
+// Verifica se todos os jogos de algum dia BRT já fecharam e cria snapshot
+async function maybeSnapshotCopaRound(): Promise<void> {
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+
+  const recentMatches = await prisma.match.findMany({
+    where: {
+      date: { gte: threeDaysAgo },
+      phase: { not: { startsWith: "🧪" } },
+    },
+    select: { date: true, status: true },
+  });
+
+  if (!recentMatches.length) return;
+
+  // Agrupa por data BRT
+  const byBRTDate = new Map<string, typeof recentMatches>();
+  for (const m of recentMatches) {
+    const brtDate = new Date(m.date).toLocaleDateString("en-CA", {
+      timeZone: "America/Sao_Paulo",
+    });
+    const arr = byBRTDate.get(brtDate) ?? [];
+    arr.push(m);
+    byBRTDate.set(brtDate, arr);
+  }
+
+  const now = new Date();
+
+  for (const [brtDate, matches] of byBRTDate) {
+    // Só processa datas passadas ou hoje
+    if (new Date(`${brtDate}T03:00:00Z`) > now) continue;
+    // Só cria snapshot se TODOS os jogos do dia fecharam
+    if (!matches.every((m) => m.status === "FINISHED")) continue;
+
+    const [day, , month] = brtDate.split("-").reverse(); // "11", "2026", "06"
+    const roundLabel = `Copa 2026 — ${day}/${month}`;
+
+    const already = await prisma.roundSnapshot.findFirst({ where: { roundLabel } });
+    if (already) continue;
+
+    try {
+      await snapshotCurrentRanking(roundLabel, brtDate);
+      console.log(`📸 Snapshot automático: ${roundLabel}`);
+    } catch (err) {
+      console.error(`Snapshot falhou para ${roundLabel}:`, err);
+    }
+  }
 }
 
 async function notifyUpcomingMissingPredictions(espnMatches: EspnMatch[]) {

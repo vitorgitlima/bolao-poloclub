@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { createRoundSummaryNotifications } from "@/lib/notifications";
 
 export type RankingUser = {
   id: string;
@@ -34,25 +35,6 @@ export type RankingResult = {
 
 // Calcula ranking para um conjunto de userIds (undefined = todos os usuários)
 export async function computeRanking(filterUserIds?: string[]): Promise<RankingResult> {
-  const lastFinished = await prisma.match.findFirst({
-    where: { status: "FINISHED", NOT: { phase: { startsWith: "🧪" } } },
-    orderBy: { date: "desc" },
-    select: { phase: true },
-  });
-  const lastPhase = lastFinished?.phase ?? null;
-
-  const allTestPhases = await prisma.match.findMany({
-    where: { phase: { startsWith: "🧪" } },
-    select: { phase: true },
-    distinct: ["phase"],
-  });
-  const currentPhase = allTestPhases
-    .map((m) => m.phase)
-    .sort((a, b) => {
-      const num = (s: string) => parseInt(s.match(/(\d+)/)?.[1] ?? "0", 10);
-      return num(b) - num(a);
-    })[0] ?? null;
-
   const users = await prisma.user.findMany({
     where: filterUserIds ? { id: { in: filterUserIds } } : undefined,
     include: {
@@ -64,27 +46,16 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
   });
 
   const usersWithStats = users.map((user) => {
-    // Apenas Copa (exclui fases 🧪 do ranking competitivo)
     const scored = user.predictions.filter(
       (p) => p.points !== null && !p.match.phase.startsWith("🧪")
     );
     const totalPoints = scored.reduce((s, p) => s + (p.points ?? 0), 0);
-
     const exactScores = scored.filter((p) => (p.points ?? 0) === 6).length;
-
     const correctWinners = scored.filter(
       (p) => (p.points ?? 0) === 3 || (p.points ?? 0) === 4
     ).length;
 
-    const lastRoundAllPreds = lastPhase
-      ? user.predictions.filter((p) => p.match.phase === lastPhase)
-      : [];
-    const lastRoundPreds = lastRoundAllPreds.filter((p) => p.points !== null);
-    const lastRoundPoints = lastRoundPreds.reduce((s, p) => s + (p.points ?? 0), 0);
-    const lastRoundExacts = lastRoundPreds.filter((p) => (p.points ?? 0) === 6).length;
-    const hadLastRoundPred = lastRoundAllPreds.length > 0;
-    const hadLastRoundScoredPred = lastRoundPreds.length > 0;
-
+    // Sequência de pontuações positivas consecutivas (da mais recente para trás)
     const byDate = [...scored].sort(
       (a, b) => new Date(a.match.date).getTime() - new Date(b.match.date).getTime()
     );
@@ -105,81 +76,132 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       totalPoints,
       exactScores,
       correctWinners,
-      predictions: currentPhase
-        ? user.predictions.filter((p) => p.match.phase === currentPhase).length
-        : user._count.predictions,
-      lastRoundPoints,
-      lastRoundExacts,
-      hadLastRoundPred,
-      hadLastRoundScoredPred,
+      predictions: user._count.predictions,
       streak,
     };
   });
 
-  // Competitivo: exclui devs de posições e badges
-  const ranked = [...usersWithStats]
+  const ranked = usersWithStats
     .filter((u) => !u.isDeveloper)
     .sort((a, b) => b.totalPoints - a.totalPoints);
 
   const allSorted = [...usersWithStats].sort((a, b) => b.totalPoints - a.totalPoints);
 
-  const prevRanked = [...usersWithStats]
-    .filter((u) => !u.isDeveloper)
-    .sort((a, b) => (b.totalPoints - b.lastRoundPoints) - (a.totalPoints - a.lastRoundPoints));
-  const prevRankMap = new Map(prevRanked.map((u, i) => [u.id, i + 1]));
-
-  const positionChanges = ranked.map((u, i) => ({
-    id: u.id,
-    change: (prevRankMap.get(u.id) ?? i + 1) - (i + 1),
-  }));
-
+  // Streak winner (sempre live — não depende de snapshots)
   const maxStreak = Math.max(...ranked.map((u) => u.streak), 0);
   const streakWinnerIds = new Set(
     ranked.filter((u) => u.streak === maxStreak && maxStreak > 0).map((u) => u.id)
   );
 
-  const maxExacts = Math.max(...ranked.map((u) => u.lastRoundExacts), 0);
-  const exactWinners = ranked.filter((u) => u.lastRoundExacts === maxExacts && maxExacts > 0);
-  const exactWinnerIds = new Set(exactWinners.map((u) => u.id));
+  // ── Highlights e badges por snapshots de rodada ──────────────────────────
+  let highlights: RankingHighlights | null = null;
+  let riseWinnerIds = new Set<string>();
+  let bolaMurchaIds = new Set<string>();
+  let exactWinnerIds = new Set<string>();
 
-  const maxRise = Math.max(...positionChanges.map((u) => u.change), 0);
-  const riseWinners = positionChanges.filter((u) => u.change === maxRise && maxRise > 0);
-  const riseWinnerIds = new Set(riseWinners.map((u) => u.id));
+  const latestRounds = await prisma.roundSnapshot.findMany({
+    distinct: ["roundLabel"],
+    orderBy: { roundDate: "desc" },
+    take: 2,
+    select: { roundLabel: true, roundDate: true },
+  });
 
-  const bolaMurchaIds = new Set(
-    ranked
-      .filter((u) => u.hadLastRoundPred && u.hadLastRoundScoredPred && u.lastRoundPoints === 0)
-      .map((u) => u.id)
-  );
+  if (latestRounds.length > 0) {
+    const latestLabel = latestRounds[0].roundLabel;
+    const prevLabel = latestRounds[1]?.roundLabel ?? null;
 
-  const highlights: RankingHighlights | null = lastPhase
-    ? (() => {
-        const maxRoundPts = Math.max(...ranked.map((u) => u.lastRoundPoints), 0);
-        const craqueList = ranked.filter((u) => u.lastRoundPoints === maxRoundPts && maxRoundPts > 0);
-        const craque = craqueList.length > 0
-          ? { names: craqueList.map((u) => u.name).filter((n): n is string => !!n), points: maxRoundPts }
-          : null;
-        const reiExatos = exactWinners.length > 0
-          ? { names: exactWinners.map((u) => u.name).filter((n): n is string => !!n), count: maxExacts }
-          : null;
-        const maiorSubida = riseWinners.length > 0
+    const [latestSnaps, prevSnaps] = await Promise.all([
+      prisma.roundSnapshot.findMany({
+        where: {
+          roundLabel: latestLabel,
+          ...(filterUserIds ? { userId: { in: filterUserIds } } : {}),
+        },
+      }),
+      prevLabel
+        ? prisma.roundSnapshot.findMany({
+            where: {
+              roundLabel: prevLabel,
+              ...(filterUserIds ? { userId: { in: filterUserIds } } : {}),
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const prevMap = new Map(prevSnaps.map((s) => [s.userId, s]));
+
+    // Craque da Rodada
+    const maxRoundPts = Math.max(...latestSnaps.map((s) => s.roundPoints), 0);
+    const craqueList = latestSnaps.filter(
+      (s) => s.roundPoints === maxRoundPts && maxRoundPts > 0
+    );
+
+    // Rei dos Exatos (nessa rodada)
+    const maxExacts = Math.max(...latestSnaps.map((s) => s.roundExacts), 0);
+    const exatosList = latestSnaps.filter(
+      (s) => s.roundExacts === maxExacts && maxExacts > 0
+    );
+    exactWinnerIds = new Set(exatosList.map((s) => s.userId));
+
+    // Maior Subida (precisa de 2 snapshots)
+    const riseList = latestSnaps
+      .filter((s) => prevMap.has(s.userId))
+      .map((s) => ({
+        userId: s.userId,
+        change: prevMap.get(s.userId)!.position - s.position,
+      }));
+    const maxRise = Math.max(...riseList.map((r) => r.change), 0);
+    const riseWinners = riseList.filter((r) => r.change === maxRise && maxRise > 0);
+    riseWinnerIds = new Set(riseWinners.map((r) => r.userId));
+
+    // Bola Murcha (tinha palpite na rodada mas zerou)
+    const bolaMurchaList = latestSnaps.filter(
+      (s) => s.hadPrediction && s.roundPoints === 0
+    );
+    bolaMurchaIds = new Set(bolaMurchaList.map((s) => s.userId));
+
+    // Mapa de nomes para highlights
+    const snappedIds = [...new Set(latestSnaps.map((s) => s.userId))];
+    const snappedUsers = await prisma.user.findMany({
+      where: { id: { in: snappedIds } },
+      select: { id: true, name: true },
+    });
+    const nameMap = new Map(snappedUsers.map((u) => [u.id, u.name]));
+
+    highlights = {
+      roundName: latestLabel,
+      craque:
+        craqueList.length > 0
+          ? {
+              names: craqueList
+                .map((s) => nameMap.get(s.userId))
+                .filter((n): n is string => !!n),
+              points: maxRoundPts,
+            }
+          : null,
+      reiExatos:
+        exatosList.length > 0
+          ? {
+              names: exatosList
+                .map((s) => nameMap.get(s.userId))
+                .filter((n): n is string => !!n),
+              count: maxExacts,
+            }
+          : null,
+      maiorSubida:
+        riseWinners.length > 0
           ? {
               names: riseWinners
-                .map((u) => ranked.find((r) => r.id === u.id)?.name)
+                .map((r) => nameMap.get(r.userId))
                 .filter((n): n is string => !!n),
               positions: maxRise,
             }
-          : null;
-        const bolaMurchaNames = ranked.filter((u) => bolaMurchaIds.has(u.id)).map((u) => u.name);
-        return {
-          roundName: lastPhase,
-          craque,
-          reiExatos,
-          maiorSubida,
-          bolaMurcha: bolaMurchaNames.length > 0 ? bolaMurchaNames : null,
-        };
-      })()
-    : null;
+          : null,
+      bolaMurcha:
+        bolaMurchaList.length > 0
+          ? bolaMurchaList.map((s) => nameMap.get(s.userId) ?? null)
+          : null,
+    };
+  }
 
   const maxPoints = ranked[0]?.totalPoints ?? 0;
 
@@ -203,4 +225,105 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
   }));
 
   return { ranking, highlights };
+}
+
+// Cria snapshot do ranking para uma data BRT específica.
+// Chamada automaticamente pelo cron quando todos os jogos do dia fecham.
+export async function snapshotCurrentRanking(
+  roundLabel: string,
+  roundDate: string // "YYYY-MM-DD" no fuso BRT
+): Promise<void> {
+  // Janela UTC correspondente ao dia BRT (BRT = UTC-3, então meia-noite BRT = 03:00 UTC)
+  const startUTC = new Date(`${roundDate}T03:00:00Z`);
+  const endUTC = new Date(startUTC.getTime() + 24 * 60 * 60 * 1000);
+
+  const [roundPtsData, roundExactsData, roundPredData] = await Promise.all([
+    prisma.prediction.groupBy({
+      by: ["userId"],
+      where: {
+        match: {
+          date: { gte: startUTC, lt: endUTC },
+          status: "FINISHED",
+          phase: { not: { startsWith: "🧪" } },
+        },
+        points: { not: null },
+      },
+      _sum: { points: true },
+    }),
+    prisma.prediction.groupBy({
+      by: ["userId"],
+      where: {
+        match: {
+          date: { gte: startUTC, lt: endUTC },
+          status: "FINISHED",
+          phase: { not: { startsWith: "🧪" } },
+        },
+        points: { equals: 6 },
+      },
+      _count: { id: true },
+    }),
+    // Qualquer palpite no dia (mesmo sem pontos) — para detectar Bola Murcha
+    prisma.prediction.groupBy({
+      by: ["userId"],
+      where: {
+        match: {
+          date: { gte: startUTC, lt: endUTC },
+          phase: { not: { startsWith: "🧪" } },
+        },
+      },
+      _count: { id: true },
+    }),
+  ]);
+
+  const roundPtsMap = new Map(roundPtsData.map((d) => [d.userId, d._sum.points ?? 0]));
+  const roundExactsMap = new Map(roundExactsData.map((d) => [d.userId, d._count.id]));
+  const hadPredSet = new Set(roundPredData.map((d) => d.userId));
+
+  const { ranking } = await computeRanking();
+  const nonDevRanking = ranking.filter((u) => !u.isDeveloper);
+
+  // Snapshot anterior para calcular mudança de posição (para notificações)
+  const prevSnap = await prisma.roundSnapshot.findMany({
+    where: { userId: { in: nonDevRanking.map((u) => u.id) } },
+    orderBy: { roundDate: "desc" },
+    distinct: ["userId"],
+  });
+  const prevPosMap = new Map(prevSnap.map((s) => [s.userId, s.position]));
+
+  const notifEntries: Parameters<typeof createRoundSummaryNotifications>[1] = [];
+
+  for (const user of nonDevRanking) {
+    const position =
+      nonDevRanking.filter((u) => u.totalPoints > user.totalPoints).length + 1;
+    const roundPoints = roundPtsMap.get(user.id) ?? 0;
+    const roundExacts = roundExactsMap.get(user.id) ?? 0;
+    const hadPrediction = hadPredSet.has(user.id);
+
+    await prisma.roundSnapshot.upsert({
+      where: { userId_roundLabel: { userId: user.id, roundLabel } },
+      update: { position, totalPoints: user.totalPoints, roundPoints, roundExacts, hadPrediction },
+      create: {
+        userId: user.id,
+        roundLabel,
+        roundDate,
+        position,
+        totalPoints: user.totalPoints,
+        roundPoints,
+        roundExacts,
+        hadPrediction,
+      },
+    });
+
+    if (hadPrediction) {
+      notifEntries.push({
+        userId: user.id,
+        roundPoints,
+        roundExacts,
+        prevPosition: prevPosMap.get(user.id) ?? null,
+        newPosition: position,
+      });
+    }
+  }
+
+  await createRoundSummaryNotifications(roundLabel, notifEntries);
 }
