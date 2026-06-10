@@ -228,6 +228,15 @@ export default function CopaPage() {
         </button>
       </div>
 
+      {/* Info banner */}
+      <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-white/4 border border-white/8">
+        <span className="text-lg leading-none mt-0.5">📊</span>
+        <p className="text-white/45 text-sm leading-relaxed">
+          Acompanhe tabelas dos grupos, resultados e fases eliminatórias em tempo real.
+          Para fazer seus palpites, acesse a aba <strong className="text-white/65">Jogos</strong>.
+        </p>
+      </div>
+
       {/* Phase tabs */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
         <button
