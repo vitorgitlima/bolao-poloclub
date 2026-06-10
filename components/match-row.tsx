@@ -51,6 +51,7 @@ type MatchRowProps = {
   usedDoubleInPhase: boolean;
   onSaved: () => void;
   onPendingChange?: (matchId: string, edit: PendingEdit | null) => void;
+  readOnly?: boolean;
 };
 
 function canPredict(dateStr: string): boolean {
@@ -62,7 +63,7 @@ function onlyDigits(value: string): string {
   return value.replace(/\D/g, "").slice(0, 2);
 }
 
-export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }: MatchRowProps) {
+export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, readOnly = false }: MatchRowProps) {
   const pred = match.predictions[0];
   const [homeVal, setHomeVal] = useState(pred?.homeScore?.toString() ?? "");
   const [awayVal, setAwayVal] = useState(pred?.awayScore?.toString() ?? "");
@@ -84,8 +85,8 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
 
-  const isPredictable = match.status === "SCHEDULED" && canPredict(match.date);
-  const isLocked = match.status === "SCHEDULED" && !canPredict(match.date);
+  const isPredictable = !readOnly && match.status === "SCHEDULED" && canPredict(match.date);
+  const isLocked = !readOnly && match.status === "SCHEDULED" && !canPredict(match.date);
   const isLive = match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
 
@@ -249,7 +250,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
           </div>
         )}
 
-        {isFinished && (
+        {isFinished && !readOnly && (
           <div className="shrink-0 text-right min-w-[60px]">
             {pred ? (
               <>
@@ -276,7 +277,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
           </div>
         )}
 
-        {isLive && pred && (
+        {isLive && pred && !readOnly && (
           <div className="shrink-0 text-right min-w-[60px]">
             {pred.points != null ? (
               <div className={cn("text-xs font-bold flex items-center justify-end gap-1",
@@ -295,7 +296,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
           </div>
         )}
 
-        {isLocked && (
+        {isLocked && !readOnly && (
           <div className="shrink-0 text-right min-w-[52px]">
             {pred ? (
               <div className="text-white/30 text-[10px]">
