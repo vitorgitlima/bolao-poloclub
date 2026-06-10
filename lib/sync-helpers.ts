@@ -1,10 +1,22 @@
 import { prisma } from "@/lib/db";
 import { espnNameToPt, ESPN_LOGO_MAP, type EspnMatch } from "@/lib/espn-api";
 import { calculatePoints } from "@/lib/points";
+import {
+  createMissingPredictionNotifications,
+  createPointsUpdatedNotifications,
+} from "@/lib/notifications";
+
+type FinishedEntry = {
+  matchId: string;
+  label: string;
+  score: string;
+  predictions: { userId: string; points: number | null }[];
+};
 
 export async function processEspnMatches(espnMatches: EspnMatch[]) {
   let updatedMatches = 0;
   let updatedPredictions = 0;
+  const finishedNow: FinishedEntry[] = [];
 
   for (const em of espnMatches) {
     if (em.status === "pre") continue;
@@ -20,6 +32,7 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     const status = em.completed ? "FINISHED" : "LIVE";
     const homeScore = em.homeTeam.score;
     const awayScore = em.awayTeam.score;
+    const wasFinished = match.status === "FINISHED";
 
     const homeLogoUrl = em.homeTeam.logo ?? ESPN_LOGO_MAP[em.homeTeam.name];
     const awayLogoUrl = em.awayTeam.logo ?? ESPN_LOGO_MAP[em.awayTeam.name];
@@ -36,7 +49,6 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     });
     updatedMatches++;
 
-    // Calculate points for both LIVE (provisional) and FINISHED (final)
     if (status === "LIVE" || em.completed) {
       const predictions = await prisma.prediction.findMany({
         where: { matchId: match.id },
@@ -52,8 +64,35 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
           updatedPredictions++;
         }
       }
+
+      // Coleta para notificações de pontos (só na transição para FINISHED)
+      if (em.completed && !wasFinished && predictions.length > 0) {
+        const updatedPreds = await prisma.prediction.findMany({
+          where: { matchId: match.id },
+          select: { userId: true, points: true },
+        });
+        finishedNow.push({
+          matchId: match.id,
+          label: `${homePt} × ${awayPt}`,
+          score: `${homeScore}–${awayScore}`,
+          predictions: updatedPreds,
+        });
+      }
     }
   }
+
+  // Hook A — notificações de pontos para jogos recém-finalizados
+  for (const f of finishedNow) {
+    await createPointsUpdatedNotifications(
+      f.matchId,
+      f.label,
+      f.score,
+      f.predictions.map((p) => ({ userId: p.userId, points: p.points ?? 0 }))
+    );
+  }
+
+  // Hook B — notificações de palpite faltando (jogos em <2h sem palpite)
+  await notifyUpcomingMissingPredictions(espnMatches);
 
   try {
     await prisma.config.upsert({
@@ -66,4 +105,46 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
   }
 
   return { updatedMatches, updatedPredictions };
+}
+
+async function notifyUpcomingMissingPredictions(espnMatches: EspnMatch[]) {
+  const now = Date.now();
+  const twoHours = 2 * 60 * 60 * 1000;
+
+  // Jogos ESPN ainda não iniciados que começam em menos de 2h
+  const upcoming = espnMatches.filter((em) => {
+    if (em.status !== "pre") return false;
+    const matchTime = new Date(em.date).getTime();
+    return matchTime > now && matchTime - now <= twoHours;
+  });
+  if (!upcoming.length) return;
+
+  // Usuários ativos = quem tem ao menos 1 palpite no sistema
+  const activeUserIds = await prisma.prediction
+    .findMany({ select: { userId: true }, distinct: ["userId"] })
+    .then((rows) => rows.map((r) => r.userId));
+  if (!activeUserIds.length) return;
+
+  for (const em of upcoming) {
+    const homePt = espnNameToPt(em.homeTeam.name);
+    const awayPt = espnNameToPt(em.awayTeam.name);
+
+    const match = await prisma.match.findFirst({
+      where: { homeTeam: homePt, awayTeam: awayPt },
+    });
+    if (!match) continue;
+
+    const predicted = await prisma.prediction.findMany({
+      where: { matchId: match.id },
+      select: { userId: true },
+    });
+    const predictedSet = new Set(predicted.map((p) => p.userId));
+    const missing = activeUserIds.filter((id) => !predictedSet.has(id));
+
+    await createMissingPredictionNotifications(
+      match.id,
+      `${homePt} × ${awayPt}`,
+      missing
+    );
+  }
 }

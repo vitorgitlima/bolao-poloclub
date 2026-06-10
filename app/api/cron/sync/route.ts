@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEspnLiveAndToday, getEspnBrasileiraoByDate } from "@/lib/espn-api";
+import { getEspnLiveAndToday } from "@/lib/espn-api";
 import { processEspnMatches } from "@/lib/sync-helpers";
 
 export async function GET(req: NextRequest) {
@@ -11,23 +11,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-
-    const [copaMatches, braMatches] = await Promise.all([
-      getEspnLiveAndToday(),
-      getEspnBrasileiraoByDate(today),
-    ]);
-
-    // Deduplica por id caso um jogo apareça nos dois feeds
-    const seen = new Set<string>();
-    const allMatches = [...copaMatches, ...braMatches].filter((m) => {
-      if (seen.has(m.id)) return false;
-      seen.add(m.id);
-      return true;
-    });
-
-    const { updatedMatches, updatedPredictions } = await processEspnMatches(allMatches);
-
+    const matches = await getEspnLiveAndToday();
+    const { updatedMatches, updatedPredictions } = await processEspnMatches(matches);
     return NextResponse.json({ ok: true, updatedMatches, updatedPredictions });
   } catch (err) {
     return NextResponse.json(
