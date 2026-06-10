@@ -1,4 +1,4 @@
-import { Trophy, Zap, Target, Star, Lock, Users } from "lucide-react";
+import { Trophy, Target, Star, Lock, Users } from "lucide-react";
 
 export default function ComoJogarPage() {
   return (
@@ -69,12 +69,6 @@ export default function ComoJogarPage() {
           </li>
           <li className="flex gap-3">
             <span className="text-white/30 font-bold shrink-0">3.</span>
-            <span>
-              Opcionalmente, ative o <strong className="text-white/90">⚡ Double Points</strong> em um jogo por fase para dobrar seus pontos.
-            </span>
-          </li>
-          <li className="flex gap-3">
-            <span className="text-white/30 font-bold shrink-0">4.</span>
             <span>Clique em <strong className="text-white/90">Salvar</strong> individualmente ou use o botão <strong className="text-white/90">Salvar Todos</strong> que aparece na parte de baixo da tela.</span>
           </li>
         </ol>
@@ -105,16 +99,6 @@ export default function ComoJogarPage() {
               <span className="text-yellow-300 font-black shrink-0">{row.pts}</span>
             </div>
           ))}
-        </div>
-        <div className="border-t border-white/5 pt-3 flex items-start gap-3 text-sm">
-          <Zap className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
-          <div>
-            <span className="text-white/80 font-semibold">Double Points ⚡</span>
-            <p className="text-white/35 text-xs mt-0.5">
-              Você pode ativar o double em <strong className="text-white/60">1 jogo por rodada</strong>. Os pontos ganhos naquele jogo são dobrados.
-              Use com sabedoria — 1 por rodada, sem volta!
-            </p>
-          </div>
         </div>
       </div>
 

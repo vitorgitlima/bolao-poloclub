@@ -66,7 +66,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       predHome: p.homeScore,
       predAway: p.awayScore,
       points: p.points ?? 0,
-      isDoublePoints: p.isDoublePoints,
     }))
   );
 }

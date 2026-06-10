@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Loader2, Save } from "lucide-react";
-import { format } from "date-fns";
+import { parseISO, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MatchRow } from "@/components/match-row";
 import { useToast } from "@/components/toast-provider";
@@ -10,7 +10,6 @@ import { useToast } from "@/components/toast-provider";
 type Prediction = {
   homeScore: number;
   awayScore: number;
-  isDoublePoints: boolean;
   points: number | null;
 };
 
@@ -28,11 +27,10 @@ type Match = {
   predictions: Prediction[];
 };
 
-type PendingEdit = { homeScore: string; awayScore: string; isDouble: boolean };
+type PendingEdit = { homeScore: string; awayScore: string };
 
 type RodadaViewProps = {
   matches: Match[];
-  usedDoubleByPhase: Record<string, boolean>;
   onPredictionSaved: () => void;
 };
 
@@ -40,30 +38,22 @@ function canPredict(dateStr: string) {
   return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
 }
 
-export function RodadaView({ matches, usedDoubleByPhase, onPredictionSaved }: RodadaViewProps) {
+function toBRTDay(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+}
+
+export function RodadaView({ matches, onPredictionSaved }: RodadaViewProps) {
   const [pending, setPending] = useState<Record<string, PendingEdit>>({});
-  const [localDoubleByPhase, setLocalDoubleByPhase] = useState<Record<string, string | null>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const { showToast } = useToast();
 
-  const handlePendingChange = useCallback(
-    (matchId: string, phase: string, edit: PendingEdit | null) => {
-      setPending((prev) => {
-        if (!edit) { const next = { ...prev }; delete next[matchId]; return next; }
-        return { ...prev, [matchId]: edit };
-      });
-      if (edit?.isDouble) {
-        setLocalDoubleByPhase((prev) => ({ ...prev, [phase]: matchId }));
-      } else {
-        setLocalDoubleByPhase((prev) => {
-          if (prev[phase] === matchId) return { ...prev, [phase]: null };
-          return prev;
-        });
-      }
-    },
-    []
-  );
+  const handlePendingChange = useCallback((matchId: string, edit: PendingEdit | null) => {
+    setPending((prev) => {
+      if (!edit) { const next = { ...prev }; delete next[matchId]; return next; }
+      return { ...prev, [matchId]: edit };
+    });
+  }, []);
 
   async function saveAll() {
     const entries = Object.entries(pending);
@@ -80,7 +70,6 @@ export function RodadaView({ matches, usedDoubleByPhase, onPredictionSaved }: Ro
               matchId,
               homeScore: parseInt(edit.homeScore),
               awayScore: parseInt(edit.awayScore),
-              isDoublePoints: edit.isDouble,
             }),
           }).then((r) => r.json().then((d) => ({ ok: r.ok, data: d })))
         )
@@ -92,7 +81,6 @@ export function RodadaView({ matches, usedDoubleByPhase, onPredictionSaved }: Ro
       } else {
         const count = entries.length;
         setPending({});
-        setLocalDoubleByPhase({});
         onPredictionSaved();
         showToast(`✅ ${count} palpite${count !== 1 ? "s" : ""} confirmado${count !== 1 ? "s" : ""}!`);
       }
@@ -103,13 +91,13 @@ export function RodadaView({ matches, usedDoubleByPhase, onPredictionSaved }: Ro
     }
   }
 
-  // Agrupa por data (YYYY-MM-DD), mantém ordem cronológica
+  // Agrupa por data no fuso BRT
   const sorted = [...matches].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
   const byDate = new Map<string, Match[]>();
   for (const m of sorted) {
-    const day = m.date.slice(0, 10);
+    const day = toBRTDay(m.date);
     if (!byDate.has(day)) byDate.set(day, []);
     byDate.get(day)!.push(m);
   }
@@ -147,12 +135,12 @@ export function RodadaView({ matches, usedDoubleByPhase, onPredictionSaved }: Ro
         </div>
       )}
 
-      {/* Jogos agrupados por data */}
+      {/* Jogos agrupados por data BRT */}
       {[...byDate.entries()].map(([day, dayMatches]) => (
         <div key={day}>
           <div className="flex items-center gap-2 mb-1.5 px-1">
             <span className="text-white/30 text-[10px] uppercase tracking-wider font-semibold">
-              {format(new Date(day + "T12:00:00"), "EEE dd/MM", { locale: ptBR })}
+              {format(parseISO(day), "EEE dd/MM", { locale: ptBR })}
             </span>
             <div className="flex-1 h-px bg-white/5" />
             {dayMatches.some(
@@ -166,24 +154,15 @@ export function RodadaView({ matches, usedDoubleByPhase, onPredictionSaved }: Ro
             )}
           </div>
           <div className="glass-card">
-            {dayMatches.map((match) => {
-              const localDouble = localDoubleByPhase[match.phase];
-              const effectiveDoubleUsed =
-                (usedDoubleByPhase[match.phase] ?? false) ||
-                (localDouble != null && localDouble !== match.id);
-
-              return (
-                <MatchRow
-                  key={`${match.id}-${match.predictions[0]?.isDoublePoints ?? "x"}`}
-                  match={match}
-                  usedDoubleInPhase={effectiveDoubleUsed}
-                  onSaved={onPredictionSaved}
-                  onPendingChange={(matchId, edit) =>
-                    handlePendingChange(matchId, match.phase, edit)
-                  }
-                />
-              );
-            })}
+            {dayMatches.map((match) => (
+              <MatchRow
+                key={match.id}
+                match={match}
+                usedDoubleInPhase={false}
+                onSaved={onPredictionSaved}
+                onPendingChange={handlePendingChange}
+              />
+            ))}
           </div>
         </div>
       ))}

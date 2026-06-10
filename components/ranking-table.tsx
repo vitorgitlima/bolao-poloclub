@@ -38,7 +38,6 @@ type PredictionDetail = {
   predHome: number;
   predAway: number;
   points: number;
-  isDoublePoints: boolean;
 };
 
 const PODIUM = [
@@ -188,8 +187,6 @@ function PredictionPanel({ userId }: { userId: string }) {
                   <div className={cn("text-sm font-bold shrink-0 w-8 text-right", pointsColor(p.points))}>
                     {!isFinished ? (
                       <span className="text-white/20 text-[10px]">—</span>
-                    ) : p.isDoublePoints && p.points > 0 ? (
-                      <span title="Double Points">{p.points}✦</span>
                     ) : (
                       p.points
                     )}

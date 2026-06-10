@@ -70,14 +70,10 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     );
     const totalPoints = scored.reduce((s, p) => s + (p.points ?? 0), 0);
 
-    const exactScores = scored.filter((p) =>
-      p.isDoublePoints ? (p.points ?? 0) === 12 : (p.points ?? 0) === 6
-    ).length;
+    const exactScores = scored.filter((p) => (p.points ?? 0) === 6).length;
 
-    const correctWinners = scored.filter((p) =>
-      p.isDoublePoints
-        ? (p.points ?? 0) === 6 || (p.points ?? 0) === 8
-        : (p.points ?? 0) === 3 || (p.points ?? 0) === 4
+    const correctWinners = scored.filter(
+      (p) => (p.points ?? 0) === 3 || (p.points ?? 0) === 4
     ).length;
 
     const lastRoundAllPreds = lastPhase
@@ -85,9 +81,7 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       : [];
     const lastRoundPreds = lastRoundAllPreds.filter((p) => p.points !== null);
     const lastRoundPoints = lastRoundPreds.reduce((s, p) => s + (p.points ?? 0), 0);
-    const lastRoundExacts = lastRoundPreds.filter((p) =>
-      p.isDoublePoints ? (p.points ?? 0) === 12 : (p.points ?? 0) === 6
-    ).length;
+    const lastRoundExacts = lastRoundPreds.filter((p) => (p.points ?? 0) === 6).length;
     const hadLastRoundPred = lastRoundAllPreds.length > 0;
     const hadLastRoundScoredPred = lastRoundPreds.length > 0;
 

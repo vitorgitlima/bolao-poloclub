@@ -16,7 +16,6 @@ export async function GET() {
         select: {
           homeScore: true,
           awayScore: true,
-          isDoublePoints: true,
           points: true,
         },
       },

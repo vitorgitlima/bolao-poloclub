@@ -56,8 +56,7 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
       for (const pred of predictions) {
         const { points } = calculatePoints(
           { home: pred.homeScore, away: pred.awayScore },
-          { home: homeScore, away: awayScore },
-          pred.isDoublePoints
+          { home: homeScore, away: awayScore }
         );
         if (pred.points !== points) {
           await prisma.prediction.update({ where: { id: pred.id }, data: { points } });

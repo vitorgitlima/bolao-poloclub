@@ -25,16 +25,15 @@ const RESULTADOS: Record<string, { home: number; away: number }> = {
 };
 
 // Palpites por usuário (nome → placar palpitado por jogo)
-// Cada linha representa como cada usuário "palpitou" no jogo
-// Formato: [homePred, awayPred, isDouble]
-const PALPITES: Record<string, Array<[number, number, boolean]>> = {
+// Formato: [homePred, awayPred]
+const PALPITES: Record<string, Array<[number, number]>> = {
   //                              Ath x Mir   Fla x Cor   Bah x Bot   Gre x Cor   San x Vit
-  "Ana Lima":       [[2, 0, true], [3, 1, false], [1, 1, false], [1, 2, false], [2, 1, false]], // quase tudo certo
-  "Carlos Mendes":  [[1, 0, false],[2, 0, false], [0, 0, false], [0, 2, false], [1, 0, false]], // alguns acertos
-  "João Silva":     [[2, 0, false],[3, 1, false], [2, 0, false], [1, 0, false], [3, 1, false]], // placar exato no Atletico e Flamengo
-  "Lucas Oliveira": [[0, 1, false],[1, 0, false], [2, 1, false], [1, 1, false], [0, 0, false]], // quase todos errado
-  "Maria Santos":   [[2, 1, false],[2, 1, false], [1, 1, true], [0, 2, false], [2, 1, false]],  // double no empate
-  "Pedro Costa":    [[1, 1, false],[3, 0, false], [1, 1, false], [0, 1, false], [2, 1, false]], // mediano
+  "Ana Lima":       [[2, 0], [3, 1], [1, 1], [1, 2], [2, 1]], // quase tudo certo
+  "Carlos Mendes":  [[1, 0], [2, 0], [0, 0], [0, 2], [1, 0]], // alguns acertos
+  "João Silva":     [[2, 0], [3, 1], [2, 0], [1, 0], [3, 1]], // placar exato no Atletico e Flamengo
+  "Lucas Oliveira": [[0, 1], [1, 0], [2, 1], [1, 1], [0, 0]], // quase todos errado
+  "Maria Santos":   [[2, 1], [2, 1], [1, 1], [0, 2], [2, 1]],
+  "Pedro Costa":    [[1, 1], [3, 0], [1, 1], [0, 1], [2, 1]], // mediano
 };
 
 async function main() {
@@ -136,20 +135,19 @@ async function main() {
 
     for (let i = 0; i < Math.min(userPalpites.length, jogosComResultado.length); i++) {
       const match = jogosComResultado[i];
-      const [homePred, awayPred, isDouble] = userPalpites[i];
+      const [homePred, awayPred] = userPalpites[i];
 
       const { points } = match.homeScore !== null && match.awayScore !== null
         ? calculatePoints(
             { home: homePred, away: awayPred },
-            { home: match.homeScore, away: match.awayScore },
-            isDouble
+            { home: match.homeScore, away: match.awayScore }
           )
         : { points: null };
 
       await prisma.prediction.upsert({
         where: { userId_matchId: { userId: user.id, matchId: match.id } },
-        update: { homeScore: homePred, awayScore: awayPred, isDoublePoints: isDouble, points },
-        create: { userId: user.id, matchId: match.id, homeScore: homePred, awayScore: awayPred, isDoublePoints: isDouble, points },
+        update: { homeScore: homePred, awayScore: awayPred, points },
+        create: { userId: user.id, matchId: match.id, homeScore: homePred, awayScore: awayPred, points },
       });
 
       if (points !== null) userPoints += points;

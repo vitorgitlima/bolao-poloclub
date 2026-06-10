@@ -9,7 +9,6 @@ import { MatchRow } from "@/components/match-row";
 type Prediction = {
   homeScore: number;
   awayScore: number;
-  isDoublePoints: boolean;
   points: number | null;
 };
 
@@ -34,7 +33,7 @@ type TeamStats = {
   gf: number; gc: number; sg: number; pts: number;
 };
 
-type PendingEdit = { homeScore: string; awayScore: string; isDouble: boolean };
+type PendingEdit = { homeScore: string; awayScore: string };
 
 function canPredict(dateStr: string) {
   return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
@@ -66,13 +65,11 @@ function computeStandings(matches: Match[]): TeamStats[] {
 
 type GroupViewProps = {
   matches: Match[];
-  usedDoubleInPhase: boolean;
   onPredictionSaved: () => void;
 };
 
-export function GroupView({ matches, usedDoubleInPhase, onPredictionSaved }: GroupViewProps) {
+export function GroupView({ matches, onPredictionSaved }: GroupViewProps) {
   const [pending, setPending] = useState<Record<string, PendingEdit>>({});
-  const [localDoubleId, setLocalDoubleId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -81,9 +78,7 @@ export function GroupView({ matches, usedDoubleInPhase, onPredictionSaved }: Gro
       if (!edit) { const next = { ...prev }; delete next[matchId]; return next; }
       return { ...prev, [matchId]: edit };
     });
-    if (edit?.isDouble) setLocalDoubleId(matchId);
-    else if (!edit?.isDouble && localDoubleId === matchId) setLocalDoubleId(null);
-  }, [localDoubleId]);
+  }, []);
 
   async function saveAll() {
     const entries = Object.entries(pending);
@@ -100,7 +95,6 @@ export function GroupView({ matches, usedDoubleInPhase, onPredictionSaved }: Gro
               matchId,
               homeScore: parseInt(edit.homeScore),
               awayScore: parseInt(edit.awayScore),
-              isDoublePoints: edit.isDouble,
             }),
           }).then(r => r.json().then(d => ({ ok: r.ok, data: d })))
         )
@@ -110,7 +104,6 @@ export function GroupView({ matches, usedDoubleInPhase, onPredictionSaved }: Gro
         setSaveError(failed[0].data.error ?? "Erro ao salvar alguns palpites");
       } else {
         setPending({});
-        setLocalDoubleId(null);
         onPredictionSaved();
       }
     } catch {
@@ -205,21 +198,15 @@ export function GroupView({ matches, usedDoubleInPhase, onPredictionSaved }: Gro
 
       {/* Match rows */}
       <div className="glass-card">
-        {matches.map((match) => {
-          const effectiveDoubleUsed =
-            usedDoubleInPhase ||
-            (localDoubleId !== null && localDoubleId !== match.id);
-
-          return (
-            <MatchRow
-              key={`${match.id}-${match.predictions[0]?.isDoublePoints ?? 'x'}`}
-              match={match}
-              usedDoubleInPhase={effectiveDoubleUsed}
-              onSaved={onPredictionSaved}
-              onPendingChange={handlePendingChange}
-            />
-          );
-        })}
+        {matches.map((match) => (
+          <MatchRow
+            key={match.id}
+            match={match}
+            usedDoubleInPhase={false}
+            onSaved={onPredictionSaved}
+            onPendingChange={handlePendingChange}
+          />
+        ))}
       </div>
 
       {/* Save All */}

@@ -5,8 +5,7 @@ export type PointsResult = {
 
 export function calculatePoints(
   predicted: { home: number; away: number },
-  actual: { home: number; away: number },
-  isDouble: boolean
+  actual: { home: number; away: number }
 ): PointsResult {
   const predHome = Number(predicted.home);
   const predAway = Number(predicted.away);
@@ -37,11 +36,6 @@ export function calculatePoints(
   } else if (correctWinner) {
     points = 3;
     reason = "Vencedor certo";
-  }
-
-  if (isDouble) {
-    points *= 2;
-    if (points > 0) reason += " (x2 Double Points!)";
   }
 
   return { points, reason };

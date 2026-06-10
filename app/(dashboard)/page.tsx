@@ -7,7 +7,6 @@ import { Loader2, Calendar, Target, Star } from "lucide-react";
 type Prediction = {
   homeScore: number;
   awayScore: number;
-  isDoublePoints: boolean;
   points: number | null;
 };
 
@@ -128,11 +127,6 @@ export default function DashboardPage() {
 
   const allDone = predictionStatus.length > 0 && predictionStatus.every((r) => r.complete);
 
-  const usedDoubleByPhase = matches.reduce<Record<string, boolean>>((acc, m) => {
-    if (m.predictions[0]?.isDoublePoints) acc[m.phase] = true;
-    return acc;
-  }, {});
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -231,7 +225,6 @@ export default function DashboardPage() {
             <RodadaView
               key={currentRodada.id}
               matches={currentRodada.matches}
-              usedDoubleByPhase={usedDoubleByPhase}
               onPredictionSaved={loadMatches}
             />
           ) : (
