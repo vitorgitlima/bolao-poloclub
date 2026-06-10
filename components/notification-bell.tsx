@@ -103,15 +103,21 @@ export function NotificationBell() {
       {open && (
         <div
           ref={panelRef}
-          className="absolute right-0 top-full mt-2 w-80 sm:w-96 glass-card z-50 shadow-2xl overflow-hidden"
+          className="fixed top-[60px] right-3 sm:right-4 w-[calc(100vw-24px)] sm:w-96 z-[300] rounded-2xl overflow-hidden"
+          style={{
+            background: "rgba(6, 14, 28, 0.97)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)",
+            backdropFilter: "blur(24px)",
+          }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-            <span className="text-white text-sm font-bold">Notificações</span>
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10">
+            <span className="text-white text-sm font-bold tracking-wide">Notificações</span>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
-                className="text-white/40 hover:text-white text-xs transition-colors"
+                className="text-white/40 hover:text-white/80 text-xs transition-colors"
               >
                 Marcar todas como lidas
               </button>
@@ -119,10 +125,11 @@ export function NotificationBell() {
           </div>
 
           {/* List */}
-          <div className="max-h-[400px] overflow-y-auto divide-y divide-white/5">
+          <div className="max-h-[420px] overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="py-10 text-center text-white/30 text-sm">
-                Nenhuma notificação ainda
+              <div className="py-12 text-center">
+                <div className="text-3xl mb-2">🔔</div>
+                <p className="text-white/40 text-sm">Nenhuma notificação ainda</p>
               </div>
             ) : (
               notifications.map((n) => (
@@ -130,19 +137,27 @@ export function NotificationBell() {
                   key={n.id}
                   onClick={() => !n.isRead && markRead(n.id)}
                   className={cn(
-                    "w-full text-left px-4 py-3 transition-colors hover:bg-white/5 border-l-2",
+                    "w-full text-left px-4 py-3.5 transition-colors border-l-[3px] border-b border-b-white/5 last:border-b-0",
                     n.isRead
-                      ? "border-l-transparent"
+                      ? "border-l-transparent hover:bg-white/[0.03]"
                       : n.type === "MISSING_PREDICTION"
-                        ? "border-l-yellow-400/60 bg-white/5"
-                        : "border-l-green-400/60 bg-white/5"
+                        ? "border-l-yellow-400 bg-yellow-400/[0.06] hover:bg-yellow-400/[0.09]"
+                        : "border-l-green-400 bg-green-400/[0.06] hover:bg-green-400/[0.09]"
                   )}
                 >
-                  <p className={cn("text-sm font-semibold leading-tight", n.isRead ? "text-white/50" : "text-white")}>
+                  <p className={cn(
+                    "text-sm font-semibold leading-tight",
+                    n.isRead ? "text-white/45" : "text-white"
+                  )}>
                     {n.title}
                   </p>
-                  <p className="text-white/40 text-xs mt-0.5 leading-snug">{n.body}</p>
-                  <p className="text-white/20 text-[10px] mt-1">
+                  <p className={cn(
+                    "text-xs mt-1 leading-snug",
+                    n.isRead ? "text-white/25" : "text-white/60"
+                  )}>
+                    {n.body}
+                  </p>
+                  <p className="text-white/25 text-[10px] mt-1.5">
                     {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: ptBR })}
                   </p>
                 </button>
