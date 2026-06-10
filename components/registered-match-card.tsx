@@ -206,19 +206,26 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-2">
-            {/* Palpite */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-white/30 text-xs shrink-0">Palpite</span>
-              <span className={cn("font-black text-base tabular-nums shrink-0", ptsColor)}>
+          <div className="flex flex-col items-center gap-2">
+            {/* Palpite centralizado com destaque */}
+            <div className={cn(
+              "flex items-center gap-2 px-4 py-1.5 rounded-full border",
+              pts === 6
+                ? "bg-green-500/10 border-green-500/25"
+                : pts !== null && pts > 0
+                  ? "bg-white/6 border-white/12"
+                  : "bg-white/4 border-white/8"
+            )}>
+              <span className="text-white/40 text-[11px] font-medium">Seu palpite</span>
+              <span className={cn("font-black text-base tabular-nums", ptsColor)}>
                 {pred.homeScore} × {pred.awayScore}
               </span>
             </div>
 
             {/* Pontos + editar */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2">
               {pts !== null && pts > 0 && (
-                <span className="flex items-center gap-1 text-xs font-bold text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-full whitespace-nowrap">
+                <span className="flex items-center gap-1 text-xs font-bold text-yellow-400 bg-yellow-400/10 px-2.5 py-1 rounded-full whitespace-nowrap">
                   <Trophy className="w-3 h-3" /> +{pts} pts
                 </span>
               )}
@@ -226,7 +233,7 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
                 <span className="text-white/25 text-xs bg-white/5 px-2 py-1 rounded-full">0 pts</span>
               )}
               {pts === null && !isLive && !isFinished && (
-                <span className="text-white/25 text-xs">aguardando</span>
+                <span className="text-white/25 text-xs">aguardando resultado</span>
               )}
               {canEdit && (
                 <button
