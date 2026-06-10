@@ -14,7 +14,7 @@ type SyncResult = {
 
 type TestSyncResult = {
   ok: boolean;
-  date?: string;
+  dates?: string[];
   fixtures?: number;
   updatedMatches?: number;
   updatedPredictions?: number;
@@ -31,6 +31,55 @@ type TestMatch = {
   awayScore: number | null;
   status: string;
 };
+
+type Rodada = {
+  id: string;
+  label: string;
+  dates: string[]; // YYYYMMDD[]
+  matches: TestMatch[];
+};
+
+function buildRodadas(matches: TestMatch[]): Rodada[] {
+  const isGroup = (m: TestMatch) => m.phase.startsWith("Grupo");
+
+  const groupMatches = [...matches.filter(isGroup)].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  const rodadas: Rodada[] = [];
+
+  if (groupMatches.length > 0) {
+    const perRound = Math.ceil(groupMatches.length / 3);
+    const fmt = (iso: string) => iso.slice(5, 10).replace("-", "/");
+    for (let i = 0; i < 3; i++) {
+      const chunk = groupMatches.slice(i * perRound, (i + 1) * perRound);
+      if (chunk.length === 0) break;
+      const dates = [...new Set(chunk.map((m) => m.date.slice(0, 10).replace(/-/g, "")))];
+      rodadas.push({
+        id: `r${i + 1}`,
+        label: `Rodada ${i + 1}  (${fmt(chunk[0].date)} – ${fmt(chunk[chunk.length - 1].date)})`,
+        dates,
+        matches: chunk,
+      });
+    }
+  }
+
+  const knockoutOrder = [
+    "Oitavas de Final",
+    "Quartas de Final",
+    "Semifinal",
+    "Disputa do 3º Lugar",
+    "Final",
+  ];
+  for (const phase of knockoutOrder) {
+    const km = matches.filter((m) => m.phase === phase);
+    if (km.length === 0) continue;
+    const dates = [...new Set(km.map((m) => m.date.slice(0, 10).replace(/-/g, "")))];
+    rodadas.push({ id: phase, label: phase, dates, matches: km });
+  }
+
+  return rodadas;
+}
 
 function statusBadge(status: string) {
   if (status === "FINISHED") return <span className="text-green-400 text-[10px] font-bold">FIM</span>;
@@ -109,14 +158,11 @@ export default function AdminPage() {
   const [result, setResult] = useState<SyncResult | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
-  const [testDate, setTestDate] = useState(() =>
-    new Date().toISOString().slice(0, 10).replace(/-/g, "")
-  );
   const [testSyncing, setTestSyncing] = useState(false);
   const [testResult, setTestResult] = useState<TestSyncResult | null>(null);
   const [testMatches, setTestMatches] = useState<TestMatch[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
-  const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
+  const [selectedRodadaId, setSelectedRodadaId] = useState<string | null>(null);
 
   const loadLastSync = useCallback(async () => {
     const res = await fetch("/api/admin/last-sync");
@@ -138,6 +184,16 @@ export default function AdminPage() {
 
   useEffect(() => { loadTestMatches(); loadLastSync(); }, [loadTestMatches, loadLastSync]);
 
+  const rodadas = buildRodadas(testMatches);
+  const currentRodada = rodadas.find((r) => r.id === selectedRodadaId) ?? rodadas[0] ?? null;
+
+  // Auto-seleciona Rodada 1 quando os jogos carregam
+  useEffect(() => {
+    if (selectedRodadaId === null && rodadas.length > 0) {
+      setSelectedRodadaId(rodadas[0].id);
+    }
+  }, [testMatches]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function handleSync(mode: "today" | "all") {
     setSyncing(mode);
     setResult(null);
@@ -154,10 +210,14 @@ export default function AdminPage() {
   }
 
   async function handleTestSync() {
+    if (!currentRodada) return;
     setTestSyncing(true);
     setTestResult(null);
     try {
-      const res = await fetch(`/api/admin/sync-test?date=${testDate}`, { method: "POST" });
+      const res = await fetch(
+        `/api/admin/sync-test?dates=${currentRodada.dates.join(",")}`,
+        { method: "POST" }
+      );
       const data = await res.json();
       setTestResult(data);
       if (data.ok) { loadTestMatches(); loadLastSync(); }
@@ -167,15 +227,6 @@ export default function AdminPage() {
       setTestSyncing(false);
     }
   }
-
-  // Fases ordenadas da mais recente para a mais antiga
-  const phases = Array.from(new Set(testMatches.map((m) => m.phase))).sort((a, b) => {
-    const num = (s: string) => parseInt(s.match(/(\d+)/)?.[1] ?? "0", 10);
-    return num(b) - num(a);
-  });
-  // Default: fase mais recente
-  const activePhase = selectedPhase && phases.includes(selectedPhase) ? selectedPhase : phases[0] ?? null;
-  const activeMatches = activePhase ? testMatches.filter((m) => m.phase === activePhase) : [];
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -268,37 +319,42 @@ export default function AdminPage() {
         )}
       </div>
 
-      {/* ── SEÇÃO DE TESTE — BRASILEIRÃO ── */}
+      {/* ── SYNC POR RODADA ── */}
       <div className="glass-card p-5 border border-yellow-400/20">
         <h2 className="text-white font-bold mb-1 flex items-center gap-2">
           <FlaskConical className="w-4 h-4 text-yellow-400" />
-          <span>Modo Teste — Brasileirão Série A</span>
-          <span className="ml-auto text-yellow-400/60 text-xs font-normal">ESPN bra.1</span>
+          <span>Sync por Rodada — Copa 2026</span>
+          <span className="ml-auto text-yellow-400/60 text-xs font-normal">ESPN fifa.world</span>
         </h2>
         <p className="text-white/40 text-xs mb-4">
-          Valida o fluxo de sync com jogos reais antes da Copa. Jogos isolados (fase 🧪) — não afeta a Copa 2026.
+          Selecione a rodada para ver os jogos e sincronizar os placares. Fallback manual disponível abaixo.
         </p>
 
-        {/* Sync por data */}
+        {/* Seletor de rodada + botão sync */}
         <div className="flex gap-2 mb-4">
           <div className="flex-1">
-            <label className="text-white/40 text-[10px] uppercase tracking-wider mb-1 block">Data (YYYYMMDD)</label>
-            <input
-              type="text"
-              value={testDate}
-              onChange={(e) => setTestDate(e.target.value)}
-              placeholder="20260523"
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-400/40"
-            />
+            <label className="text-white/40 text-[10px] uppercase tracking-wider mb-1 block">Rodada</label>
+            <select
+              value={currentRodada?.id ?? ""}
+              onChange={(e) => setSelectedRodadaId(e.target.value)}
+              disabled={rodadas.length === 0}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-400/40 disabled:opacity-40"
+            >
+              {rodadas.map((r) => (
+                <option key={r.id} value={r.id} className="bg-slate-900">
+                  {r.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex items-end">
             <button
               onClick={handleTestSync}
-              disabled={testSyncing}
+              disabled={testSyncing || !currentRodada}
               className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 font-semibold rounded-lg border border-yellow-400/30 transition-all disabled:opacity-50 text-sm"
             >
               {testSyncing
-                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Buscando...</>
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sincronizando...</>
                 : <><RefreshCw className="w-3.5 h-3.5" /> Sincronizar</>}
             </button>
           </div>
@@ -308,7 +364,7 @@ export default function AdminPage() {
           <div className={`mb-4 p-3 rounded-xl border text-xs ${testResult.ok ? "bg-yellow-400/10 border-yellow-400/20" : "bg-red-500/10 border-red-500/20"}`}>
             {testResult.ok ? (
               <div className="text-yellow-300 space-y-0.5">
-                <div className="font-semibold">✅ Sync bra.1 concluído — {testResult.date}</div>
+                <div className="font-semibold">✅ Sync concluído</div>
                 <div className="text-yellow-400/70">
                   📡 {testResult.fixtures} fixtures · ⚽ {testResult.updatedMatches} atualizados · 🏆 {testResult.updatedPredictions} pontuações
                 </div>
@@ -319,60 +375,26 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Dropdown de rodada + tabela de jogos */}
-        <div className="space-y-3">
-          {loadingMatches ? (
-            <div className="flex items-center justify-center py-6 text-white/30 text-sm gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Carregando jogos...
-            </div>
-          ) : testMatches.length === 0 ? (
-            <div className="text-center py-6 text-white/30 text-sm">
-              <div className="text-2xl mb-1">🧪</div>
-              <p>Nenhum jogo de teste no banco.</p>
-              <code className="text-xs text-yellow-400/60 mt-1 block">bun run prisma/seed-brasileirao-r18.ts</code>
-            </div>
-          ) : (
-            <>
-              {/* Seletor de rodada */}
-              <div className="flex items-center gap-2">
-                <span className="text-white/40 text-[10px] uppercase tracking-wider shrink-0">Rodada</span>
-                <select
-                  value={activePhase ?? ""}
-                  onChange={(e) => setSelectedPhase(e.target.value)}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-400/40"
-                >
-                  {phases.map((phase, i) => (
-                    <option key={phase} value={phase} className="bg-slate-900">
-                      {phase.replace(/^🧪\s*/, "")}{i === 0 ? " (atual)" : ""}
-                    </option>
-                  ))}
-                </select>
-                {activeMatches[0] && (
-                  <button
-                    onClick={() =>
-                      setTestDate(
-                        new Date(activeMatches[0].date).toISOString().slice(0, 10).replace(/-/g, "")
-                      )
-                    }
-                    className="text-yellow-400/50 text-[10px] hover:text-yellow-400 transition-colors whitespace-nowrap"
-                  >
-                    ← usar data
-                  </button>
-                )}
-              </div>
-
-              {/* Jogos da rodada selecionada */}
-              <div className="bg-white/5 rounded-xl overflow-hidden">
-                {activeMatches.map((m) => (
-                  <ManualScoreRow key={m.id} match={m} onSaved={loadTestMatches} />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        {/* Lista de jogos da rodada selecionada */}
+        {loadingMatches ? (
+          <div className="flex items-center justify-center py-6 text-white/30 text-sm gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" /> Carregando jogos...
+          </div>
+        ) : rodadas.length === 0 ? (
+          <div className="text-center py-6 text-white/30 text-sm">
+            <div className="text-2xl mb-1">⚽</div>
+            <p>Nenhum jogo da Copa no banco.</p>
+          </div>
+        ) : (
+          <div className="bg-white/5 rounded-xl overflow-hidden">
+            {(currentRodada?.matches ?? []).map((m) => (
+              <ManualScoreRow key={m.id} match={m} onSaved={loadTestMatches} />
+            ))}
+          </div>
+        )}
 
         <p className="text-white/25 text-[10px] mt-3 text-center">
-          Fallback manual — edite o placar e salve caso a ESPN API falhe
+          Edite o placar manualmente e salve caso a ESPN API falhe
         </p>
       </div>
 

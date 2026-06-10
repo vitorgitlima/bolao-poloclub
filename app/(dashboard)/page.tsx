@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { GroupView } from "@/components/group-view";
-import { MatchList } from "@/components/match-list";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { RodadaView } from "@/components/rodada-view";
 import { Loader2, Calendar, Target, Star } from "lucide-react";
-import Link from "next/link";
 
 type Prediction = {
   homeScore: number;
@@ -28,22 +26,68 @@ type Match = {
   predictions: Prediction[];
 };
 
-const BASE_PHASE_TABS = [
-  { key: "grupos",  label: "⚽ Grupos",    filter: (p: string) => p.startsWith("Grupo") },
-  { key: "r32",     label: "Rodada 32",    filter: (p: string) => p === "Rodada de 32" },
-  { key: "oitavas", label: "Oitavas",      filter: (p: string) => p === "Oitavas de Final" },
-  { key: "quartas", label: "Quartas",      filter: (p: string) => p === "Quartas de Final" },
-  { key: "semi",    label: "Semifinal",    filter: (p: string) => p === "Semifinal" },
-  { key: "final",   label: "🏆 Final",     filter: (p: string) => p === "Final" || p === "Disputa do 3º Lugar" },
-];
+type Rodada = { id: string; label: string; matches: Match[] };
 
-const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"] as const;
+function canPredict(dateStr: string) {
+  return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
+}
+
+function computeRodadas(matches: Match[]): Rodada[] {
+  const isGroup = (m: Match) => m.phase.startsWith("Grupo");
+
+  // Determina o matchday (1/2/3) de cada jogo de grupo
+  const groupsByPhase = new Map<string, Match[]>();
+  for (const m of matches.filter(isGroup)) {
+    if (!groupsByPhase.has(m.phase)) groupsByPhase.set(m.phase, []);
+    groupsByPhase.get(m.phase)!.push(m);
+  }
+  const matchdayMap = new Map<string, number>();
+  for (const [, gMatches] of groupsByPhase) {
+    const sorted = [...gMatches].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    const perDay = Math.ceil(sorted.length / 3); // 2 jogos/rodada para grupos de 4
+    sorted.forEach((m, i) =>
+      matchdayMap.set(m.id, Math.min(Math.floor(i / perDay) + 1, 3))
+    );
+  }
+
+  // Rodadas da fase de grupos
+  const groupRodadas: Rodada[] = [];
+  for (let day = 1; day <= 3; day++) {
+    const dayMatches = matches
+      .filter((m) => isGroup(m) && matchdayMap.get(m.id) === day)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (dayMatches.length === 0) continue;
+    groupRodadas.push({ id: `r${day}`, label: `Rodada ${day}`, matches: dayMatches });
+  }
+
+  // Fases eliminatórias
+  const knockouts: { id: string; label: string; phases: string[] }[] = [
+    { id: "r32",     label: "Rodada 32",  phases: ["Rodada de 32"] },
+    { id: "oitavas", label: "Oitavas",    phases: ["Oitavas de Final"] },
+    { id: "quartas", label: "Quartas",    phases: ["Quartas de Final"] },
+    { id: "semi",    label: "Semifinal",  phases: ["Semifinal"] },
+    { id: "final",   label: "🏆 Final",   phases: ["Final", "Disputa do 3º Lugar"] },
+  ];
+  const knockoutRodadas: Rodada[] = knockouts
+    .map((k) => ({
+      id: k.id,
+      label: k.label,
+      matches: matches
+        .filter((m) => k.phases.includes(m.phase))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    }))
+    .filter((r) => r.matches.length > 0);
+
+  return [...groupRodadas, ...knockoutRodadas];
+}
 
 export default function DashboardPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activePhase, setActivePhase] = useState<string>("grupos");
-  const [activeGroup, setActiveGroup] = useState<string>("A");
+  const [activePhase, setActivePhase] = useState<string>("r1");
+  const autoSelected = useRef(false);
 
   const loadMatches = useCallback(async () => {
     const res = await fetch("/api/matches");
@@ -52,86 +96,40 @@ export default function DashboardPage() {
     setLoading(false);
   }, []);
 
+  useEffect(() => { loadMatches(); }, [loadMatches]);
+
+  const rodadas = computeRodadas(matches);
+
+  // Auto-seleciona a rodada atual (com jogos em aberto) ao carregar
   useEffect(() => {
-    loadMatches();
-  }, [loadMatches]);
+    if (matches.length === 0 || autoSelected.current) return;
+    const best =
+      rodadas.find((r) => r.matches.some((m) => m.status === "SCHEDULED" && canPredict(m.date)))?.id ??
+      rodadas.find((r) => r.matches.some((m) => m.status === "LIVE"))?.id ??
+      rodadas[0]?.id;
+    if (best) { setActivePhase(best); autoSelected.current = true; }
+  }, [matches]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const currentRodada = rodadas.find((r) => r.id === activePhase) ?? rodadas[0] ?? null;
 
   const myPredictions = matches.filter((m) => m.predictions.length > 0).length;
   const myPoints = matches.reduce((sum, m) => sum + (m.predictions[0]?.points ?? 0), 0);
 
-  // Progresso por fase — agrupa grupos, mostra só o que tem faltando
-  const pendingSummary = (() => {
-    const now = Date.now();
-    let groupsOpen = 0, groupsPredicted = 0, groupsWithMissing = 0;
-    const knockout: { label: string; open: number; predicted: number }[] = [];
-
-    // Fases eliminatórias em ordem da Copa
-    const KNOCKOUT_ORDER = [
-      "Rodada de 32", "Oitavas de Final", "Quartas de Final",
-      "Semifinal", "Disputa do 3º Lugar", "Final",
-    ];
-    const knockoutMap: Record<string, { open: number; predicted: number }> = {};
-
-    for (const m of matches) {
-      const isOpen = m.status === "SCHEDULED" && now < new Date(m.date).getTime() - 10 * 60 * 1000;
-      if (!isOpen) continue;
-      const hasPred = m.predictions.length > 0;
-      if (m.phase.startsWith("Grupo")) {
-        groupsOpen++;
-        if (hasPred) groupsPredicted++;
-        else if (!knockoutMap[m.phase]) groupsWithMissing++;
-      } else {
-        if (!knockoutMap[m.phase]) knockoutMap[m.phase] = { open: 0, predicted: 0 };
-        knockoutMap[m.phase].open++;
-        if (hasPred) knockoutMap[m.phase].predicted++;
-      }
-    }
-
-    // Recount groupsWithMissing properly
-    groupsWithMissing = 0;
-    const groupMap: Record<string, { open: number; predicted: number }> = {};
-    for (const m of matches) {
-      const isOpen = m.status === "SCHEDULED" && now < new Date(m.date).getTime() - 10 * 60 * 1000;
-      if (!isOpen || !m.phase.startsWith("Grupo")) continue;
-      if (!groupMap[m.phase]) groupMap[m.phase] = { open: 0, predicted: 0 };
-      groupMap[m.phase].open++;
-      if (m.predictions.length > 0) groupMap[m.phase].predicted++;
-    }
-    groupsWithMissing = Object.values(groupMap).filter(v => v.predicted < v.open).length;
-
-    for (const phase of KNOCKOUT_ORDER) {
-      if (knockoutMap[phase] && knockoutMap[phase].predicted < knockoutMap[phase].open) {
-        const label = phase
-          .replace("Rodada de ", "R")
-          .replace(" de Final", "")
-          .replace("Disputa do 3º Lugar", "3º Lugar");
-        knockout.push({ label, ...knockoutMap[phase] });
-      }
-    }
-
-    const entries: { label: string; open: number; predicted: number; extra?: string }[] = [];
-    if (groupsOpen > 0 && groupsPredicted < groupsOpen) {
-      entries.push({
-        label: "Grupos",
-        open: groupsOpen,
-        predicted: groupsPredicted,
-        extra: groupsWithMissing > 1 ? `${groupsWithMissing} grupos` : undefined,
-      });
-    }
-    entries.push(...knockout);
-    return entries;
-  })();
+  // Faltando por rodada — apenas rodadas com jogos em aberto sem palpite
+  const pendingSummary = rodadas
+    .map((r) => {
+      const open = r.matches.filter(
+        (m) => m.status === "SCHEDULED" && canPredict(m.date)
+      );
+      const predicted = open.filter((m) => m.predictions.length > 0).length;
+      return { id: r.id, label: r.label, open: open.length, predicted };
+    })
+    .filter((r) => r.open > 0 && r.predicted < r.open);
 
   const usedDoubleByPhase = matches.reduce<Record<string, boolean>>((acc, m) => {
     if (m.predictions[0]?.isDoublePoints) acc[m.phase] = true;
     return acc;
   }, {});
-
-  const PHASE_TABS = BASE_PHASE_TABS;
-
-  const activeTab = PHASE_TABS.find((t) => t.key === activePhase) ?? PHASE_TABS[0];
-  const phaseMatches = matches.filter((m) => activeTab.filter(m.phase));
-  const groupMatches = phaseMatches.filter((m) => m.phase === `Grupo ${activeGroup}`);
 
   if (loading) {
     return (
@@ -161,116 +159,75 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* Faltando palpitar */}
       {pendingSummary.length > 0 && (
         <div className="glass rounded-xl px-4 py-3 border border-yellow-400/20 bg-yellow-400/5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <span className="text-yellow-400 text-sm font-semibold shrink-0">⚡ Em aberto:</span>
+          <span className="text-yellow-400 text-sm font-semibold shrink-0">⚡ Faltando:</span>
           {pendingSummary.map((entry) => (
-            <span key={entry.label} className="inline-flex items-center gap-1 text-xs">
+            <button
+              key={entry.id}
+              onClick={() => setActivePhase(entry.id)}
+              className="inline-flex items-center gap-1 text-xs hover:opacity-80 transition-opacity"
+            >
               <span className="font-bold text-yellow-300">{entry.label}</span>
               <span className="text-yellow-400/50">·</span>
               <span className="text-yellow-400/70">{entry.predicted}/{entry.open}</span>
-              {entry.extra && <span className="text-yellow-300/40 text-[10px]">({entry.extra})</span>}
-            </span>
+            </button>
           ))}
         </div>
       )}
 
       {matches.length === 0 ? (
-        /* ── Em breve ── */
-        <div className="space-y-4">
-          <div className="glass-card p-8 flex flex-col items-center text-center gap-4">
-            <div className="text-6xl">🏆</div>
-            <div>
-              <h2 className="text-white font-black text-xl">Copa do Mundo 2026</h2>
-              <p className="text-white/40 text-sm mt-1">Estados Unidos · México · Canadá</p>
-            </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-3">
-              <p className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-1">Início</p>
-              <p className="text-white font-black text-2xl">11 de Junho, 2026</p>
-            </div>
-            <p className="text-white/40 text-sm max-w-xs leading-relaxed">
-              Os jogos estarão disponíveis para palpite assim que a Copa começar. Fique ligado!
-            </p>
+        <div className="glass-card p-8 flex flex-col items-center text-center gap-4">
+          <div className="text-6xl">🏆</div>
+          <div>
+            <h2 className="text-white font-black text-xl">Copa do Mundo 2026</h2>
+            <p className="text-white/40 text-sm mt-1">Estados Unidos · México · Canadá</p>
           </div>
-
+          <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-3">
+            <p className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-1">Início</p>
+            <p className="text-white font-black text-2xl">11 de Junho, 2026</p>
+          </div>
         </div>
       ) : (
         <>
-          {/* Aviso Copa em breve */}
-          <div className="glass-card p-4 flex items-center gap-4">
-            <div className="text-3xl shrink-0">🏆</div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-bold text-sm">Copa do Mundo 2026</p>
-              <p className="text-white/40 text-xs mt-0.5">Os palpites abrem em <span className="text-white/70 font-semibold">11 de Junho</span> — fique de olho!</p>
-            </div>
-          </div>
-
-          {/* Phase tabs */}
+          {/* Tabs de rodada */}
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-            {PHASE_TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActivePhase(tab.key)}
-                className={`tab-pill whitespace-nowrap ${
-                  activePhase === tab.key ? "tab-pill-active" : "tab-pill-inactive"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {rodadas.map((r) => {
+              const hasMissing = pendingSummary.some((p) => p.id === r.id);
+              return (
+                <button
+                  key={r.id}
+                  onClick={() => setActivePhase(r.id)}
+                  className={`tab-pill whitespace-nowrap relative ${
+                    activePhase === r.id ? "tab-pill-active" : "tab-pill-inactive"
+                  }`}
+                >
+                  {r.label}
+                  {hasMissing && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-yellow-400" />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Group stage */}
-          {activePhase === "grupos" && (
-            <>
-              <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
-                {GROUPS.map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => setActiveGroup(g)}
-                    className={`shrink-0 w-9 h-9 rounded-xl text-sm font-bold transition-all ${
-                      activeGroup === g
-                        ? "bg-green-600 text-white shadow-lg shadow-green-900/30"
-                        : "glass text-white/50 hover:text-white hover:bg-white/10 border border-white/10"
-                    }`}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-              {groupMatches.length > 0 ? (
-                <GroupView
-                  matches={groupMatches}
-                  usedDoubleInPhase={usedDoubleByPhase[`Grupo ${activeGroup}`] ?? false}
-                  onPredictionSaved={loadMatches}
-                />
-              ) : (
-                <div className="text-center py-16 text-white/30">
-                  <div className="text-5xl mb-3">⚽</div>
-                  <p>Nenhum jogo encontrado no Grupo {activeGroup}</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Knockout phases */}
-          {activePhase !== "grupos" && (
-            phaseMatches.length > 0 ? (
-              <MatchList
-                matches={phaseMatches}
-                usedDoubleInPhase={usedDoubleByPhase[phaseMatches[0]?.phase] ?? false}
-                onPredictionSaved={loadMatches}
-              />
-            ) : (
-              <div className="glass-card text-center py-16 text-white/30">
-                <div className="text-5xl mb-3">⚽</div>
-                <p>Nenhum jogo nesta fase ainda</p>
-              </div>
-            )
+          {/* Jogos da rodada ativa */}
+          {currentRodada && currentRodada.matches.length > 0 ? (
+            <RodadaView
+              key={currentRodada.id}
+              matches={currentRodada.matches}
+              usedDoubleByPhase={usedDoubleByPhase}
+              onPredictionSaved={loadMatches}
+            />
+          ) : (
+            <div className="glass-card text-center py-16 text-white/30">
+              <div className="text-5xl mb-3">⚽</div>
+              <p>Nenhum jogo nesta fase ainda</p>
+            </div>
           )}
         </>
       )}
-
     </div>
   );
 }

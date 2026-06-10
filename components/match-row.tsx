@@ -130,8 +130,13 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange }:
     }
   }
 
+  const isMissing = isPredictable && !pred && homeVal === "" && awayVal === "";
+
   return (
-    <div className="border-b border-white/5 last:border-0">
+    <div className={cn(
+      "border-b border-white/5 last:border-0 border-l-2",
+      isMissing ? "border-l-yellow-400/40" : "border-l-transparent"
+    )}>
       <div className="flex items-center gap-1.5 py-2.5 px-3">
         {/* Status / date */}
         <div className="shrink-0 w-[58px]">
