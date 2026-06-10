@@ -7,20 +7,20 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/components/toast-provider";
 
-function Flag({ flag, name, size = 40 }: { flag: string; name: string; size?: number }) {
+function Flag({ flag, name }: { flag: string; name: string }) {
   if (flag.startsWith("http")) {
     return (
       <Image
         src={flag}
         alt={name}
-        width={size}
-        height={size}
-        className="object-contain drop-shadow-md"
+        width={48}
+        height={48}
+        className="object-contain drop-shadow-lg w-10 h-10 sm:w-12 sm:h-12"
         unoptimized
       />
     );
   }
-  return <span style={{ fontSize: size * 0.9 }} className="leading-none drop-shadow-md">{flag}</span>;
+  return <span className="text-4xl sm:text-5xl leading-none drop-shadow-lg">{flag}</span>;
 }
 
 function onlyDigits(v: string) {
@@ -55,15 +55,17 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
 
   async function handleSave() {
     if (!canSave) return;
-    const home = parseInt(homeVal);
-    const away = parseInt(awayVal);
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/predictions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId: match.id, homeScore: home, awayScore: away }),
+        body: JSON.stringify({
+          matchId: match.id,
+          homeScore: parseInt(homeVal),
+          awayScore: parseInt(awayVal),
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Erro ao salvar"); return; }
@@ -78,23 +80,29 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
   }
 
   return (
-    <div className="glass-card p-4 space-y-3">
-      {/* Header: fase + horário */}
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-green-400/80 font-semibold uppercase tracking-wide text-[10px]">{match.phase}</span>
-        <span className="text-white/40">{format(matchDate, "HH:mm", { locale: ptBR })}</span>
+    <div className="glass-card overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
+        <span className="text-[10px] font-semibold text-green-400/70 uppercase tracking-widest">
+          {match.phase}
+        </span>
+        <span className="text-[10px] text-white/35 font-medium tabular-nums">
+          {format(matchDate, "HH:mm", { locale: ptBR })}
+        </span>
       </div>
 
       {/* Times + inputs */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 px-3 py-4">
         {/* Home */}
-        <div className="flex flex-col items-center gap-1.5 flex-1">
-          <Flag flag={match.homeFlag} name={match.homeTeam} size={40} />
-          <span className="text-white/80 text-xs font-semibold text-center leading-tight">{match.homeTeam}</span>
+        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+          <Flag flag={match.homeFlag} name={match.homeTeam} />
+          <span className="text-white/85 text-[11px] font-semibold text-center leading-tight line-clamp-2 w-full px-1">
+            {match.homeTeam}
+          </span>
         </div>
 
-        {/* Score inputs */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Inputs */}
+        <div className="flex items-center gap-1.5 shrink-0">
           <input
             type="text"
             inputMode="numeric"
@@ -104,9 +112,9 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
             onChange={(e) => setHomeVal(onlyDigits(e.target.value))}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
             placeholder="–"
-            className="w-10 h-10 bg-white/10 border border-white/20 rounded-xl text-white text-center text-lg font-black focus:outline-none focus:border-green-400/60 focus:bg-white/15 placeholder:text-white/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="w-12 h-12 bg-white/10 border border-white/15 rounded-2xl text-white text-center text-xl font-black focus:outline-none focus:border-green-400/50 focus:bg-white/15 placeholder:text-white/15 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
-          <span className="text-white/25 text-base font-black">×</span>
+          <span className="text-white/20 text-lg font-black select-none">×</span>
           <input
             type="text"
             inputMode="numeric"
@@ -116,23 +124,30 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
             onChange={(e) => setAwayVal(onlyDigits(e.target.value))}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
             placeholder="–"
-            className="w-10 h-10 bg-white/10 border border-white/20 rounded-xl text-white text-center text-lg font-black focus:outline-none focus:border-green-400/60 focus:bg-white/15 placeholder:text-white/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="w-12 h-12 bg-white/10 border border-white/15 rounded-2xl text-white text-center text-xl font-black focus:outline-none focus:border-green-400/50 focus:bg-white/15 placeholder:text-white/15 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
 
         {/* Away */}
-        <div className="flex flex-col items-center gap-1.5 flex-1">
-          <Flag flag={match.awayFlag} name={match.awayTeam} size={40} />
-          <span className="text-white/80 text-xs font-semibold text-center leading-tight">{match.awayTeam}</span>
+        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+          <Flag flag={match.awayFlag} name={match.awayTeam} />
+          <span className="text-white/85 text-[11px] font-semibold text-center leading-tight line-clamp-2 w-full px-1">
+            {match.awayTeam}
+          </span>
         </div>
       </div>
 
-      {/* Save button */}
-      {canSave && (
+      {/* Footer */}
+      <div className="px-3 pb-3 space-y-2">
+        {error && (
+          <p className="text-red-400 text-xs text-center bg-red-400/8 rounded-lg py-1">{error}</p>
+        )}
         <button
           onClick={handleSave}
-          disabled={loading || justSaved}
-          className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-sm transition-all shadow-lg shadow-green-900/30 disabled:opacity-70"
+          disabled={!canSave || loading || justSaved}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all
+            bg-green-600 hover:bg-green-500 active:scale-[0.98] text-white shadow-lg shadow-green-900/30
+            disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none"
         >
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -142,11 +157,7 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
             "Confirmar Palpite"
           )}
         </button>
-      )}
-
-      {error && (
-        <p className="text-red-400 text-xs text-center">{error}</p>
-      )}
+      </div>
     </div>
   );
 }
