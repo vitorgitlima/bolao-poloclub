@@ -115,16 +115,18 @@ export default function DashboardPage() {
   const myPredictions = matches.filter((m) => m.predictions.length > 0).length;
   const myPoints = matches.reduce((sum, m) => sum + (m.predictions[0]?.points ?? 0), 0);
 
-  // Faltando por rodada — apenas rodadas com jogos em aberto sem palpite
-  const pendingSummary = rodadas
+  // Status de palpites por rodada — todas com jogos em aberto
+  const predictionStatus = rodadas
     .map((r) => {
       const open = r.matches.filter(
         (m) => m.status === "SCHEDULED" && canPredict(m.date)
       );
       const predicted = open.filter((m) => m.predictions.length > 0).length;
-      return { id: r.id, label: r.label, open: open.length, predicted };
+      return { id: r.id, label: r.label, open: open.length, predicted, complete: predicted === open.length && open.length > 0 };
     })
-    .filter((r) => r.open > 0 && r.predicted < r.open);
+    .filter((r) => r.open > 0);
+
+  const allDone = predictionStatus.length > 0 && predictionStatus.every((r) => r.complete);
 
   const usedDoubleByPhase = matches.reduce<Record<string, boolean>>((acc, m) => {
     if (m.predictions[0]?.isDoublePoints) acc[m.phase] = true;
@@ -159,19 +161,29 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Faltando palpitar */}
-      {pendingSummary.length > 0 && (
-        <div className="glass rounded-xl px-4 py-3 border border-yellow-400/20 bg-yellow-400/5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <span className="text-yellow-400 text-sm font-semibold shrink-0">⚡ Faltando:</span>
-          {pendingSummary.map((entry) => (
+      {/* Status de palpites */}
+      {predictionStatus.length > 0 && (
+        <div className={`glass rounded-xl px-4 py-3 border flex flex-wrap items-center gap-x-3 gap-y-1.5 ${
+          allDone
+            ? "border-green-500/20 bg-green-500/5"
+            : "border-yellow-400/20 bg-yellow-400/5"
+        }`}>
+          <span className={`text-sm font-semibold shrink-0 ${allDone ? "text-green-400" : "text-yellow-400"}`}>
+            {allDone ? "✅ Tudo palpitado!" : "⚡ Palpites:"}
+          </span>
+          {predictionStatus.map((entry) => (
             <button
               key={entry.id}
               onClick={() => setActivePhase(entry.id)}
               className="inline-flex items-center gap-1 text-xs hover:opacity-80 transition-opacity"
             >
-              <span className="font-bold text-yellow-300">{entry.label}</span>
-              <span className="text-yellow-400/50">·</span>
-              <span className="text-yellow-400/70">{entry.predicted}/{entry.open}</span>
+              <span className={`font-bold ${entry.complete ? "text-green-300" : "text-red-400"}`}>
+                {entry.label}
+              </span>
+              <span className={entry.complete ? "text-green-500/40" : "text-red-400/40"}>·</span>
+              <span className={entry.complete ? "text-green-400/70" : "text-red-400/70"}>
+                {entry.predicted}/{entry.open}
+              </span>
             </button>
           ))}
         </div>
@@ -194,7 +206,7 @@ export default function DashboardPage() {
           {/* Tabs de rodada */}
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
             {rodadas.map((r) => {
-              const hasMissing = pendingSummary.some((p) => p.id === r.id);
+              const status = predictionStatus.find((p) => p.id === r.id);
               return (
                 <button
                   key={r.id}
@@ -204,8 +216,10 @@ export default function DashboardPage() {
                   }`}
                 >
                   {r.label}
-                  {hasMissing && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-yellow-400" />
+                  {status && (
+                    <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${
+                      status.complete ? "bg-green-400" : "bg-yellow-400"
+                    }`} />
                   )}
                 </button>
               );
