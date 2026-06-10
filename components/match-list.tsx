@@ -7,7 +7,6 @@ import { MatchRow } from "@/components/match-row";
 type Prediction = {
   homeScore: number;
   awayScore: number;
-  isDoublePoints: boolean;
   points: number | null;
 };
 
@@ -25,7 +24,7 @@ type Match = {
   predictions: Prediction[];
 };
 
-type PendingEdit = { homeScore: string; awayScore: string; isDouble: boolean };
+type PendingEdit = { homeScore: string; awayScore: string };
 
 function canPredict(dateStr: string) {
   return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
@@ -33,13 +32,11 @@ function canPredict(dateStr: string) {
 
 type MatchListProps = {
   matches: Match[];
-  usedDoubleInPhase: boolean;
   onPredictionSaved: () => void;
 };
 
-export function MatchList({ matches, usedDoubleInPhase, onPredictionSaved }: MatchListProps) {
+export function MatchList({ matches, onPredictionSaved }: MatchListProps) {
   const [pending, setPending] = useState<Record<string, PendingEdit>>({});
-  const [localDoubleId, setLocalDoubleId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -48,9 +45,7 @@ export function MatchList({ matches, usedDoubleInPhase, onPredictionSaved }: Mat
       if (!edit) { const next = { ...prev }; delete next[matchId]; return next; }
       return { ...prev, [matchId]: edit };
     });
-    if (edit?.isDouble) setLocalDoubleId(matchId);
-    else if (!edit?.isDouble && localDoubleId === matchId) setLocalDoubleId(null);
-  }, [localDoubleId]);
+  }, []);
 
   async function saveAll() {
     const entries = Object.entries(pending);
@@ -67,7 +62,6 @@ export function MatchList({ matches, usedDoubleInPhase, onPredictionSaved }: Mat
               matchId,
               homeScore: parseInt(edit.homeScore),
               awayScore: parseInt(edit.awayScore),
-              isDoublePoints: edit.isDouble,
             }),
           }).then(r => r.json().then(d => ({ ok: r.ok, data: d })))
         )
@@ -77,7 +71,6 @@ export function MatchList({ matches, usedDoubleInPhase, onPredictionSaved }: Mat
         setSaveError(failed[0].data.error ?? "Erro ao salvar alguns palpites");
       } else {
         setPending({});
-        setLocalDoubleId(null);
         onPredictionSaved();
       }
     } catch {
@@ -104,20 +97,15 @@ export function MatchList({ matches, usedDoubleInPhase, onPredictionSaved }: Mat
       )}
 
       <div className="glass-card">
-        {matches.map((match) => {
-          const effectiveDoubleUsed =
-            usedDoubleInPhase ||
-            (localDoubleId !== null && localDoubleId !== match.id);
-          return (
-            <MatchRow
-              key={`${match.id}-${match.predictions[0]?.isDoublePoints ?? 'x'}`}
-              match={match}
-              usedDoubleInPhase={effectiveDoubleUsed}
-              onSaved={onPredictionSaved}
-              onPendingChange={handlePendingChange}
-            />
-          );
-        })}
+        {matches.map((match) => (
+          <MatchRow
+            key={match.id}
+            match={match}
+            usedDoubleInPhase={false}
+            onSaved={onPredictionSaved}
+            onPendingChange={handlePendingChange}
+          />
+        ))}
       </div>
 
       {pendingCount > 0 && (
@@ -126,8 +114,7 @@ export function MatchList({ matches, usedDoubleInPhase, onPredictionSaved }: Mat
             <p className="text-red-400 text-xs text-center bg-red-400/10 py-2 rounded-xl">{saveError}</p>
           )}
           <button
-            onClick={saveAll}
-            disabled={saving}
+            onClick={saveAll} disabled={saving}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-sm transition-all shadow-lg shadow-green-900/40 disabled:opacity-50"
           >
             {saving

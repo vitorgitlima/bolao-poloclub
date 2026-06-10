@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Trophy, Home, Settings, BookOpen, Users, FlaskConical, Globe } from "lucide-react";
+import { Trophy, Home, Settings, BookOpen, Users, FlaskConical } from "lucide-react";
+import { CopaBall } from "@/components/icons/copa-ball";
 import { cn } from "@/lib/utils";
 
 type Props = { isAdmin: boolean };
@@ -46,7 +47,7 @@ export function NavLinks({ isAdmin }: Props) {
       </Link>
 
       <Link href="/copa" className={linkClass("/copa")}>
-        <Globe className="w-4 h-4" />
+        <CopaBall className="w-4 h-4 shrink-0" />
         <span className="hidden sm:block">Copa</span>
       </Link>
 

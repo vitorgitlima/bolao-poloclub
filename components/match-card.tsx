@@ -5,14 +5,13 @@ import Image from "next/image";
 import { PredictionForm } from "./prediction-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Lock, Trophy, Zap, MapPin, Clock } from "lucide-react";
+import { Lock, Trophy, MapPin, Clock } from "lucide-react";
 import { canPredictMatch } from "@/lib/points";
 import { cn } from "@/lib/utils";
 
 type Prediction = {
   homeScore: number;
   awayScore: number;
-  isDoublePoints: boolean;
   points: number | null;
 };
 
@@ -33,11 +32,10 @@ type Match = {
 
 type MatchCardProps = {
   match: Match;
-  usedDoubleInPhase: boolean;
   onPredictionSaved: () => void;
 };
 
-export function MatchCard({ match, usedDoubleInPhase, onPredictionSaved }: MatchCardProps) {
+export function MatchCard({ match, onPredictionSaved }: MatchCardProps) {
   const [showForm, setShowForm] = useState(false);
   const prediction = match.predictions[0];
   const matchDate = new Date(match.date);
@@ -51,20 +49,15 @@ export function MatchCard({ match, usedDoubleInPhase, onPredictionSaved }: Match
       "glass-card p-0 overflow-hidden",
       isLive && "border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
     )}>
-      {/* Header da fase */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-white/8">
-        <span className="text-xs font-semibold text-green-400 uppercase tracking-wider">
-          {match.phase}
-        </span>
+        <span className="text-xs font-semibold text-green-400 uppercase tracking-wider">{match.phase}</span>
         {isLive ? (
           <div className="flex items-center gap-1.5">
             <div className="live-dot" />
             <span className="text-red-400 text-xs font-bold">AO VIVO</span>
           </div>
         ) : isFinished ? (
-          <span className="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
-            Encerrado
-          </span>
+          <span className="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">Encerrado</span>
         ) : (
           <div className="flex items-center gap-1 text-white/40 text-xs">
             <Clock className="w-3 h-3" />
@@ -74,7 +67,6 @@ export function MatchCard({ match, usedDoubleInPhase, onPredictionSaved }: Match
       </div>
 
       <div className="p-4">
-        {/* Times */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex-1 flex flex-col items-center gap-1.5">
             {match.homeFlag.startsWith("http") ? (
@@ -82,25 +74,18 @@ export function MatchCard({ match, usedDoubleInPhase, onPredictionSaved }: Match
             ) : (
               <span className="text-5xl leading-none drop-shadow-lg">{match.homeFlag}</span>
             )}
-            <span className="text-white font-bold text-sm text-center leading-tight">
-              {match.homeTeam}
-            </span>
+            <span className="text-white font-bold text-sm text-center leading-tight">{match.homeTeam}</span>
           </div>
 
           <div className="flex flex-col items-center min-w-[72px]">
             {isFinished || isLive ? (
-              <div className={cn(
-                "text-3xl font-black px-3 py-1 rounded-xl",
-                isFinished ? "text-yellow-400" : "text-red-400 animate-pulse"
-              )}>
+              <div className={cn("text-3xl font-black px-3 py-1 rounded-xl", isFinished ? "text-yellow-400" : "text-red-400 animate-pulse")}>
                 {match.homeScore} – {match.awayScore}
               </div>
             ) : (
               <div className="flex flex-col items-center gap-0.5">
                 <span className="text-white/30 font-black text-2xl">VS</span>
-                <span className="text-white/40 text-xs">
-                  {format(matchDate, "dd MMM", { locale: ptBR })}
-                </span>
+                <span className="text-white/40 text-xs">{format(matchDate, "dd MMM", { locale: ptBR })}</span>
               </div>
             )}
           </div>
@@ -111,33 +96,22 @@ export function MatchCard({ match, usedDoubleInPhase, onPredictionSaved }: Match
             ) : (
               <span className="text-5xl leading-none drop-shadow-lg">{match.awayFlag}</span>
             )}
-            <span className="text-white font-bold text-sm text-center leading-tight">
-              {match.awayTeam}
-            </span>
+            <span className="text-white font-bold text-sm text-center leading-tight">{match.awayTeam}</span>
           </div>
         </div>
 
         {match.venue && (
           <div className="flex items-center justify-center gap-1 text-white/30 text-xs mb-3">
-            <MapPin className="w-3 h-3" />
-            {match.venue}
+            <MapPin className="w-3 h-3" />{match.venue}
           </div>
         )}
 
-        {/* Seção de palpite */}
         <div className="border-t border-white/8 pt-3">
           {prediction ? (
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
                 <span className="text-white/50 text-xs">Palpite:</span>
-                <span className="font-black text-green-400">
-                  {prediction.homeScore} × {prediction.awayScore}
-                </span>
-                {prediction.isDoublePoints && (
-                  <span className="flex items-center gap-0.5 text-yellow-400 text-xs font-bold bg-yellow-400/10 px-1.5 py-0.5 rounded-full">
-                    <Zap className="w-3 h-3 fill-yellow-400" /> 2×
-                  </span>
-                )}
+                <span className="font-black text-green-400">{prediction.homeScore} × {prediction.awayScore}</span>
               </div>
               <div className="flex items-center gap-2">
                 {prediction.points !== null && prediction.points > 0 && (
@@ -146,10 +120,7 @@ export function MatchCard({ match, usedDoubleInPhase, onPredictionSaved }: Match
                   </span>
                 )}
                 {!isLocked && (
-                  <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                  >
+                  <button onClick={() => setShowForm(!showForm)} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
                     Editar
                   </button>
                 )}
@@ -175,7 +146,6 @@ export function MatchCard({ match, usedDoubleInPhase, onPredictionSaved }: Match
           <PredictionForm
             match={match}
             existingPrediction={prediction}
-            usedDoubleInPhase={usedDoubleInPhase && !prediction?.isDoublePoints}
             onSaved={() => { setShowForm(false); onPredictionSaved(); }}
             onCancel={() => setShowForm(false)}
           />

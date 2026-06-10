@@ -1,4 +1,4 @@
-import { Trophy, Zap, Target, Star, Lock, Users } from "lucide-react";
+import { Trophy, Target, Star, Lock } from "lucide-react";
 
 export default function ComoJogarPage() {
   return (
@@ -40,19 +40,6 @@ export default function ComoJogarPage() {
         </p>
       </div>
 
-      {/* Beta notice */}
-      <div className="p-4 rounded-xl bg-yellow-400/5 border border-yellow-400/20">
-        <p className="text-yellow-300/80 text-sm flex items-start gap-2">
-          <span className="text-base leading-none">🧪</span>
-          <span>
-            <strong className="text-yellow-300">Modo Beta ativo —</strong> enquanto a Copa 2026 não começa,
-            estamos testando o sistema com jogos do{" "}
-            <strong className="text-yellow-300">Brasileirão Série A</strong>. Os palpites aqui não contam para
-            o ranking oficial da Copa!
-          </span>
-        </p>
-      </div>
-
       {/* Como fazer palpites */}
       <div className="glass-card p-5 space-y-3">
         <h2 className="text-white font-bold text-base flex items-center gap-2">
@@ -61,21 +48,15 @@ export default function ComoJogarPage() {
         <ol className="space-y-2 text-sm text-white/60">
           <li className="flex gap-3">
             <span className="text-white/30 font-bold shrink-0">1.</span>
-            <span>Vá na aba <strong className="text-white/90">Série A (Beta)</strong> ou, futuramente, em <strong className="text-white/90">Jogos</strong> na Copa 2026.</span>
+            <span>Vá na aba <strong className="text-white/90">Jogos</strong> e escolha a rodada desejada.</span>
           </li>
           <li className="flex gap-3">
             <span className="text-white/30 font-bold shrink-0">2.</span>
-            <span>Digite o placar que você prevê para cada jogo nos campos de entrada.</span>
+            <span>Em <strong className="text-white/90">Pendentes</strong>, digite o placar que você prevê e toque em <strong className="text-white/90">Confirmar Palpite</strong>.</span>
           </li>
           <li className="flex gap-3">
             <span className="text-white/30 font-bold shrink-0">3.</span>
-            <span>
-              Opcionalmente, ative o <strong className="text-white/90">⚡ Double Points</strong> em um jogo por fase para dobrar seus pontos.
-            </span>
-          </li>
-          <li className="flex gap-3">
-            <span className="text-white/30 font-bold shrink-0">4.</span>
-            <span>Clique em <strong className="text-white/90">Salvar</strong> individualmente ou use o botão <strong className="text-white/90">Salvar Todos</strong> que aparece na parte de baixo da tela.</span>
+            <span>Seus palpites salvos aparecem em <strong className="text-white/90">Registrados</strong> — você pode editar enquanto o jogo não começou.</span>
           </li>
         </ol>
         <div className="flex items-center gap-2 mt-1 text-xs text-white/30 border-t border-white/5 pt-3">
@@ -106,16 +87,6 @@ export default function ComoJogarPage() {
             </div>
           ))}
         </div>
-        <div className="border-t border-white/5 pt-3 flex items-start gap-3 text-sm">
-          <Zap className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
-          <div>
-            <span className="text-white/80 font-semibold">Double Points ⚡</span>
-            <p className="text-white/35 text-xs mt-0.5">
-              Você pode ativar o double em <strong className="text-white/60">1 jogo por rodada</strong>. Os pontos ganhos naquele jogo são dobrados.
-              Use com sabedoria — 1 por rodada, sem volta!
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Ranking */}
@@ -127,26 +98,6 @@ export default function ComoJogarPage() {
           O ranking geral mostra todos os participantes ordenados por pontuação total. Ele atualiza em tempo real
           a cada 30 segundos. Fique de olho — qualquer rodada pode virar o jogo!
         </p>
-      </div>
-
-      {/* Em breve */}
-      <div className="glass-card p-5 space-y-2">
-        <h2 className="text-white font-bold text-base flex items-center gap-2">
-          <Users className="w-4 h-4 text-purple-400" /> Em breve
-        </h2>
-        <ul className="space-y-1.5 text-sm text-white/50">
-          {[
-            "Ligas privadas — crie seu próprio grupo",
-            "Palpites para todos os jogos da Copa 2026",
-            "Histórico detalhado por rodada",
-            "Notificações de jogos e resultados",
-          ].map((item) => (
-            <li key={item} className="flex items-start gap-2">
-              <span className="text-purple-400/60 mt-0.5">›</span>
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
       </div>
 
       <p className="text-center text-white/20 text-xs pt-2 pb-4">

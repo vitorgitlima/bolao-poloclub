@@ -78,7 +78,7 @@ export default async function LoginPage({
               { icon: "🎯", label: "Placar exato", pts: "6 pts", color: "text-green-400" },
               { icon: "⚖️", label: "Saldo de gols", pts: "4 pts", color: "text-purple-400" },
               { icon: "✅", label: "Vencedor certo", pts: "3 pts", color: "text-blue-400" },
-              { icon: "⚡", label: "Double Points", pts: "×2", color: "text-yellow-400" },
+              { icon: "❌", label: "Errou", pts: "0 pts", color: "text-red-400" },
             ].map((r) => (
               <div key={r.label} className="p-2.5 rounded-xl bg-white/5 border border-white/8">
                 <div className="text-xl mb-1">{r.icon}</div>

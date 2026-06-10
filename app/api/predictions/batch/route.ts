@@ -7,7 +7,6 @@ type PredictionInput = {
   matchId: string;
   homeScore: number;
   awayScore: number;
-  isDoublePoints: boolean;
 };
 
 export async function POST(req: NextRequest) {
@@ -51,35 +50,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Validate double points: at most 1 per phase across the batch
-  const doublesInBatch = new Map<string, string>(); // phase → matchId
-  for (const p of predictions) {
-    if (!p.isDoublePoints) continue;
-    const match = matchMap.get(p.matchId)!;
-    const phase = match.phase;
-    if (doublesInBatch.has(phase)) {
-      return NextResponse.json({ error: `Apenas 1 double points por fase (${phase})` }, { status: 400 });
-    }
-    doublesInBatch.set(phase, p.matchId);
-  }
-
-  // Check existing DB doubles for phases that have a new double in batch
-  for (const [phase, batchMatchId] of doublesInBatch) {
-    const existing = await prisma.prediction.findFirst({
-      where: { userId: session.user.id, isDoublePoints: true, match: { phase } },
-    });
-    if (existing && existing.matchId !== batchMatchId) {
-      return NextResponse.json({ error: `Double points já usado na fase ${phase}` }, { status: 400 });
-    }
-  }
-
   // Upsert all predictions
   let saved = 0;
   for (const p of predictions) {
     await prisma.prediction.upsert({
       where: { userId_matchId: { userId: session.user.id, matchId: p.matchId } },
-      update: { homeScore: p.homeScore, awayScore: p.awayScore, isDoublePoints: p.isDoublePoints },
-      create: { userId: session.user.id, matchId: p.matchId, homeScore: p.homeScore, awayScore: p.awayScore, isDoublePoints: p.isDoublePoints },
+      update: { homeScore: p.homeScore, awayScore: p.awayScore },
+      create: { userId: session.user.id, matchId: p.matchId, homeScore: p.homeScore, awayScore: p.awayScore },
     });
     saved++;
   }

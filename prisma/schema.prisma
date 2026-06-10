@@ -24,8 +24,28 @@ model User {
   ownedLeagues      League[]            @relation("LeagueOwner")
   leagueMemberships LeagueMember[]
   joinRequests      LeagueJoinRequest[]
+  notifications     Notification[]
+  roundSnapshots    RoundSnapshot[]
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
+}
+
+model RoundSnapshot {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roundLabel   String   // "Copa 2026 — 11/06"
+  roundDate    String   // "2026-06-11" (data BRT, para ordenação)
+  position     Int
+  totalPoints  Int
+  roundPoints  Int      // pontos feitos só nessa rodada/dia
+  roundExacts  Int      // exatos só nessa rodada/dia
+  hadPrediction Boolean @default(false) // teve palpite nessa rodada (mesmo errando)
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, roundLabel])
+  @@index([roundLabel])
+  @@index([roundDate])
 }
 
 model League {
@@ -138,7 +158,6 @@ model Prediction {
   matchId        String
   homeScore      Int
   awayScore      Int
-  isDoublePoints Boolean  @default(false)
   points         Int?
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   match          Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
@@ -146,4 +165,21 @@ model Prediction {
   updatedAt      DateTime @updatedAt
 
   @@unique([userId, matchId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  dedupeKey String?  @unique
+  matchId   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt(sort: Desc)])
 }

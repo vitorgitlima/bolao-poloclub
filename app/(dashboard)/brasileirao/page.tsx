@@ -7,7 +7,6 @@ import { Loader2, Target, Star, Save, CheckCircle, ChevronDown } from "lucide-re
 type Prediction = {
   homeScore: number;
   awayScore: number;
-  isDoublePoints: boolean;
   points: number | null;
 };
 
@@ -36,7 +35,7 @@ function rodadaNumber(phase: string): number {
   return m ? parseInt(m[1], 10) : -1;
 }
 
-type PendingEdit = { homeScore: string; awayScore: string; isDouble: boolean };
+type PendingEdit = { homeScore: string; awayScore: string };
 
 export default function BrasileiraoPage() {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -74,7 +73,6 @@ export default function BrasileiraoPage() {
         matchId,
         homeScore: parseInt(edit.homeScore),
         awayScore: parseInt(edit.awayScore),
-        isDoublePoints: edit.isDouble,
       }));
       const res = await fetch("/api/predictions/batch", {
         method: "POST",
@@ -117,11 +115,6 @@ export default function BrasileiraoPage() {
 
   const activePhase = selectedPhase && phases.includes(selectedPhase) ? selectedPhase : phases[0] ?? null;
   const roundMatches = activePhase ? matches.filter((m) => m.phase === activePhase) : [];
-
-  const usedDoubleByPhase = matches.reduce<Record<string, boolean>>((acc, m) => {
-    if (m.predictions[0]?.isDoublePoints) acc[m.phase] = true;
-    return acc;
-  }, {});
 
   // Stats da rodada selecionada
   const myPredictions = roundMatches.filter((m) => m.predictions.length > 0).length;
@@ -197,7 +190,6 @@ export default function BrasileiraoPage() {
         <span>🎯 Placar exato = <strong className="text-white/90">6 pts</strong></span>
         <span>⚖️ Saldo de gols = <strong className="text-white/90">4 pts</strong></span>
         <span>✅ Vencedor certo = <strong className="text-white/90">3 pts</strong></span>
-        <span>⚡ Double points = <strong className="text-white/90">×2</strong> — 1 por rodada</span>
         <span>🔒 Apostas fecham <strong className="text-white/90">10min</strong> antes do jogo</span>
       </div>
 
@@ -261,7 +253,7 @@ export default function BrasileiraoPage() {
             <MatchRow
               key={match.id}
               match={match}
-              usedDoubleInPhase={usedDoubleByPhase[match.phase] ?? false}
+              usedDoubleInPhase={false}
               onSaved={loadMatches}
               onPendingChange={handlePendingChange}
             />

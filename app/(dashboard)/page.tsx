@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { RodadaView } from "@/components/rodada-view";
 import { Loader2, Calendar, Target, Star } from "lucide-react";
+import { parseISO, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { PendingMatchCard } from "@/components/pending-match-card";
+import { RegisteredMatchCard } from "@/components/registered-match-card";
 
 type Prediction = {
   homeScore: number;
   awayScore: number;
-  isDoublePoints: boolean;
   points: number | null;
 };
 
@@ -32,10 +34,26 @@ function canPredict(dateStr: string) {
   return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
 }
 
+function toBRTDay(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+}
+
+function groupByDay(matches: Match[]): Map<string, Match[]> {
+  const sorted = [...matches].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  const map = new Map<string, Match[]>();
+  for (const m of sorted) {
+    const day = toBRTDay(m.date);
+    if (!map.has(day)) map.set(day, []);
+    map.get(day)!.push(m);
+  }
+  return map;
+}
+
 function computeRodadas(matches: Match[]): Rodada[] {
   const isGroup = (m: Match) => m.phase.startsWith("Grupo");
 
-  // Determina o matchday (1/2/3) de cada jogo de grupo
   const groupsByPhase = new Map<string, Match[]>();
   for (const m of matches.filter(isGroup)) {
     if (!groupsByPhase.has(m.phase)) groupsByPhase.set(m.phase, []);
@@ -46,13 +64,12 @@ function computeRodadas(matches: Match[]): Rodada[] {
     const sorted = [...gMatches].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
-    const perDay = Math.ceil(sorted.length / 3); // 2 jogos/rodada para grupos de 4
+    const perDay = Math.ceil(sorted.length / 3);
     sorted.forEach((m, i) =>
       matchdayMap.set(m.id, Math.min(Math.floor(i / perDay) + 1, 3))
     );
   }
 
-  // Rodadas da fase de grupos
   const groupRodadas: Rodada[] = [];
   for (let day = 1; day <= 3; day++) {
     const dayMatches = matches
@@ -62,7 +79,6 @@ function computeRodadas(matches: Match[]): Rodada[] {
     groupRodadas.push({ id: `r${day}`, label: `Rodada ${day}`, matches: dayMatches });
   }
 
-  // Fases eliminatórias
   const knockouts: { id: string; label: string; phases: string[] }[] = [
     { id: "r32",     label: "Rodada 32",  phases: ["Rodada de 32"] },
     { id: "oitavas", label: "Oitavas",    phases: ["Oitavas de Final"] },
@@ -86,7 +102,8 @@ function computeRodadas(matches: Match[]): Rodada[] {
 export default function DashboardPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activePhase, setActivePhase] = useState<string>("r1");
+  const [activeRodada, setActiveRodada] = useState<string>("r1");
+  const [tab, setTab] = useState<"pendentes" | "registrados">("pendentes");
   const autoSelected = useRef(false);
 
   const loadMatches = useCallback(async () => {
@@ -100,36 +117,45 @@ export default function DashboardPage() {
 
   const rodadas = computeRodadas(matches);
 
-  // Auto-seleciona a rodada atual (com jogos em aberto) ao carregar
+  // Auto-seleciona a rodada atual ao carregar
   useEffect(() => {
     if (matches.length === 0 || autoSelected.current) return;
     const best =
       rodadas.find((r) => r.matches.some((m) => m.status === "SCHEDULED" && canPredict(m.date)))?.id ??
       rodadas.find((r) => r.matches.some((m) => m.status === "LIVE"))?.id ??
       rodadas[0]?.id;
-    if (best) { setActivePhase(best); autoSelected.current = true; }
+    if (best) { setActiveRodada(best); autoSelected.current = true; }
   }, [matches]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const currentRodada = rodadas.find((r) => r.id === activePhase) ?? rodadas[0] ?? null;
+  const currentRodada = rodadas.find((r) => r.id === activeRodada) ?? rodadas[0] ?? null;
+  const rodadaMatches = currentRodada?.matches ?? [];
+
+  // Ao trocar de rodada, auto-seleciona a aba correta
+  function selectRodada(id: string) {
+    setActiveRodada(id);
+    const r = rodadas.find((r) => r.id === id);
+    if (!r) return;
+    const hasPending = r.matches.some(
+      (m) => m.status === "SCHEDULED" && canPredict(m.date) && m.predictions.length === 0
+    );
+    setTab(hasPending ? "pendentes" : "registrados");
+  }
+
+  const pendentes = rodadaMatches.filter(
+    (m) => m.status === "SCHEDULED" && canPredict(m.date) && m.predictions.length === 0
+  );
+  const registrados = rodadaMatches.filter((m) => m.predictions.length > 0);
 
   const myPredictions = matches.filter((m) => m.predictions.length > 0).length;
   const myPoints = matches.reduce((sum, m) => sum + (m.predictions[0]?.points ?? 0), 0);
 
-  // Faltando por rodada — apenas rodadas com jogos em aberto sem palpite
-  const pendingSummary = rodadas
-    .map((r) => {
-      const open = r.matches.filter(
-        (m) => m.status === "SCHEDULED" && canPredict(m.date)
-      );
-      const predicted = open.filter((m) => m.predictions.length > 0).length;
-      return { id: r.id, label: r.label, open: open.length, predicted };
-    })
-    .filter((r) => r.open > 0 && r.predicted < r.open);
-
-  const usedDoubleByPhase = matches.reduce<Record<string, boolean>>((acc, m) => {
-    if (m.predictions[0]?.isDoublePoints) acc[m.phase] = true;
-    return acc;
-  }, {});
+  // Badge por rodada: dot verde=tudo palpitado, amarelo=faltando, cinza=sem jogos abertos
+  function rodadaBadge(r: Rodada) {
+    const open = r.matches.filter((m) => m.status === "SCHEDULED" && canPredict(m.date));
+    if (open.length === 0) return null;
+    const allDone = open.every((m) => m.predictions.length > 0);
+    return allDone ? "green" : "yellow";
+  }
 
   if (loading) {
     return (
@@ -137,6 +163,22 @@ export default function DashboardPage() {
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-10 h-10 animate-spin text-green-400" />
           <span className="text-white/40 text-sm">Carregando jogos...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (matches.length === 0) {
+    return (
+      <div className="glass-card p-8 flex flex-col items-center text-center gap-4">
+        <div className="text-6xl">🏆</div>
+        <div>
+          <h2 className="text-white font-black text-xl">Copa do Mundo 2026</h2>
+          <p className="text-white/40 text-sm mt-1">Estados Unidos · México · Canadá</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-3">
+          <p className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-1">Início</p>
+          <p className="text-white font-black text-2xl">11 de Junho, 2026</p>
         </div>
       </div>
     );
@@ -159,74 +201,120 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Faltando palpitar */}
-      {pendingSummary.length > 0 && (
-        <div className="glass rounded-xl px-4 py-3 border border-yellow-400/20 bg-yellow-400/5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <span className="text-yellow-400 text-sm font-semibold shrink-0">⚡ Faltando:</span>
-          {pendingSummary.map((entry) => (
+      {/* Seletor de rodada */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+        {rodadas.map((r) => {
+          const badge = rodadaBadge(r);
+          return (
             <button
-              key={entry.id}
-              onClick={() => setActivePhase(entry.id)}
-              className="inline-flex items-center gap-1 text-xs hover:opacity-80 transition-opacity"
+              key={r.id}
+              onClick={() => selectRodada(r.id)}
+              className={`tab-pill whitespace-nowrap relative shrink-0 ${
+                activeRodada === r.id ? "tab-pill-active" : "tab-pill-inactive"
+              }`}
             >
-              <span className="font-bold text-yellow-300">{entry.label}</span>
-              <span className="text-yellow-400/50">·</span>
-              <span className="text-yellow-400/70">{entry.predicted}/{entry.open}</span>
+              {r.label}
+              {badge && (
+                <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${
+                  badge === "green" ? "bg-green-400" : "bg-yellow-400"
+                }`} />
+              )}
             </button>
-          ))}
+          );
+        })}
+      </div>
+
+      {/* Abas Pendentes / Palpites Registrados */}
+      <div className="flex gap-1.5">
+        <button
+          onClick={() => setTab("pendentes")}
+          className={`tab-pill relative ${tab === "pendentes" ? "tab-pill-active" : "tab-pill-inactive"}`}
+        >
+          Pendentes
+          {pendentes.length > 0 && (
+            <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-yellow-400/20 text-yellow-300 text-[10px] font-bold">
+              {pendentes.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setTab("registrados")}
+          className={`tab-pill ${tab === "registrados" ? "tab-pill-active" : "tab-pill-inactive"}`}
+        >
+          Registrados
+          {registrados.length > 0 && (
+            <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/10 text-white/50 text-[10px] font-bold">
+              {registrados.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Conteúdo da aba */}
+      {tab === "pendentes" && (
+        <div className="space-y-5">
+          {pendentes.length === 0 ? (
+            <div className="text-center py-12 text-white/30">
+              <div className="text-5xl mb-3">✅</div>
+              <p className="font-semibold">Nenhum palpite pendente nesta rodada</p>
+              {registrados.length > 0 && (
+                <button
+                  onClick={() => setTab("registrados")}
+                  className="mt-3 text-sm text-green-400/70 hover:text-green-400 transition-colors"
+                >
+                  Ver palpites registrados →
+                </button>
+              )}
+            </div>
+          ) : (
+            [...groupByDay(pendentes).entries()].map(([day, dayMatches]) => (
+              <div key={day} className="space-y-3">
+                <div className="flex items-center gap-2 px-1">
+                  <span className="text-white/40 text-xs uppercase tracking-wider font-semibold">
+                    {format(parseISO(day), "d 'de' MMMM", { locale: ptBR })}
+                  </span>
+                  <div className="flex-1 h-px bg-white/5" />
+                </div>
+                {dayMatches.map((match) => (
+                  <PendingMatchCard key={match.id} match={match} onSaved={loadMatches} />
+                ))}
+              </div>
+            ))
+          )}
         </div>
       )}
 
-      {matches.length === 0 ? (
-        <div className="glass-card p-8 flex flex-col items-center text-center gap-4">
-          <div className="text-6xl">🏆</div>
-          <div>
-            <h2 className="text-white font-black text-xl">Copa do Mundo 2026</h2>
-            <p className="text-white/40 text-sm mt-1">Estados Unidos · México · Canadá</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-3">
-            <p className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-1">Início</p>
-            <p className="text-white font-black text-2xl">11 de Junho, 2026</p>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Tabs de rodada */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-            {rodadas.map((r) => {
-              const hasMissing = pendingSummary.some((p) => p.id === r.id);
-              return (
-                <button
-                  key={r.id}
-                  onClick={() => setActivePhase(r.id)}
-                  className={`tab-pill whitespace-nowrap relative ${
-                    activePhase === r.id ? "tab-pill-active" : "tab-pill-inactive"
-                  }`}
-                >
-                  {r.label}
-                  {hasMissing && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-yellow-400" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Jogos da rodada ativa */}
-          {currentRodada && currentRodada.matches.length > 0 ? (
-            <RodadaView
-              key={currentRodada.id}
-              matches={currentRodada.matches}
-              usedDoubleByPhase={usedDoubleByPhase}
-              onPredictionSaved={loadMatches}
-            />
-          ) : (
-            <div className="glass-card text-center py-16 text-white/30">
+      {tab === "registrados" && (
+        <div className="space-y-5">
+          {registrados.length === 0 ? (
+            <div className="text-center py-12 text-white/30">
               <div className="text-5xl mb-3">⚽</div>
-              <p>Nenhum jogo nesta fase ainda</p>
+              <p className="font-semibold">Nenhum palpite registrado nesta rodada</p>
+              {pendentes.length > 0 && (
+                <button
+                  onClick={() => setTab("pendentes")}
+                  className="mt-3 text-sm text-yellow-400/70 hover:text-yellow-400 transition-colors"
+                >
+                  Fazer palpites pendentes →
+                </button>
+              )}
             </div>
+          ) : (
+            [...groupByDay(registrados).entries()].map(([day, dayMatches]) => (
+              <div key={day} className="space-y-3">
+                <div className="flex items-center gap-2 px-1">
+                  <span className="text-white/40 text-xs uppercase tracking-wider font-semibold">
+                    {format(parseISO(day), "d 'de' MMMM", { locale: ptBR })}
+                  </span>
+                  <div className="flex-1 h-px bg-white/5" />
+                </div>
+                {dayMatches.map((match) => (
+                  <RegisteredMatchCard key={match.id} match={match} onSaved={loadMatches} />
+                ))}
+              </div>
+            ))
           )}
-        </>
+        </div>
       )}
     </div>
   );

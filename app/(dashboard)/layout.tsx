@@ -4,6 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { NavLinks } from "@/components/nav-links";
+import { NotificationBell } from "@/components/notification-bell";
+import { ToastProvider } from "@/components/toast-provider";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -44,6 +46,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <NavLinks
               isAdmin={process.env.ADMIN_EMAILS?.split(",").map(e => e.trim()).includes(session.user?.email ?? "") ?? false}
             />
+            <NotificationBell />
             <div className="flex items-center gap-1.5 ml-1.5 pl-2 border-l border-white/10 shrink-0">
               {session.user?.image && (
                 <Image
@@ -76,10 +79,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </nav>
 
-      <main className="max-w-4xl mx-auto px-3 sm:px-4 py-6 pb-10 w-full">{children}</main>
-      <footer className="text-center text-white/20 text-xs pb-6">
-        Built by <span className="text-white/40 font-medium">SatoshiStandard</span>
-      </footer>
+      <ToastProvider>
+        <main className="max-w-4xl mx-auto px-3 sm:px-4 py-6 pb-10 w-full">{children}</main>
+        <footer className="text-center text-white/20 text-xs pb-6">
+          Built by <span className="text-white/40 font-medium">SatoshiStandard</span>
+        </footer>
+      </ToastProvider>
     </div>
   );
 }

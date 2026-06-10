@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { matchId, homeScore, awayScore, isDoublePoints } = body;
+  const { matchId, homeScore, awayScore } = body;
 
   if (
     !matchId ||
@@ -52,38 +52,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (isDoublePoints) {
-    const phase = match.phase;
-    const doubleUsed = await prisma.prediction.findFirst({
-      where: {
-        userId: session.user.id,
-        isDoublePoints: true,
-        match: { phase },
-      },
-    });
-
-    const existingForThisMatch = await prisma.prediction.findUnique({
-      where: { userId_matchId: { userId: session.user.id, matchId } },
-    });
-
-    if (doubleUsed && doubleUsed.matchId !== matchId && !existingForThisMatch?.isDoublePoints) {
-      return NextResponse.json(
-        { error: "Você já usou o double points nesta fase" },
-        { status: 400 }
-      );
-    }
-  }
-
   const prediction = await prisma.prediction.upsert({
     where: { userId_matchId: { userId: session.user.id, matchId } },
-    update: { homeScore, awayScore, isDoublePoints: isDoublePoints ?? false },
-    create: {
-      userId: session.user.id,
-      matchId,
-      homeScore,
-      awayScore,
-      isDoublePoints: isDoublePoints ?? false,
-    },
+    update: { homeScore, awayScore },
+    create: { userId: session.user.id, matchId, homeScore, awayScore },
   });
 
   return NextResponse.json(prediction);

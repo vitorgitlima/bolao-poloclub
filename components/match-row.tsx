@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Zap, Save, Loader2, CheckCircle2 } from "lucide-react";
+import { Save, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Image from "next/image";
+import { useToast } from "@/components/toast-provider";
 
 function TeamBadge({ flag, name }: { flag: string; name: string }) {
   if (flag.startsWith("http")) {
@@ -26,7 +27,6 @@ function TeamBadge({ flag, name }: { flag: string; name: string }) {
 type Prediction = {
   homeScore: number;
   awayScore: number;
-  isDoublePoints: boolean;
   points: number | null;
 };
 
@@ -44,7 +44,7 @@ type Match = {
   predictions: Prediction[];
 };
 
-type PendingEdit = { homeScore: string; awayScore: string; isDouble: boolean };
+type PendingEdit = { homeScore: string; awayScore: string };
 
 type MatchRowProps = {
   match: Match;
@@ -58,29 +58,27 @@ function canPredict(dateStr: string): boolean {
   return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
 }
 
-// Mantém apenas dígitos (0-9), no máximo 2 — placar nunca passa de 99.
 function onlyDigits(value: string): string {
   return value.replace(/\D/g, "").slice(0, 2);
 }
 
-export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, readOnly = false }: MatchRowProps) {
+export function MatchRow({ match, onSaved, onPendingChange, readOnly = false }: MatchRowProps) {
   const pred = match.predictions[0];
   const [homeVal, setHomeVal] = useState(pred?.homeScore?.toString() ?? "");
   const [awayVal, setAwayVal] = useState(pred?.awayScore?.toString() ?? "");
-  const [isDouble, setIsDouble] = useState(pred?.isDoublePoints ?? false);
+  const { showToast } = useToast();
 
-  // Sync local state when server data changes (e.g. after save + reload)
   useEffect(() => {
     setHomeVal(pred?.homeScore?.toString() ?? "");
     setAwayVal(pred?.awayScore?.toString() ?? "");
-    setIsDouble(pred?.isDoublePoints ?? false);
-  }, [pred?.homeScore, pred?.awayScore, pred?.isDoublePoints]);
+  }, [pred?.homeScore, pred?.awayScore]);
 
-  function notifyPending(home: string, away: string, dbl: boolean) {
+  function notifyPending(home: string, away: string) {
     if (!onPendingChange) return;
     const hasValue = home !== "" && away !== "";
-    onPendingChange(match.id, hasValue ? { homeScore: home, awayScore: away, isDouble: dbl } : null);
+    onPendingChange(match.id, hasValue ? { homeScore: home, awayScore: away } : null);
   }
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
@@ -89,9 +87,6 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, r
   const isLocked = !readOnly && match.status === "SCHEDULED" && !canPredict(match.date);
   const isLive = match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
-
-  // Allow toggling double off even when usedDoubleInPhase=true (if this match already has double)
-  const canToggleDouble = !usedDoubleInPhase || isDouble;
 
   const dateStr = format(new Date(match.date), "dd/MM HH'h'", { locale: ptBR });
 
@@ -108,12 +103,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, r
       const res = await fetch("/api/predictions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          matchId: match.id,
-          homeScore: home,
-          awayScore: away,
-          isDoublePoints: isDouble,
-        }),
+        body: JSON.stringify({ matchId: match.id, homeScore: home, awayScore: away }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -124,6 +114,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, r
       setTimeout(() => setJustSaved(false), 2000);
       onPendingChange?.(match.id, null);
       onSaved();
+      showToast(`✅ Palpite confirmado — ${match.homeTeam} × ${match.awayTeam}`);
     } catch {
       setError("Erro de conexão");
     } finally {
@@ -169,7 +160,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, r
                 pattern="[0-9]*"
                 maxLength={2}
                 value={homeVal}
-                onChange={(e) => { const v = onlyDigits(e.target.value); setHomeVal(v); notifyPending(v, awayVal, isDouble); }}
+                onChange={(e) => { const v = onlyDigits(e.target.value); setHomeVal(v); notifyPending(v, awayVal); }}
                 onKeyDown={(e) => e.key === "Enter" && handleSave()}
                 className="w-8 h-8 bg-white/10 border border-white/20 rounded-lg text-white text-center text-sm font-bold focus:outline-none focus:border-green-400/60 focus:bg-white/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
@@ -180,7 +171,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, r
                 pattern="[0-9]*"
                 maxLength={2}
                 value={awayVal}
-                onChange={(e) => { const v = onlyDigits(e.target.value); setAwayVal(v); notifyPending(homeVal, v, isDouble); }}
+                onChange={(e) => { const v = onlyDigits(e.target.value); setAwayVal(v); notifyPending(homeVal, v); }}
                 onKeyDown={(e) => e.key === "Enter" && handleSave()}
                 className="w-8 h-8 bg-white/10 border border-white/20 rounded-lg text-white text-center text-sm font-bold focus:outline-none focus:border-green-400/60 focus:bg-white/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
@@ -204,30 +195,9 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, r
           <span className="text-white/75 text-xs leading-tight">{match.awayTeam}</span>
         </div>
 
-        {/* Action buttons or result info */}
+        {/* Save button */}
         {isPredictable && (
           <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => { if (canToggleDouble) { const next = !isDouble; setIsDouble(next); notifyPending(homeVal, awayVal, next); } }}
-              disabled={!canToggleDouble}
-              title={
-                isDouble
-                  ? "Double ativo — clique para remover"
-                  : usedDoubleInPhase
-                    ? "Double já usado nesta fase"
-                    : "Ativar double points (2× pontos)"
-              }
-              className={cn(
-                "w-7 h-7 rounded-lg flex items-center justify-center transition-all",
-                isDouble
-                  ? "bg-yellow-400/20 text-yellow-400 border border-yellow-400/40"
-                  : !canToggleDouble
-                    ? "text-white/15 cursor-not-allowed"
-                    : "text-white/25 hover:text-yellow-300 hover:bg-yellow-400/10"
-              )}
-            >
-              <Zap className={cn("w-3.5 h-3.5", isDouble && "fill-current")} />
-            </button>
             <button
               onClick={handleSave}
               disabled={loading}
@@ -254,19 +224,15 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, r
           <div className="shrink-0 text-right min-w-[60px]">
             {pred ? (
               <>
-                <div className={cn("text-xs font-bold", pred.points != null && pred.points >= 6
-                  ? "text-green-400"
-                  : pred.points != null && pred.points >= 3
-                    ? "text-yellow-400"
-                    : "text-white/40"
+                <div className={cn("text-xs font-bold",
+                  pred.points != null && pred.points >= 6
+                    ? "text-green-400"
+                    : pred.points != null && pred.points >= 3
+                      ? "text-yellow-400"
+                      : "text-white/40"
                 )}>
-                  {pred.points != null
-                    ? `+${pred.points}pts${pred.isDoublePoints && pred.points > 0 ? " ⚡" : ""}`
-                    : "—"}
+                  {pred.points != null ? `+${pred.points}pts` : "—"}
                 </div>
-                {pred.isDoublePoints && pred.points != null && pred.points > 0 && (
-                  <div className="text-white/30 text-[9px]">{pred.points / 2}pts × 2</div>
-                )}
                 <div className="text-white/30 text-[10px]">
                   palpite: {pred.homeScore}–{pred.awayScore}
                 </div>
@@ -284,12 +250,9 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, r
                 pred.points >= 6 ? "text-green-400" : pred.points >= 3 ? "text-yellow-400" : "text-white/40"
               )}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
-                +{pred.points}pts{pred.isDoublePoints && pred.points > 0 ? " ⚡" : ""}
+                +{pred.points}pts
               </div>
             ) : null}
-            {pred.isDoublePoints && pred.points != null && pred.points > 0 && (
-              <div className="text-white/30 text-[9px] text-right">{pred.points / 2}pts × 2</div>
-            )}
             <div className="text-white/30 text-[10px]">
               seu: {pred.homeScore}–{pred.awayScore}
             </div>
@@ -301,7 +264,6 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, r
             {pred ? (
               <div className="text-white/30 text-[10px]">
                 🔒 {pred.homeScore}–{pred.awayScore}
-                {pred.isDoublePoints && " ⚡"}
               </div>
             ) : (
               <span className="text-white/20 text-[10px]">🔒</span>
