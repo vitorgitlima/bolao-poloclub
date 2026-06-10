@@ -5,6 +5,7 @@ import { Loader2, Save } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MatchRow } from "@/components/match-row";
+import { useToast } from "@/components/toast-provider";
 
 type Prediction = {
   homeScore: number;
@@ -44,6 +45,7 @@ export function RodadaView({ matches, usedDoubleByPhase, onPredictionSaved }: Ro
   const [localDoubleByPhase, setLocalDoubleByPhase] = useState<Record<string, string | null>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const handlePendingChange = useCallback(
     (matchId: string, phase: string, edit: PendingEdit | null) => {
@@ -86,10 +88,13 @@ export function RodadaView({ matches, usedDoubleByPhase, onPredictionSaved }: Ro
       const failed = results.filter((r) => !r.ok);
       if (failed.length) {
         setSaveError(failed[0].data.error ?? "Erro ao salvar alguns palpites");
+        showToast("Erro ao salvar alguns palpites", "error");
       } else {
+        const count = entries.length;
         setPending({});
         setLocalDoubleByPhase({});
         onPredictionSaved();
+        showToast(`✅ ${count} palpite${count !== 1 ? "s" : ""} confirmado${count !== 1 ? "s" : ""}!`);
       }
     } catch {
       setSaveError("Erro de conexão");

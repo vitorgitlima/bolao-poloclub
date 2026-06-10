@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Image from "next/image";
+import { useToast } from "@/components/toast-provider";
 
 function TeamBadge({ flag, name }: { flag: string; name: string }) {
   if (flag.startsWith("http")) {
@@ -68,6 +69,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, r
   const [homeVal, setHomeVal] = useState(pred?.homeScore?.toString() ?? "");
   const [awayVal, setAwayVal] = useState(pred?.awayScore?.toString() ?? "");
   const [isDouble, setIsDouble] = useState(pred?.isDoublePoints ?? false);
+  const { showToast } = useToast();
 
   // Sync local state when server data changes (e.g. after save + reload)
   useEffect(() => {
@@ -124,6 +126,7 @@ export function MatchRow({ match, usedDoubleInPhase, onSaved, onPendingChange, r
       setTimeout(() => setJustSaved(false), 2000);
       onPendingChange?.(match.id, null);
       onSaved();
+      showToast(`✅ Palpite confirmado — ${match.homeTeam} × ${match.awayTeam}`);
     } catch {
       setError("Erro de conexão");
     } finally {
