@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Loader2, Calendar, Target, Star } from "lucide-react";
 import { parseISO, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -28,6 +28,8 @@ type Match = {
   predictions: Prediction[];
 };
 
+type Rodada = { id: string; label: string; matches: Match[] };
+
 function canPredict(dateStr: string) {
   return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
 }
@@ -49,10 +51,60 @@ function groupByDay(matches: Match[]): Map<string, Match[]> {
   return map;
 }
 
+function computeRodadas(matches: Match[]): Rodada[] {
+  const isGroup = (m: Match) => m.phase.startsWith("Grupo");
+
+  const groupsByPhase = new Map<string, Match[]>();
+  for (const m of matches.filter(isGroup)) {
+    if (!groupsByPhase.has(m.phase)) groupsByPhase.set(m.phase, []);
+    groupsByPhase.get(m.phase)!.push(m);
+  }
+  const matchdayMap = new Map<string, number>();
+  for (const [, gMatches] of groupsByPhase) {
+    const sorted = [...gMatches].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    const perDay = Math.ceil(sorted.length / 3);
+    sorted.forEach((m, i) =>
+      matchdayMap.set(m.id, Math.min(Math.floor(i / perDay) + 1, 3))
+    );
+  }
+
+  const groupRodadas: Rodada[] = [];
+  for (let day = 1; day <= 3; day++) {
+    const dayMatches = matches
+      .filter((m) => isGroup(m) && matchdayMap.get(m.id) === day)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (dayMatches.length === 0) continue;
+    groupRodadas.push({ id: `r${day}`, label: `Rodada ${day}`, matches: dayMatches });
+  }
+
+  const knockouts: { id: string; label: string; phases: string[] }[] = [
+    { id: "r32",     label: "Rodada 32",  phases: ["Rodada de 32"] },
+    { id: "oitavas", label: "Oitavas",    phases: ["Oitavas de Final"] },
+    { id: "quartas", label: "Quartas",    phases: ["Quartas de Final"] },
+    { id: "semi",    label: "Semifinal",  phases: ["Semifinal"] },
+    { id: "final",   label: "🏆 Final",   phases: ["Final", "Disputa do 3º Lugar"] },
+  ];
+  const knockoutRodadas: Rodada[] = knockouts
+    .map((k) => ({
+      id: k.id,
+      label: k.label,
+      matches: matches
+        .filter((m) => k.phases.includes(m.phase))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    }))
+    .filter((r) => r.matches.length > 0);
+
+  return [...groupRodadas, ...knockoutRodadas];
+}
+
 export default function DashboardPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeRodada, setActiveRodada] = useState<string>("r1");
   const [tab, setTab] = useState<"pendentes" | "registrados">("pendentes");
+  const autoSelected = useRef(false);
 
   const loadMatches = useCallback(async () => {
     const res = await fetch("/api/matches");
@@ -63,25 +115,47 @@ export default function DashboardPage() {
 
   useEffect(() => { loadMatches(); }, [loadMatches]);
 
-  // Auto-select tab: se não há pendentes, vai para registrados
+  const rodadas = computeRodadas(matches);
+
+  // Auto-seleciona a rodada atual ao carregar
   useEffect(() => {
-    if (loading || matches.length === 0) return;
-    const hasPending = matches.some(
+    if (matches.length === 0 || autoSelected.current) return;
+    const best =
+      rodadas.find((r) => r.matches.some((m) => m.status === "SCHEDULED" && canPredict(m.date)))?.id ??
+      rodadas.find((r) => r.matches.some((m) => m.status === "LIVE"))?.id ??
+      rodadas[0]?.id;
+    if (best) { setActiveRodada(best); autoSelected.current = true; }
+  }, [matches]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const currentRodada = rodadas.find((r) => r.id === activeRodada) ?? rodadas[0] ?? null;
+  const rodadaMatches = currentRodada?.matches ?? [];
+
+  // Ao trocar de rodada, auto-seleciona a aba correta
+  function selectRodada(id: string) {
+    setActiveRodada(id);
+    const r = rodadas.find((r) => r.id === id);
+    if (!r) return;
+    const hasPending = r.matches.some(
       (m) => m.status === "SCHEDULED" && canPredict(m.date) && m.predictions.length === 0
     );
     setTab(hasPending ? "pendentes" : "registrados");
-  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
-  const pendentes = matches.filter(
+  const pendentes = rodadaMatches.filter(
     (m) => m.status === "SCHEDULED" && canPredict(m.date) && m.predictions.length === 0
   );
-  const registrados = matches.filter((m) => m.predictions.length > 0);
+  const registrados = rodadaMatches.filter((m) => m.predictions.length > 0);
 
   const myPredictions = matches.filter((m) => m.predictions.length > 0).length;
   const myPoints = matches.reduce((sum, m) => sum + (m.predictions[0]?.points ?? 0), 0);
 
-  const pendentesGrouped = groupByDay(pendentes);
-  const registradosGrouped = groupByDay(registrados);
+  // Badge por rodada: dot verde=tudo palpitado, amarelo=faltando, cinza=sem jogos abertos
+  function rodadaBadge(r: Rodada) {
+    const open = r.matches.filter((m) => m.status === "SCHEDULED" && canPredict(m.date));
+    if (open.length === 0) return null;
+    const allDone = open.every((m) => m.predictions.length > 0);
+    return allDone ? "green" : "yellow";
+  }
 
   if (loading) {
     return (
@@ -127,22 +201,30 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Info banner */}
-      {pendentes.length > 0 && (
-        <div className="glass rounded-xl px-4 py-3 border border-yellow-400/20 bg-yellow-400/5">
-          <p className="text-yellow-300/80 text-sm">
-            <span className="font-bold text-yellow-300">{pendentes.length} jogo{pendentes.length !== 1 ? "s" : ""}</span>
-            {" "}sem palpite — quanto mais você palpita, mais pontos pode ganhar!
-          </p>
-        </div>
-      )}
-      {pendentes.length === 0 && registrados.length > 0 && (
-        <div className="glass rounded-xl px-4 py-3 border border-green-500/20 bg-green-500/5">
-          <p className="text-green-300/80 text-sm font-medium">✅ Tudo palpitado! Boa sorte nos jogos.</p>
-        </div>
-      )}
+      {/* Seletor de rodada */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+        {rodadas.map((r) => {
+          const badge = rodadaBadge(r);
+          return (
+            <button
+              key={r.id}
+              onClick={() => selectRodada(r.id)}
+              className={`tab-pill whitespace-nowrap relative shrink-0 ${
+                activeRodada === r.id ? "tab-pill-active" : "tab-pill-inactive"
+              }`}
+            >
+              {r.label}
+              {badge && (
+                <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${
+                  badge === "green" ? "bg-green-400" : "bg-yellow-400"
+                }`} />
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-      {/* Tabs */}
+      {/* Abas Pendentes / Palpites Registrados */}
       <div className="flex gap-1.5">
         <button
           onClick={() => setTab("pendentes")}
@@ -159,7 +241,7 @@ export default function DashboardPage() {
           onClick={() => setTab("registrados")}
           className={`tab-pill ${tab === "registrados" ? "tab-pill-active" : "tab-pill-inactive"}`}
         >
-          Palpites Registrados
+          Registrados
           {registrados.length > 0 && (
             <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/10 text-white/50 text-[10px] font-bold">
               {registrados.length}
@@ -168,17 +250,24 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Tab content */}
+      {/* Conteúdo da aba */}
       {tab === "pendentes" && (
         <div className="space-y-5">
           {pendentes.length === 0 ? (
             <div className="text-center py-12 text-white/30">
               <div className="text-5xl mb-3">✅</div>
-              <p className="font-semibold">Nenhum palpite pendente</p>
-              <p className="text-sm mt-1">Todos os jogos disponíveis já foram palpitados!</p>
+              <p className="font-semibold">Nenhum palpite pendente nesta rodada</p>
+              {registrados.length > 0 && (
+                <button
+                  onClick={() => setTab("registrados")}
+                  className="mt-3 text-sm text-green-400/70 hover:text-green-400 transition-colors"
+                >
+                  Ver palpites registrados →
+                </button>
+              )}
             </div>
           ) : (
-            [...pendentesGrouped.entries()].map(([day, dayMatches]) => (
+            [...groupByDay(pendentes).entries()].map(([day, dayMatches]) => (
               <div key={day} className="space-y-3">
                 <div className="flex items-center gap-2 px-1">
                   <span className="text-white/40 text-xs uppercase tracking-wider font-semibold">
@@ -200,11 +289,18 @@ export default function DashboardPage() {
           {registrados.length === 0 ? (
             <div className="text-center py-12 text-white/30">
               <div className="text-5xl mb-3">⚽</div>
-              <p className="font-semibold">Nenhum palpite registrado ainda</p>
-              <p className="text-sm mt-1">Vá para &quot;Pendentes&quot; para fazer seus palpites!</p>
+              <p className="font-semibold">Nenhum palpite registrado nesta rodada</p>
+              {pendentes.length > 0 && (
+                <button
+                  onClick={() => setTab("pendentes")}
+                  className="mt-3 text-sm text-yellow-400/70 hover:text-yellow-400 transition-colors"
+                >
+                  Fazer palpites pendentes →
+                </button>
+              )}
             </div>
           ) : (
-            [...registradosGrouped.entries()].map(([day, dayMatches]) => (
+            [...groupByDay(registrados).entries()].map(([day, dayMatches]) => (
               <div key={day} className="space-y-3">
                 <div className="flex items-center gap-2 px-1">
                   <span className="text-white/40 text-xs uppercase tracking-wider font-semibold">
