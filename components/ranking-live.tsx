@@ -63,12 +63,10 @@ export function RankingLive({ userId }: { userId?: string }) {
     }
   }, []);
 
-  const handleManualRefresh = useCallback(async () => {
-    // Dispara sync silencioso + recarrega ranking
+  const handleManualRefresh = useCallback(() => {
     fetch("/api/sync", { method: "POST" }).catch(() => {});
-    await fetchGlobal();
-    // Invalida cache das ligas para forçar reload ao trocar de tab
-    setLeagueCache({});
+    // Aguarda 1.5s para dar tempo ao sync processar antes de recarregar
+    setTimeout(fetchGlobal, 1500);
   }, [fetchGlobal]);
 
   useEffect(() => {
