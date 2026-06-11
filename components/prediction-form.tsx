@@ -22,7 +22,12 @@ export function PredictionForm({ match, existingPrediction, onSaved, onCancel }:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function onlyDigits(v: string) { return v.replace(/\D/g, "").slice(0, 2); }
+  function onlyDigits(v: string) {
+    const digits = v.replace(/\D/g, "").slice(0, 2);
+    if (!digits) return "";
+    const trimmed = digits.replace(/^0+/, "");
+    return trimmed || "0";
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

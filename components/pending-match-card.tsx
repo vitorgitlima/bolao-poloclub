@@ -24,7 +24,10 @@ function Flag({ flag, name }: { flag: string; name: string }) {
 }
 
 function onlyDigits(v: string) {
-  return v.replace(/\D/g, "").slice(0, 2);
+  const digits = v.replace(/\D/g, "").slice(0, 2);
+  if (!digits) return "";
+  const trimmed = digits.replace(/^0+/, "");
+  return trimmed || "0";
 }
 
 type Match = {
@@ -54,7 +57,7 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
   const matchDate = new Date(match.date);
 
   async function handleSave() {
-    if (!canSave) return;
+    if (!canSave || loading || justSaved) return;
     setLoading(true);
     setError(null);
     try {
@@ -111,6 +114,7 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
             value={homeVal}
             onChange={(e) => setHomeVal(onlyDigits(e.target.value))}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
+            onBlur={handleSave}
             placeholder="–"
             className="w-12 h-12 bg-white/10 border border-white/15 rounded-2xl text-white text-center text-xl font-black focus:outline-none focus:border-green-400/50 focus:bg-white/15 placeholder:text-white/15 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
@@ -123,6 +127,7 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
             value={awayVal}
             onChange={(e) => setAwayVal(onlyDigits(e.target.value))}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
+            onBlur={handleSave}
             placeholder="–"
             className="w-12 h-12 bg-white/10 border border-white/15 rounded-2xl text-white text-center text-xl font-black focus:outline-none focus:border-green-400/50 focus:bg-white/15 placeholder:text-white/15 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />

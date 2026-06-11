@@ -146,6 +146,12 @@ export default function DashboardPage() {
   );
   const registrados = rodadaMatches.filter((m) => m.predictions.length > 0);
 
+  useEffect(() => {
+    if (tab === "pendentes" && !loading && pendentes.length === 0 && registrados.length > 0) {
+      setTab("registrados");
+    }
+  }, [tab, loading, pendentes.length, registrados.length]);
+
   const myPredictions = matches.filter((m) => m.predictions.length > 0).length;
   const myPoints = matches.reduce((sum, m) => sum + (m.predictions[0]?.points ?? 0), 0);
 

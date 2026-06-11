@@ -59,7 +59,10 @@ function canPredict(dateStr: string): boolean {
 }
 
 function onlyDigits(value: string): string {
-  return value.replace(/\D/g, "").slice(0, 2);
+  const digits = value.replace(/\D/g, "").slice(0, 2);
+  if (!digits) return "";
+  const trimmed = digits.replace(/^0+/, "");
+  return trimmed || "0";
 }
 
 export function MatchRow({ match, onSaved, onPendingChange, readOnly = false }: MatchRowProps) {
