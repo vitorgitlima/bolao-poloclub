@@ -87,7 +87,7 @@ export default function LigasPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-400" />
+            <span className="text-2xl leading-none">🛡️</span>
             Ligas
           </h1>
           <p className="text-white/40 text-xs sm:text-sm mt-0.5">

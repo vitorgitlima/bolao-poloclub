@@ -184,8 +184,26 @@ export default function DashboardPage() {
     );
   }
 
+  const hasLive = matches.some((m) => m.status === "LIVE");
+
   return (
     <div className="space-y-5">
+      {/* Hero */}
+      <div className="flex items-center gap-3">
+        <span className="text-3xl leading-none">⚽</span>
+        <div>
+          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+            Jogos
+            {hasLive && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-black bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full animate-pulse">
+                🔴 AO VIVO
+              </span>
+            )}
+          </h1>
+          <p className="text-white/40 text-xs mt-0.5">Copa do Mundo 2026</p>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[

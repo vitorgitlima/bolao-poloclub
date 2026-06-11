@@ -1,4 +1,5 @@
 import { Trophy, Target, Star, Lock } from "lucide-react";
+import { UserCounter } from "./user-counter";
 
 export default function ComoJogarPage() {
   return (
@@ -15,6 +16,8 @@ export default function ComoJogarPage() {
           Tudo que você precisa saber para jogar o Bolão da Copa
         </p>
       </div>
+
+      <UserCounter />
 
       {/* O que é */}
       <div className="glass-card p-5 space-y-3">
