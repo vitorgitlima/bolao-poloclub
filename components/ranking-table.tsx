@@ -11,6 +11,7 @@ type RankingEntry = {
   image: string | null;
   isContributor: boolean;
   isArchitect: boolean;
+  isIdealizador: boolean;
   isDeveloper: boolean;
   betaRank: number | null;
   isBetaTester: boolean;
@@ -344,6 +345,11 @@ export function RankingTable({
                     {entry.isDeveloper && (
                       <span className="text-[9px] font-bold bg-blue-500/25 text-blue-200 border border-blue-400/40 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
                         ⚙️ Developer
+                      </span>
+                    )}
+                    {entry.isIdealizador && (
+                      <span className="text-[9px] font-bold bg-amber-500/25 text-amber-200 border border-amber-400/40 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                        💡 Idealizador
                       </span>
                     )}
                     {entry.isArchitect && (

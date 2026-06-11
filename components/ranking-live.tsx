@@ -12,6 +12,7 @@ type RankingEntry = {
   image: string | null;
   isContributor: boolean;
   isArchitect: boolean;
+  isIdealizador: boolean;
   isDeveloper: boolean;
   betaRank: number | null;
   isBetaTester: boolean;

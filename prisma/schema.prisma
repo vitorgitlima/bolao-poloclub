@@ -18,6 +18,7 @@ model User {
   predictions   Prediction[]
   isContributor     Boolean        @default(false)
   isArchitect       Boolean        @default(false)
+  isIdealizador     Boolean        @default(false)
   isDeveloper       Boolean        @default(false)
   betaRank          Int?
   isBetaTester      Boolean        @default(false)
