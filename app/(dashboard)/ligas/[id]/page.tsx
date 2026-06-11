@@ -47,7 +47,7 @@ type LeagueDetail = {
 
 type RankingEntry = {
   id: string; name: string | null; image: string | null;
-  isContributor: boolean; isDeveloper: boolean;
+  isContributor: boolean; isArchitect: boolean; isDeveloper: boolean;
   betaRank: number | null; isBetaTester: boolean;
   totalPoints: number; exactScores: number; correctWinners: number;
   predictions: number; isLeader: boolean; isTopStreak: boolean;

@@ -6,6 +6,7 @@ export type RankingUser = {
   name: string | null;
   image: string | null;
   isContributor: boolean;
+  isArchitect: boolean;
   isDeveloper: boolean;
   betaRank: number | null;
   isBetaTester: boolean;
@@ -69,6 +70,7 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       name: user.name,
       image: user.image,
       isContributor: user.isContributor,
+      isArchitect: user.isArchitect,
       isDeveloper: user.isDeveloper,
       betaRank: user.betaRank,
       isBetaTester: user.isBetaTester,
@@ -209,6 +211,7 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     name: u.name,
     image: u.image,
     isContributor: u.isContributor,
+    isArchitect: u.isArchitect,
     isDeveloper: u.isDeveloper,
     betaRank: u.betaRank,
     isBetaTester: u.isBetaTester,

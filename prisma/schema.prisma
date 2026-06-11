@@ -17,6 +17,7 @@ model User {
   sessions      Session[]
   predictions   Prediction[]
   isContributor     Boolean        @default(false)
+  isArchitect       Boolean        @default(false)
   isDeveloper       Boolean        @default(false)
   betaRank          Int?
   isBetaTester      Boolean        @default(false)
