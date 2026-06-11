@@ -63,6 +63,14 @@ export function RankingLive({ userId }: { userId?: string }) {
     }
   }, []);
 
+  const handleManualRefresh = useCallback(async () => {
+    // Dispara sync silencioso + recarrega ranking
+    fetch("/api/sync", { method: "POST" }).catch(() => {});
+    await fetchGlobal();
+    // Invalida cache das ligas para forçar reload ao trocar de tab
+    setLeagueCache({});
+  }, [fetchGlobal]);
+
   useEffect(() => {
     fetchGlobal();
     const interval = setInterval(fetchGlobal, POLL_INTERVAL);
@@ -124,15 +132,19 @@ export function RankingLive({ userId }: { userId?: string }) {
                   : "Faça palpites para aparecer!"}
             </p>
           </div>
-          <div className="text-right shrink-0">
+          <button
+            onClick={handleManualRefresh}
+            className="text-right shrink-0 hover:opacity-70 transition-opacity active:scale-95"
+            title="Atualizar ranking"
+          >
             <div className="flex items-center gap-1 text-white/20 text-[10px]">
               <RefreshCw className="w-3 h-3" />
               {lastUpdated
                 ? lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
                 : "—"}
             </div>
-            <div className="text-white/15 text-[9px] mt-0.5">atualiza a cada 30s</div>
-          </div>
+            <div className="text-white/15 text-[9px] mt-0.5">toque para atualizar</div>
+          </button>
         </div>
 
         {me && (

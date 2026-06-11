@@ -8,14 +8,19 @@ function isAdmin(email?: string | null) {
   return email ? admins.includes(email) : false;
 }
 
-async function getEspnAllGroupStageMatches(): Promise<EspnMatch[]> {
+async function getEspnAllCopaMatches(): Promise<EspnMatch[]> {
   const dates: string[] = [];
   const start = new Date("2026-06-11");
-  const end = new Date("2026-06-28");
+  const end = new Date("2026-07-26"); // cobre até a Final
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     dates.push(d.toISOString().slice(0, 10).replace(/-/g, ""));
   }
-  const results = await Promise.all(dates.map((date) => getEspnMatchesByDate(date)));
+  // Busca em lotes de 10 para não sobrecarregar a ESPN
+  const results: EspnMatch[][] = [];
+  for (let i = 0; i < dates.length; i += 10) {
+    const batch = await Promise.all(dates.slice(i, i + 10).map((date) => getEspnMatchesByDate(date)));
+    results.push(...batch);
+  }
   return results.flat();
 }
 
@@ -31,7 +36,7 @@ export async function POST(req: NextRequest) {
   try {
     const espnMatches =
       mode === "all"
-        ? await getEspnAllGroupStageMatches()
+        ? await getEspnAllCopaMatches()
         : await getEspnLiveAndToday();
 
     const { updatedMatches, updatedPredictions } = await processEspnMatches(espnMatches);
