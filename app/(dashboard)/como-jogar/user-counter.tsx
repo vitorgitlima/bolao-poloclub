@@ -2,32 +2,38 @@
 
 import { useEffect, useState } from "react";
 
+type Stats = { userCount: number; recentImages: string[] };
+
 export function UserCounter() {
-  const [count, setCount] = useState<number | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     fetch("/api/stats")
       .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d) setCount(d.userCount); });
+      .then((d) => { if (d) setStats(d); });
   }, []);
 
-  if (count === null) return null;
+  if (!stats) return null;
+
+  const { userCount, recentImages } = stats;
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-500/8 border border-green-500/20">
-      <div className="flex items-center gap-1.5">
-        {Array.from({ length: Math.min(count, 5) }).map((_, i) => (
-          <div
+      {/* Avatares empilhados */}
+      <div className="flex items-center shrink-0">
+        {recentImages.slice(0, 5).map((src, i) => (
+          <img
             key={i}
-            className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400/40 to-green-600/40 border border-green-500/30 flex items-center justify-center text-[10px]"
-            style={{ marginLeft: i > 0 ? "-6px" : 0 }}
-          >
-            👤
-          </div>
+            src={src}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="w-7 h-7 rounded-full border-2 border-[#0f172a] object-cover"
+            style={{ marginLeft: i > 0 ? "-8px" : 0 }}
+          />
         ))}
       </div>
       <p className="text-green-300 text-sm font-semibold">
-        {count} jogador{count !== 1 ? "es" : ""} no bolão
+        {userCount} jogador{userCount !== 1 ? "es" : ""} no bolão
       </p>
     </div>
   );
