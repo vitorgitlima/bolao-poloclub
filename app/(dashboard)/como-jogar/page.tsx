@@ -90,7 +90,7 @@ export default function ComoJogarPage() {
       </div>
 
       {/* Ranking */}
-      <div className="glass-card p-5 space-y-2">
+      <div className="glass-card p-5 space-y-3">
         <h2 className="text-white font-bold text-base flex items-center gap-2">
           <Trophy className="w-4 h-4 text-amber-400" /> Ranking
         </h2>
@@ -98,6 +98,13 @@ export default function ComoJogarPage() {
           O ranking geral mostra todos os participantes ordenados por pontuação total. Ele atualiza em tempo real
           a cada 30 segundos. Fique de olho — qualquer rodada pode virar o jogo!
         </p>
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-yellow-400/8 border border-yellow-400/20">
+          <span className="text-xl leading-none shrink-0">🏆</span>
+          <div>
+            <p className="text-yellow-300 text-sm font-bold leading-snug">Prêmio: R$ 100,00 para o 1º lugar!</p>
+            <p className="text-white/40 text-xs leading-snug mt-0.5">Válido para o ranking geral ao fim da Copa do Mundo 2026.</p>
+          </div>
+        </div>
       </div>
 
       <p className="text-center text-white/20 text-xs pt-2 pb-4">

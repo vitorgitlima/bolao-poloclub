@@ -153,6 +153,15 @@ export function RankingLive({ userId }: { userId?: string }) {
         )}
       </div>
 
+      {/* Banner de prêmio */}
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-yellow-400/8 border border-yellow-400/20">
+        <span className="text-2xl leading-none shrink-0">🏆</span>
+        <div>
+          <p className="text-yellow-300 text-sm font-bold leading-snug">Prêmio: R$ 100,00 para o 1º lugar!</p>
+          <p className="text-white/40 text-xs leading-snug mt-0.5">Válido para o ranking geral ao fim da Copa do Mundo 2026.</p>
+        </div>
+      </div>
+
       {/* Tabs: Geral + ligas do usuário */}
       {(leagues.length > 0) && (
         <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
