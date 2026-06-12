@@ -90,6 +90,9 @@ function statusBadge(status: string) {
 function ManualScoreRow({ match, onSaved }: { match: TestMatch; onSaved: () => void }) {
   const [home, setHome] = useState(match.homeScore?.toString() ?? "");
   const [away, setAway] = useState(match.awayScore?.toString() ?? "");
+  const [matchStatus, setMatchStatus] = useState<"LIVE" | "FINISHED">(
+    match.status === "FINISHED" ? "FINISHED" : "LIVE"
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -102,7 +105,7 @@ function ManualScoreRow({ match, onSaved }: { match: TestMatch; onSaved: () => v
       await fetch(`/api/admin/matches/${match.id}/result`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ homeScore: h, awayScore: a }),
+        body: JSON.stringify({ homeScore: h, awayScore: a, status: matchStatus }),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -135,7 +138,17 @@ function ManualScoreRow({ match, onSaved }: { match: TestMatch; onSaved: () => v
         placeholder="–"
       />
       <span className="flex-1 text-white/70 text-right truncate">{match.awayTeam}</span>
-      <span className="w-12 text-right">{statusBadge(match.status)}</span>
+      <button
+        onClick={() => setMatchStatus(s => s === "LIVE" ? "FINISHED" : "LIVE")}
+        title="Alternar status"
+        className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold border transition-all ${
+          matchStatus === "FINISHED"
+            ? "bg-green-500/20 text-green-400 border-green-500/30"
+            : "bg-red-500/20 text-red-400 border-red-500/30 animate-pulse"
+        }`}
+      >
+        {matchStatus === "FINISHED" ? "FIM" : "LIVE"}
+      </button>
       <button
         onClick={handleSave}
         disabled={saving || home === "" || away === ""}
@@ -163,6 +176,11 @@ export default function AdminPage() {
   const [testMatches, setTestMatches] = useState<TestMatch[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [selectedRodadaId, setSelectedRodadaId] = useState<string | null>(null);
+
+  const todayBRT = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const [dateSyncDate, setDateSyncDate] = useState(todayBRT);
+  const [dateSyncing, setDateSyncing] = useState(false);
+  const [dateSyncResult, setDateSyncResult] = useState<TestSyncResult | null>(null);
 
   const loadLastSync = useCallback(async () => {
     const res = await fetch("/api/admin/last-sync");
@@ -193,6 +211,23 @@ export default function AdminPage() {
       setSelectedRodadaId(rodadas[0].id);
     }
   }, [testMatches]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleDateSync() {
+    if (!dateSyncDate) return;
+    setDateSyncing(true);
+    setDateSyncResult(null);
+    try {
+      const yyyymmdd = dateSyncDate.replace(/-/g, "");
+      const res = await fetch(`/api/admin/sync-test?dates=${yyyymmdd}`, { method: "POST" });
+      const data = await res.json();
+      setDateSyncResult(data);
+      if (data.ok) { loadTestMatches(); loadLastSync(); }
+    } catch {
+      setDateSyncResult({ ok: false, error: "Erro de conexão" });
+    } finally {
+      setDateSyncing(false);
+    }
+  }
 
   async function handleSync(mode: "today" | "all") {
     setSyncing(mode);
@@ -317,6 +352,56 @@ export default function AdminPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* ── SYNC POR DATA ── */}
+      <div className="glass-card p-5">
+        <h2 className="text-white font-bold mb-1 flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 text-green-400" /> Sync por Data
+        </h2>
+        <p className="text-white/40 text-xs mb-4">
+          Selecione qualquer data da Copa e force o sync ESPN. Útil quando a API falha ou para atualizar dia a dia.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="date"
+            value={dateSyncDate}
+            min="2026-06-11"
+            max="2026-07-26"
+            onChange={(e) => setDateSyncDate(e.target.value)}
+            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-400/40"
+          />
+          <button
+            onClick={handleDateSync}
+            disabled={dateSyncing || !dateSyncDate}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600/20 hover:bg-green-600/30 text-green-300 font-semibold rounded-lg border border-green-500/30 transition-all disabled:opacity-50 text-sm"
+          >
+            {dateSyncing
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Buscando...</>
+              : <><Zap className="w-3.5 h-3.5" /> Sincronizar</>}
+          </button>
+        </div>
+        {dateSyncResult && (
+          <div className={`mt-3 p-3 rounded-xl border text-xs ${dateSyncResult.ok ? "bg-green-400/10 border-green-400/20" : "bg-red-500/10 border-red-500/20"}`}>
+            {dateSyncResult.ok ? (
+              <div className="text-green-300 space-y-0.5">
+                <div className="font-semibold">✅ Sync concluído</div>
+                <div className="text-green-400/70">
+                  📡 {dateSyncResult.fixtures} fixtures · ⚽ {dateSyncResult.updatedMatches} atualizados · 🏆 {dateSyncResult.updatedPredictions} pontuações
+                </div>
+                {dateSyncResult.fixtures === 0 && (
+                  <div className="text-yellow-400/70 mt-1">⚠️ ESPN não retornou jogos para esta data. Verifique a API manualmente.</div>
+                )}
+              </div>
+            ) : (
+              <div className="text-red-300">❌ {dateSyncResult.error}</div>
+            )}
+          </div>
+        )}
+        <p className="text-white/25 text-[10px] mt-3">
+          ESPN: site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=
+          <span className="text-white/40">{dateSyncDate.replace(/-/g, "")}</span>
+        </p>
       </div>
 
       {/* ── SYNC POR RODADA ── */}

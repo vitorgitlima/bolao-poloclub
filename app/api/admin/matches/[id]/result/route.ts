@@ -13,15 +13,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const { id: matchId } = await params;
-  const { homeScore, awayScore } = await req.json();
+  const { homeScore, awayScore, status } = await req.json();
 
   if (homeScore === undefined || awayScore === undefined || homeScore < 0 || awayScore < 0) {
     return NextResponse.json({ error: "Placar inválido" }, { status: 400 });
   }
 
+  const matchStatus = status === "LIVE" ? "LIVE" : status === "FINISHED" ? "FINISHED" : "LIVE";
+
   await prisma.match.update({
     where: { id: matchId },
-    data: { homeScore, awayScore, status: "FINISHED" },
+    data: { homeScore, awayScore, status: matchStatus },
   });
 
   const predictions = await prisma.prediction.findMany({ where: { matchId } });

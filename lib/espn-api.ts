@@ -97,10 +97,10 @@ export async function getEspnBrasileiraoByDate(date: string): Promise<EspnMatch[
 export const ESPN_NAME_MAP: Record<string, string> = {
   Mexico: "México", "South Africa": "África do Sul", "South Korea": "Coreia do Sul",
   Czechia: "Rep. Tcheca", "Czech Republic": "Rep. Tcheca",
-  Canada: "Canadá", "Bosnia and Herzegovina": "Bósnia e Herz.",
+  Canada: "Canadá", "Bosnia and Herzegovina": "Bósnia e Herz.", "Bosnia-Herzegovina": "Bósnia e Herz.",
   Qatar: "Catar", Switzerland: "Suíça",
   Brazil: "Brasil", Morocco: "Marrocos", Haiti: "Haiti", Scotland: "Escócia",
-  "United States": "EUA", Paraguay: "Paraguai", Australia: "Austrália", Turkey: "Turquia",
+  "United States": "EUA", Paraguay: "Paraguai", Australia: "Austrália", Turkey: "Turquia", "Türkiye": "Turquia",
   Germany: "Alemanha", "Côte d'Ivoire": "Costa do Marfim", "Ivory Coast": "Costa do Marfim",
   Ecuador: "Equador", Curaçao: "Curaçao", Curacao: "Curaçao",
   Netherlands: "Holanda", Japan: "Japão", Sweden: "Suécia", Tunisia: "Tunísia",
