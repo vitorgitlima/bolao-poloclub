@@ -132,16 +132,21 @@ export function RankingLive({ userId }: { userId?: string }) {
           </div>
           <button
             onClick={handleManualRefresh}
-            className="text-right shrink-0 hover:opacity-70 transition-opacity active:scale-95"
+            className="shrink-0 hover:opacity-80 transition-opacity active:scale-95"
             title="Atualizar ranking"
           >
-            <div className="flex items-center gap-1 text-white/20 text-[10px]">
-              <RefreshCw className="w-3 h-3" />
-              {lastUpdated
-                ? lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-                : "—"}
+            <div className="flex items-center gap-1.5 border border-red-500/30 bg-red-500/10 rounded-lg px-2.5 py-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse shrink-0" />
+              <div className="text-left">
+                <div className="text-white/70 text-[10px] font-semibold leading-none mb-0.5">toque para atualizar</div>
+                <div className="flex items-center gap-1 text-white/30 text-[9px]">
+                  <RefreshCw className="w-2.5 h-2.5" />
+                  {lastUpdated
+                    ? lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                    : "—"}
+                </div>
+              </div>
             </div>
-            <div className="text-white/15 text-[9px] mt-0.5">toque para atualizar</div>
           </button>
         </div>
 
