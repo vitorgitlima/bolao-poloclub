@@ -148,9 +148,6 @@ async function maybeSnapshotCopaRound(): Promise<void> {
     const [day, , month] = brtDate.split("-").reverse(); // "11", "2026", "06"
     const roundLabel = `Copa 2026 — ${day}/${month}`;
 
-    const already = await prisma.roundSnapshot.findFirst({ where: { roundLabel } });
-    if (already) continue;
-
     try {
       await snapshotCurrentRanking(roundLabel, brtDate);
       console.log(`📸 Snapshot automático: ${roundLabel}`);

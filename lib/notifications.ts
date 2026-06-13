@@ -29,7 +29,7 @@ export async function createRoundSummaryNotifications(
         userId: e.userId,
         type: "ROUND_SUMMARY",
         title: `📊 ${roundLabel}`,
-        body: `Você fez ${e.roundPoints} pts${exactsText} nessa rodada.`,
+        body: `Você fez ${e.roundPoints} pts${exactsText} no dia.`,
         dedupeKey: `round_summary:${roundLabel}:${e.userId}`,
       });
     }
