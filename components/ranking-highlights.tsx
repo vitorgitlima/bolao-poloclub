@@ -58,9 +58,9 @@ export function RankingHighlights({ highlights }: { highlights: Highlights }) {
         {craque && (
           <Card
             icon="👑"
-            title="Craque da Rodada"
+            title="Craque do Dia"
             names={craque.names}
-            stat={`${craque.points} pts na rodada`}
+            stat={`${craque.points} pts no dia`}
           />
         )}
         {reiExatos && (
@@ -84,7 +84,7 @@ export function RankingHighlights({ highlights }: { highlights: Highlights }) {
             icon="🤡"
             title="Bola Murcha"
             names={bolaNomes}
-            stat="0 pts na rodada"
+            stat="0 pts no dia"
           />
         )}
       </div>
