@@ -109,13 +109,17 @@ export async function createPointsUpdatedNotifications(
     if (exacters.length >= 3) return `${exacters.length} pessoas acertaram o placar! 🎯`;
     // 0 exatos — mostra saldo e vencedor separados com gramática correta
     const parts: string[] = [];
-    if (goalDiffers.length > 0) {
-      const n = goalDiffers.length;
-      parts.push(`⚖️ ${n} ${n === 1 ? "acertou o saldo" : "acertaram o saldo"}`);
+    if (goalDiffers.length === 1) {
+      const name = goalDiffers[0].userId === forUserId ? "Você" : (userNames.get(goalDiffers[0].userId) ?? "Alguém");
+      parts.push(`⚖️ ${name} foi o único a acertar o saldo!`);
+    } else if (goalDiffers.length > 1) {
+      parts.push(`⚖️ ${goalDiffers.length} acertaram o saldo`);
     }
-    if (winners.length > 0) {
-      const n = winners.length;
-      parts.push(`✅ ${n} ${n === 1 ? "acertou o vencedor" : "acertaram o vencedor"}`);
+    if (winners.length === 1) {
+      const name = winners[0].userId === forUserId ? "Você" : (userNames.get(winners[0].userId) ?? "Alguém");
+      parts.push(`✅ ${name} foi o único a acertar o vencedor!`);
+    } else if (winners.length > 1) {
+      parts.push(`✅ ${winners.length} acertaram o vencedor`);
     }
     if (parts.length > 0) return `Ninguém acertou o placar 😅 · ${parts.join(" · ")}`;
     return "";
