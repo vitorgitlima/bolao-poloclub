@@ -180,10 +180,10 @@ function PredictionPanel({ userId }: { userId: string }) {
     ? data.predictions.filter((p) => p.phase === selectedPhase)
     : data.predictions;
 
-  // Quando "Todos", agrupa por fase (mais recente primeiro); quando fase específica, flat
+  // Quando "Todos", lista plana por data desc; quando fase específica, flat com label
   const groups: Array<{ label: string; items: PredictionDetail[] }> =
     selectedPhase === null
-      ? [...data.phases].reverse().map((ph) => ({ label: ph, items: data.predictions.filter((p) => p.phase === ph) })).filter((g) => g.items.length > 0)
+      ? [{ label: "", items: data.predictions }]
       : [{ label: selectedPhase, items: filtered }];
 
   const totalPts = filtered.reduce((s, p) => s + (p.status === "FINISHED" ? p.points : 0), 0);
@@ -234,7 +234,7 @@ function PredictionPanel({ userId }: { userId: string }) {
       {/* Lista de palpites */}
       {groups.map(({ label, items }) => (
         <div key={label}>
-          {(selectedPhase === null || data.phases.length > 1) && (
+          {label && (
             <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1.5 px-1">
               {label}
             </p>
