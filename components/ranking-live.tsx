@@ -120,7 +120,14 @@ export function RankingLive({ userId }: { userId?: string }) {
             <Trophy className="w-7 h-7 text-yellow-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-black text-white">Ranking</h1>
+            <h1 className="text-2xl font-black text-white flex items-center gap-2 flex-wrap">
+              Ranking
+              {isGeral && (
+                <span className="text-[10px] font-semibold text-yellow-400/80 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-full whitespace-nowrap">
+                  🏆 R$ 100 ao 1º lugar
+                </span>
+              )}
+            </h1>
             <p className="text-white/40 text-sm truncate">
               {me?.isDeveloper
                 ? "⚙️ Modo desenvolvedor — fora do ranking"
@@ -169,14 +176,6 @@ export function RankingLive({ userId }: { userId?: string }) {
         )}
       </div>
 
-      {/* Banner de prêmio */}
-      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-yellow-400/8 border border-yellow-400/20">
-        <span className="text-2xl leading-none shrink-0">🏆</span>
-        <div>
-          <p className="text-yellow-300 text-sm font-bold leading-snug">Prêmio: R$ 100,00 para o 1º lugar!</p>
-          <p className="text-white/40 text-xs leading-snug mt-0.5">Válido para o ranking geral ao fim da Copa do Mundo 2026.</p>
-        </div>
-      </div>
 
       {/* Tabs: Geral + ligas do usuário */}
       {(leagues.length > 0) && (
