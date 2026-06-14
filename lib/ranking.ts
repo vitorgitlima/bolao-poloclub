@@ -38,14 +38,29 @@ export type RankingResult = {
 
 // Calcula ranking para um conjunto de userIds (undefined = todos os usuários)
 export async function computeRanking(filterUserIds?: string[]): Promise<RankingResult> {
-  const users = await prisma.user.findMany({
-    where: filterUserIds ? { id: { in: filterUserIds } } : undefined,
-    include: {
-      predictions: {
-        include: { match: { select: { date: true, phase: true } } },
+  const [users, finishedMatchDates] = await Promise.all([
+    prisma.user.findMany({
+      where: filterUserIds ? { id: { in: filterUserIds } } : undefined,
+      include: {
+        predictions: {
+          include: { match: { select: { date: true, phase: true } } },
+        },
       },
-    },
-  });
+    }),
+    prisma.match.findMany({
+      where: { status: "FINISHED", phase: { not: { startsWith: "🧪" } } },
+      select: { date: true },
+    }),
+  ]);
+
+  // Dias BRT (ordenados) que têm pelo menos 1 jogo encerrado — base do streak por dia
+  const finishedDays = [
+    ...new Set(
+      finishedMatchDates.map((m) =>
+        new Date(m.date).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })
+      )
+    ),
+  ].sort();
 
   const usersWithStats = users.map((user) => {
     const scored = user.predictions.filter(
@@ -56,14 +71,19 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     const goalDifferenceHits = scored.filter((p) => (p.points ?? 0) === 4).length;
     const correctWinners = scored.filter((p) => (p.points ?? 0) === 3).length;
 
-    // Sequência de pontuações positivas consecutivas (da mais recente para trás)
-    const byDate = [...scored].sort(
-      (a, b) => new Date(a.match.date).getTime() - new Date(b.match.date).getTime()
-    );
+    // Streak por dia BRT: quebra se não palpitou (ou zerou) num dia com jogo encerrado
+    const scoredByDay = new Map<string, number>();
+    for (const p of scored) {
+      const day = new Date(p.match.date).toLocaleDateString("en-CA", {
+        timeZone: "America/Sao_Paulo",
+      });
+      scoredByDay.set(day, (scoredByDay.get(day) ?? 0) + (p.points ?? 0));
+    }
     let streak = 0;
-    for (let i = byDate.length - 1; i >= 0; i--) {
-      if ((byDate[i].points ?? 0) > 0) streak++;
-      else break;
+    for (let i = finishedDays.length - 1; i >= 0; i--) {
+      const dayPts = scoredByDay.get(finishedDays[i]);
+      if (!dayPts) break; // não palpitou no dia (undefined) ou zerou (0)
+      streak++;
     }
 
     return {
@@ -113,32 +133,33 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
   const latestRounds = await prisma.roundSnapshot.findMany({
     distinct: ["roundLabel"],
     orderBy: { roundDate: "desc" },
-    take: 2,
+    take: 1,
     select: { roundLabel: true, roundDate: true },
   });
 
   if (latestRounds.length > 0) {
     const latestLabel = latestRounds[0].roundLabel;
-    const prevLabel = latestRounds[1]?.roundLabel ?? null;
 
-    const [latestSnaps, prevSnaps] = await Promise.all([
-      prisma.roundSnapshot.findMany({
-        where: {
-          roundLabel: latestLabel,
-          ...(filterUserIds ? { userId: { in: filterUserIds } } : {}),
-        },
-      }),
-      prevLabel
-        ? prisma.roundSnapshot.findMany({
-            where: {
-              roundLabel: prevLabel,
-              ...(filterUserIds ? { userId: { in: filterUserIds } } : {}),
-            },
-          })
-        : Promise.resolve([]),
-    ]);
+    const latestSnaps = await prisma.roundSnapshot.findMany({
+      where: {
+        roundLabel: latestLabel,
+        ...(filterUserIds ? { userId: { in: filterUserIds } } : {}),
+      },
+    });
 
-    const prevMap = new Map(prevSnaps.map((s) => [s.userId, s]));
+    // Posições atuais (ao vivo) para calcular Maior Subida em tempo real
+    const liveNonDev = allSorted.filter((u) => !u.isDeveloper);
+    const livePosMap = new Map(
+      liveNonDev.map((u) => [
+        u.id,
+        liveNonDev.filter((x) => {
+          if (x.totalPoints !== u.totalPoints) return x.totalPoints > u.totalPoints;
+          if (x.exactScores !== u.exactScores) return x.exactScores > u.exactScores;
+          if (x.goalDifferenceHits !== u.goalDifferenceHits) return x.goalDifferenceHits > u.goalDifferenceHits;
+          return x.correctWinners > u.correctWinners;
+        }).length + 1,
+      ])
+    );
 
     // Craque da Rodada
     const maxRoundPts = Math.max(...latestSnaps.map((s) => s.roundPoints), 0);
@@ -153,12 +174,12 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     );
     exactWinnerIds = new Set(exatosList.map((s) => s.userId));
 
-    // Maior Subida (precisa de 2 snapshots)
+    // Maior Subida — posição na snapshot vs posição atual ao vivo
     const riseList = latestSnaps
-      .filter((s) => prevMap.has(s.userId))
+      .filter((s) => livePosMap.has(s.userId))
       .map((s) => ({
         userId: s.userId,
-        change: prevMap.get(s.userId)!.position - s.position,
+        change: s.position - livePosMap.get(s.userId)!,
       }));
     const maxRise = Math.max(...riseList.map((r) => r.change), 0);
     const riseWinners = riseList.filter((r) => r.change === maxRise && maxRise > 0);
