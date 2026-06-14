@@ -85,18 +85,45 @@ export async function createPointsUpdatedNotifications(
   matchId: string,
   matchLabel: string,
   finalScore: string,
-  entries: { userId: string; points: number }[]
+  entries: { userId: string; points: number }[],
+  userNames: Map<string, string>
 ) {
   if (!entries.length) return;
+
+  const exacters = entries.filter((e) => e.points === 6);
+  const goalDiffers = entries.filter((e) => e.points === 4);
+  const winners = entries.filter((e) => e.points === 3);
+
+  function socialLine(forUserId: string): string {
+    if (exacters.length === 1) {
+      return exacters[0].userId === forUserId
+        ? "Você foi o único a acertar o placar! 🎯"
+        : `${userNames.get(exacters[0].userId) ?? "Alguém"} foi o único a acertar o placar! 🎯`;
+    }
+    if (exacters.length === 2) {
+      const names = exacters.map((e) =>
+        e.userId === forUserId ? "você" : (userNames.get(e.userId) ?? "alguém")
+      );
+      return `${names[0]} e ${names[1]} acertaram o placar! 🎯`;
+    }
+    if (exacters.length >= 3) return `${exacters.length} pessoas acertaram o placar! 🎯`;
+    const others = goalDiffers.length + winners.length;
+    if (others > 0) return `Ninguém acertou o placar 😅 · ✅ ${others} acertaram o vencedor`;
+    return "";
+  }
+
   await prisma.notification.createMany({
-    data: entries.map(({ userId, points }) => ({
-      userId,
-      type: "POINTS_UPDATED",
-      title: `🏆 +${points} pts — ${matchLabel}`,
-      body: `Resultado final: ${finalScore}.`,
-      dedupeKey: `points:final:${matchId}:${userId}`,
-      matchId,
-    })),
+    data: entries.map(({ userId, points }) => {
+      const social = socialLine(userId);
+      return {
+        userId,
+        type: "POINTS_UPDATED",
+        title: `🏆 +${points} pts — ${matchLabel}`,
+        body: social ? `Resultado: ${finalScore} · ${social}` : `Resultado: ${finalScore}`,
+        dedupeKey: `points:final:${matchId}:${userId}`,
+        matchId,
+      };
+    }),
     skipDuplicates: true,
   });
 }

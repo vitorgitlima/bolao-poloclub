@@ -82,13 +82,23 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
   }
 
   // Hook A — notificações de pontos para jogos recém-finalizados
-  for (const f of finishedNow) {
-    await createPointsUpdatedNotifications(
-      f.matchId,
-      f.label,
-      f.score,
-      f.predictions.map((p) => ({ userId: p.userId, points: p.points ?? 0 }))
-    );
+  if (finishedNow.length > 0) {
+    const allUserIds = [...new Set(finishedNow.flatMap((f) => f.predictions.map((p) => p.userId)))];
+    const usersForNotif = await prisma.user.findMany({
+      where: { id: { in: allUserIds } },
+      select: { id: true, name: true },
+    });
+    const nameMap = new Map(usersForNotif.map((u) => [u.id, u.name ?? "Alguém"]));
+
+    for (const f of finishedNow) {
+      await createPointsUpdatedNotifications(
+        f.matchId,
+        f.label,
+        f.score,
+        f.predictions.map((p) => ({ userId: p.userId, points: p.points ?? 0 })),
+        nameMap
+      );
+    }
   }
 
   // Hook B — notificações de palpite faltando (jogos em <2h sem palpite)
