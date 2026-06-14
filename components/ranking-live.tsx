@@ -18,6 +18,7 @@ type RankingEntry = {
   isBetaTester: boolean;
   totalPoints: number;
   exactScores: number;
+  goalDifferenceHits: number;
   correctWinners: number;
   predictions: number;
   isLeader: boolean;

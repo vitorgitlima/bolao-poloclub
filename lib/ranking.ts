@@ -13,6 +13,7 @@ export type RankingUser = {
   isBetaTester: boolean;
   totalPoints: number;
   exactScores: number;
+  goalDifferenceHits: number;
   correctWinners: number;
   predictions: number;
   isLeader: boolean;
@@ -52,9 +53,8 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     );
     const totalPoints = scored.reduce((s, p) => s + (p.points ?? 0), 0);
     const exactScores = scored.filter((p) => (p.points ?? 0) === 6).length;
-    const correctWinners = scored.filter(
-      (p) => (p.points ?? 0) === 3 || (p.points ?? 0) === 4
-    ).length;
+    const goalDifferenceHits = scored.filter((p) => (p.points ?? 0) === 4).length;
+    const correctWinners = scored.filter((p) => (p.points ?? 0) === 3).length;
 
     // Sequência de pontuações positivas consecutivas (da mais recente para trás)
     const byDate = [...scored].sort(
@@ -78,17 +78,25 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       isBetaTester: user.isBetaTester,
       totalPoints,
       exactScores,
+      goalDifferenceHits,
       correctWinners,
       predictions: user.predictions.filter((p) => !p.match.phase.startsWith("🧪")).length,
       streak,
     };
   });
 
-  const ranked = usersWithStats
-    .filter((u) => !u.isDeveloper)
-    .sort((a, b) => b.totalPoints - a.totalPoints);
+  function rankingSort(
+    a: { totalPoints: number; exactScores: number; goalDifferenceHits: number; correctWinners: number },
+    b: { totalPoints: number; exactScores: number; goalDifferenceHits: number; correctWinners: number }
+  ) {
+    if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+    if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
+    if (b.goalDifferenceHits !== a.goalDifferenceHits) return b.goalDifferenceHits - a.goalDifferenceHits;
+    return b.correctWinners - a.correctWinners;
+  }
 
-  const allSorted = [...usersWithStats].sort((a, b) => b.totalPoints - a.totalPoints);
+  const ranked = usersWithStats.filter((u) => !u.isDeveloper).sort(rankingSort);
+  const allSorted = [...usersWithStats].sort(rankingSort);
 
   // Streak winner (sempre live — não depende de snapshots)
   const maxStreak = Math.max(...ranked.map((u) => u.streak), 0);
@@ -220,6 +228,7 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     isBetaTester: u.isBetaTester,
     totalPoints: u.totalPoints,
     exactScores: u.exactScores,
+    goalDifferenceHits: u.goalDifferenceHits,
     correctWinners: u.correctWinners,
     predictions: u.predictions,
     isLeader: !u.isDeveloper && maxPoints > 0 && u.totalPoints === maxPoints,
@@ -299,8 +308,12 @@ export async function snapshotCurrentRanking(
   const notifEntries: Parameters<typeof createRoundSummaryNotifications>[1] = [];
 
   for (const user of nonDevRanking) {
-    const position =
-      nonDevRanking.filter((u) => u.totalPoints > user.totalPoints).length + 1;
+    const position = nonDevRanking.filter((u) => {
+      if (u.totalPoints !== user.totalPoints) return u.totalPoints > user.totalPoints;
+      if (u.exactScores !== user.exactScores) return u.exactScores > user.exactScores;
+      if (u.goalDifferenceHits !== user.goalDifferenceHits) return u.goalDifferenceHits > user.goalDifferenceHits;
+      return u.correctWinners > user.correctWinners;
+    }).length + 1;
     const roundPoints = roundPtsMap.get(user.id) ?? 0;
     const roundExacts = roundExactsMap.get(user.id) ?? 0;
     const hadPrediction = hadPredSet.has(user.id) && roundPtsMap.has(user.id);

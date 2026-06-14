@@ -17,6 +17,7 @@ type RankingEntry = {
   isBetaTester: boolean;
   totalPoints: number;
   exactScores: number;
+  goalDifferenceHits: number;
   correctWinners: number;
   predictions: number;
   isLeader: boolean;
@@ -391,11 +392,15 @@ export function RankingTable({
 
               {/* Stats */}
               <div className="hidden sm:flex items-center gap-4 text-xs text-white/50">
-                <div className="flex items-center gap-1" title="Placares exatos">
+                <div className="flex items-center gap-1" title="Placares exatos (6pts)">
                   <Target className="w-3 h-3 text-green-400" />
                   {entry.exactScores}
                 </div>
-                <div className="flex items-center gap-1" title="Vencedores certos">
+                <div className="flex items-center gap-1" title="Saldos de gols (4pts)">
+                  <span className="text-[10px] text-purple-400">⚖️</span>
+                  {entry.goalDifferenceHits}
+                </div>
+                <div className="flex items-center gap-1" title="Vencedores certos (3pts)">
                   <Check className="w-3 h-3 text-blue-400" />
                   {entry.correctWinners}
                 </div>

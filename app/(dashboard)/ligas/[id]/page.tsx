@@ -49,7 +49,7 @@ type RankingEntry = {
   id: string; name: string | null; image: string | null;
   isContributor: boolean; isArchitect: boolean; isIdealizador: boolean; isDeveloper: boolean;
   betaRank: number | null; isBetaTester: boolean;
-  totalPoints: number; exactScores: number; correctWinners: number;
+  totalPoints: number; exactScores: number; goalDifferenceHits: number; correctWinners: number;
   predictions: number; isLeader: boolean; isTopStreak: boolean;
   isTopExact: boolean; isTopRiser: boolean; isBolasMurcha: boolean;
 };
