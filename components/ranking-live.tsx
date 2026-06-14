@@ -263,7 +263,7 @@ export function RankingLive({ userId }: { userId?: string }) {
       <div className="grid grid-cols-3 gap-3">
         {[
           { icon: <Target className="w-4 h-4" />, label: "Placar exato", pts: "6 pts", color: "text-green-400", bg: "bg-green-400/10" },
-          { icon: <Check className="w-4 h-4" />, label: "Saldo de gols", pts: "4 pts", color: "text-purple-400", bg: "bg-purple-400/10" },
+          { icon: <span className="text-base leading-none">⚖️</span>, label: "Saldo de gols", pts: "4 pts", color: "text-purple-400", bg: "bg-purple-400/10" },
           { icon: <Check className="w-4 h-4" />, label: "Vencedor certo", pts: "3 pts", color: "text-blue-400", bg: "bg-blue-400/10" },
         ].map((item) => (
           <div key={item.label} className={`glass-card p-3 text-center ${item.bg} border-0`}>
