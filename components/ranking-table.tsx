@@ -152,10 +152,6 @@ function PredictionPanel({ userId }: { userId: string }) {
       if (!res.ok) throw new Error();
       const json: PredictionPanelData = await res.json();
       setData(json);
-      // auto-seleciona a última fase com palpites
-      if (json.phases.length > 0) {
-        setSelectedPhase(json.phases[json.phases.length - 1]);
-      }
     } catch {
       setError(true);
     } finally {
@@ -184,10 +180,10 @@ function PredictionPanel({ userId }: { userId: string }) {
     ? data.predictions.filter((p) => p.phase === selectedPhase)
     : data.predictions;
 
-  // Quando "Todos", agrupa por fase; quando fase específica, flat
+  // Quando "Todos", agrupa por fase (mais recente primeiro); quando fase específica, flat
   const groups: Array<{ label: string; items: PredictionDetail[] }> =
     selectedPhase === null
-      ? data.phases.map((ph) => ({ label: ph, items: data.predictions.filter((p) => p.phase === ph) })).filter((g) => g.items.length > 0)
+      ? [...data.phases].reverse().map((ph) => ({ label: ph, items: data.predictions.filter((p) => p.phase === ph) })).filter((g) => g.items.length > 0)
       : [{ label: selectedPhase, items: filtered }];
 
   const totalPts = filtered.reduce((s, p) => s + (p.status === "FINISHED" ? p.points : 0), 0);

@@ -46,7 +46,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           },
         },
       },
-      orderBy: { match: { date: "asc" } },
+      orderBy: { match: { date: "desc" } },
     }),
     // Fases disponíveis (sem filtro de fase específica, para montar o seletor)
     prisma.prediction.findMany({
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         },
       },
       select: { match: { select: { phase: true, date: true } } },
-      orderBy: { match: { date: "asc" } },
+      orderBy: { match: { date: "desc" } },
       distinct: ["matchId"],
     }),
   ]);
