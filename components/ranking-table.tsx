@@ -380,11 +380,10 @@ export function RankingTable({
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-white/40">
-                    {entry.predictions} palpite{entry.predictions !== 1 ? "s" : ""}
-                  </div>
-                  {/* Stats — mobile only */}
-                  <div className="flex sm:hidden items-center gap-2 mt-0.5 text-[10px] text-white/40">
+                  {/* Palpites + stats numa linha só — mobile */}
+                  <div className="flex sm:hidden items-center gap-1.5 mt-0.5 text-[10px] text-white/40 flex-wrap">
+                    <span>{entry.predictions} palpite{entry.predictions !== 1 ? "s" : ""}</span>
+                    <span className="text-white/20">·</span>
                     <span className="flex items-center gap-0.5">
                       <Target className="w-2.5 h-2.5 text-green-400" />{entry.exactScores}
                     </span>
@@ -394,6 +393,10 @@ export function RankingTable({
                     <span className="flex items-center gap-0.5">
                       <Check className="w-2.5 h-2.5 text-blue-400" />{entry.correctWinners}
                     </span>
+                  </div>
+                  {/* Palpites — desktop only (stats ficam na coluna lateral) */}
+                  <div className="hidden sm:block text-xs text-white/40">
+                    {entry.predictions} palpite{entry.predictions !== 1 ? "s" : ""}
                   </div>
                 </div>
               </div>
