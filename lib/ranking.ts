@@ -303,7 +303,7 @@ export async function snapshotCurrentRanking(
       nonDevRanking.filter((u) => u.totalPoints > user.totalPoints).length + 1;
     const roundPoints = roundPtsMap.get(user.id) ?? 0;
     const roundExacts = roundExactsMap.get(user.id) ?? 0;
-    const hadPrediction = hadPredSet.has(user.id);
+    const hadPrediction = hadPredSet.has(user.id) && roundPtsMap.has(user.id);
 
     await prisma.roundSnapshot.upsert({
       where: { userId_roundLabel: { userId: user.id, roundLabel } },
