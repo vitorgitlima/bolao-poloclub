@@ -375,8 +375,8 @@ export function RankingTable({
                       </span>
                     )}
                     {entry.isBetaTester && !entry.betaRank && (
-                      <span className="text-[9px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-400/25 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
-                        🧪 Pioneiro Série A
+                      <span className="text-[9px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-400/25 px-1.5 py-0.5 rounded-full shrink-0">
+                        🧪<span className="hidden sm:inline"> Pioneiro Série A</span>
                       </span>
                     )}
                   </div>
