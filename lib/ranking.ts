@@ -175,12 +175,16 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     exactWinnerIds = new Set(exatosList.map((s) => s.userId));
 
     // Maior Subida — posição na snapshot vs posição atual ao vivo
+    // Em liga: deriva posição relativa dentro dos membros da liga no momento da snapshot
+    // No geral: usa s.position (posição geral armazenada)
     const riseList = latestSnaps
       .filter((s) => livePosMap.has(s.userId))
-      .map((s) => ({
-        userId: s.userId,
-        change: s.position - livePosMap.get(s.userId)!,
-      }));
+      .map((s) => {
+        const snapshotPos = filterUserIds
+          ? latestSnaps.filter((x) => x.totalPoints > s.totalPoints).length + 1
+          : s.position;
+        return { userId: s.userId, change: snapshotPos - livePosMap.get(s.userId)! };
+      });
     const maxRise = Math.max(...riseList.map((r) => r.change), 0);
     const riseWinners = riseList.filter((r) => r.change === maxRise && maxRise > 0);
     riseWinnerIds = new Set(riseWinners.map((r) => r.userId));
