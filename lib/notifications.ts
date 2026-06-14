@@ -107,8 +107,17 @@ export async function createPointsUpdatedNotifications(
       return `${names[0]} e ${names[1]} acertaram o placar! 🎯`;
     }
     if (exacters.length >= 3) return `${exacters.length} pessoas acertaram o placar! 🎯`;
-    const others = goalDiffers.length + winners.length;
-    if (others > 0) return `Ninguém acertou o placar 😅 · ✅ ${others} acertaram o vencedor`;
+    // 0 exatos — mostra saldo e vencedor separados com gramática correta
+    const parts: string[] = [];
+    if (goalDiffers.length > 0) {
+      const n = goalDiffers.length;
+      parts.push(`⚖️ ${n} ${n === 1 ? "acertou o saldo" : "acertaram o saldo"}`);
+    }
+    if (winners.length > 0) {
+      const n = winners.length;
+      parts.push(`✅ ${n} ${n === 1 ? "acertou o vencedor" : "acertaram o vencedor"}`);
+    }
+    if (parts.length > 0) return `Ninguém acertou o placar 😅 · ${parts.join(" · ")}`;
     return "";
   }
 
