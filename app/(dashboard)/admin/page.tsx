@@ -138,17 +138,21 @@ function ManualScoreRow({ match, onSaved }: { match: TestMatch; onSaved: () => v
         placeholder="–"
       />
       <span className="flex-1 text-white/70 text-right truncate">{match.awayTeam}</span>
-      <button
-        onClick={() => setMatchStatus(s => s === "LIVE" ? "FINISHED" : "LIVE")}
-        title="Alternar status"
-        className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold border transition-all ${
-          matchStatus === "FINISHED"
-            ? "bg-green-500/20 text-green-400 border-green-500/30"
-            : "bg-red-500/20 text-red-400 border-red-500/30 animate-pulse"
-        }`}
-      >
-        {matchStatus === "FINISHED" ? "FIM" : "LIVE"}
-      </button>
+      {home !== "" && away !== "" ? (
+        <button
+          onClick={() => setMatchStatus(s => s === "LIVE" ? "FINISHED" : "LIVE")}
+          title="Alternar status"
+          className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold border transition-all ${
+            matchStatus === "FINISHED"
+              ? "bg-green-500/20 text-green-400 border-green-500/30"
+              : "bg-red-500/20 text-red-400 border-red-500/30 animate-pulse"
+          }`}
+        >
+          {matchStatus === "FINISHED" ? "FIM" : "LIVE"}
+        </button>
+      ) : (
+        <span className="w-[38px] text-right">{statusBadge(match.status)}</span>
+      )}
       <button
         onClick={handleSave}
         disabled={saving || home === "" || away === ""}
