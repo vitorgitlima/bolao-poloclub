@@ -267,12 +267,13 @@ export async function snapshotCurrentRanking(
       },
       _count: { id: true },
     }),
-    // Qualquer palpite no dia (mesmo sem pontos) — para detectar Bola Murcha
+    // Palpite em jogo FINALIZADO no dia — para detectar Bola Murcha
     prisma.prediction.groupBy({
       by: ["userId"],
       where: {
         match: {
           date: { gte: startUTC, lt: endUTC },
+          status: "FINISHED",
           phase: { not: { startsWith: "🧪" } },
         },
       },
