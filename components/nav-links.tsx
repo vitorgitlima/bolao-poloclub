@@ -6,9 +6,9 @@ import { Trophy, Home, Settings, BookOpen, Users, FlaskConical } from "lucide-re
 import { CopaBall } from "@/components/icons/copa-ball";
 import { cn } from "@/lib/utils";
 
-type Props = { isAdmin: boolean };
+type Props = { isAdmin: boolean; hasLive?: boolean };
 
-export function NavLinks({ isAdmin }: Props) {
+export function NavLinks({ isAdmin, hasLive }: Props) {
   const pathname = usePathname();
 
   function linkClass(href: string, exact = false) {
@@ -42,8 +42,13 @@ export function NavLinks({ isAdmin }: Props) {
       </Link>
 
       <Link href="/" className={linkClass("/", true)}>
-        <Home className="w-4 h-4" />
-        <span className="hidden sm:block">Jogos</span>
+        <div className="relative">
+          <Home className={cn("w-4 h-4", hasLive && "text-red-400")} />
+          {hasLive && (
+            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+          )}
+        </div>
+        <span className={cn("hidden sm:block", hasLive && "text-red-400")}>Jogos</span>
       </Link>
 
       <Link href="/copa" className={linkClass("/copa")}>

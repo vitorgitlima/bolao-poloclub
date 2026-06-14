@@ -6,10 +6,13 @@ import { LogOut } from "lucide-react";
 import { NavLinks } from "@/components/nav-links";
 import { NotificationBell } from "@/components/notification-bell";
 import { ToastProvider } from "@/components/toast-provider";
+import { prisma } from "@/lib/db";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) redirect("/login");
+
+  const hasLive = (await prisma.match.count({ where: { status: "LIVE" } })) > 0;
 
   return (
     <div className="min-h-screen stadium-bg overflow-x-hidden">
@@ -45,6 +48,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="flex items-center gap-1">
             <NavLinks
               isAdmin={process.env.ADMIN_EMAILS?.split(",").map(e => e.trim()).includes(session.user?.email ?? "") ?? false}
+              hasLive={hasLive}
             />
             <NotificationBell />
             <div className="flex items-center gap-1.5 ml-1.5 pl-2 border-l border-white/10 shrink-0">
