@@ -53,7 +53,7 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     }),
   ]);
 
-  // Dias BRT (ordenados) que têm pelo menos 1 jogo encerrado — base do streak por dia
+  // Dias BRT (ordenados) que têm pelo menos 1 jogo encerrado — base do streak e Bola Murcha
   const finishedDays = [
     ...new Set(
       finishedMatchDates.map((m) =>
@@ -61,6 +61,9 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       )
     ),
   ].sort();
+
+  // Dia mais recente com jogo encerrado — usado para Bola Murcha ao vivo
+  const latestDay = finishedDays.length > 0 ? finishedDays[finishedDays.length - 1] : null;
 
   const usersWithStats = users.map((user) => {
     const scored = user.predictions.filter(
@@ -71,7 +74,7 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     const goalDifferenceHits = scored.filter((p) => (p.points ?? 0) === 4).length;
     const correctWinners = scored.filter((p) => (p.points ?? 0) === 3).length;
 
-    // Streak por dia BRT: quebra se não palpitou (ou zerou) num dia com jogo encerrado
+    // Pontos por dia BRT — usado para Bola Murcha ao vivo
     const scoredByDay = new Map<string, number>();
     for (const p of scored) {
       const day = new Date(p.match.date).toLocaleDateString("en-CA", {
@@ -79,11 +82,43 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       });
       scoredByDay.set(day, (scoredByDay.get(day) ?? 0) + (p.points ?? 0));
     }
+
+    // null = sem palpite no dia mais recente; 0 = palpitou mas zerou; >0 = pontuou
+    const latestDayPoints = latestDay !== null
+      ? (scoredByDay.has(latestDay) ? scoredByDay.get(latestDay)! : null)
+      : null;
+
+    // Placares exatos no dia mais recente (para Rei dos Exatos ao vivo)
+    const latestDayExacts = latestDay !== null
+      ? scored.filter(
+          (p) =>
+            (p.points ?? 0) === 6 &&
+            new Date(p.match.date).toLocaleDateString("en-CA", {
+              timeZone: "America/Sao_Paulo",
+            }) === latestDay
+        ).length
+      : 0;
+
+    // Streak: conta previsões positivas consecutivas do mais recente para o mais antigo.
+    // Quebra no primeiro 0, e invalida se o usuário não palpitou em algum dia encerrado
+    // dentro da janela da sequência (evita sequência "furada" por dias sem palpite).
+    const byDateDesc = [...scored].sort(
+      (a, b) => new Date(b.match.date).getTime() - new Date(a.match.date).getTime()
+    );
+    const userPredDays = new Set(scoredByDay.keys());
     let streak = 0;
-    for (let i = finishedDays.length - 1; i >= 0; i--) {
-      const dayPts = scoredByDay.get(finishedDays[i]);
-      if (!dayPts) break; // não palpitou no dia (undefined) ou zerou (0)
-      streak++;
+    let oldestStreakDay: string | null = null;
+    for (const pred of byDateDesc) {
+      if ((pred.points ?? 0) > 0) {
+        streak++;
+        oldestStreakDay = new Date(pred.match.date).toLocaleDateString("en-CA", {
+          timeZone: "America/Sao_Paulo",
+        });
+      } else break;
+    }
+    if (streak > 0 && oldestStreakDay !== null) {
+      const relevantDays = finishedDays.filter((d) => d >= oldestStreakDay!);
+      if (relevantDays.some((d) => !userPredDays.has(d))) streak = 0;
     }
 
     return {
@@ -102,6 +137,8 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       correctWinners,
       predictions: user.predictions.filter((p) => !p.match.phase.startsWith("🧪")).length,
       streak,
+      latestDayPoints,
+      latestDayExacts,
     };
   });
 
@@ -129,8 +166,12 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
   // ── Highlights e badges por snapshots de rodada ──────────────────────────
   let highlights: RankingHighlights | null = null;
   let riseWinnerIds = new Set<string>();
-  let bolaMurchaIds = new Set<string>();
   let exactWinnerIds = new Set<string>();
+
+  // Bola Murcha ao vivo: palpitou no dia mais recente com jogos encerrados mas zerou
+  const bolaMurchaIds = new Set(
+    ranked.filter((u) => u.latestDayPoints !== null && u.latestDayPoints === 0).map((u) => u.id)
+  );
 
   const latestRounds = await prisma.roundSnapshot.findMany({
     distinct: ["roundLabel"],
@@ -163,18 +204,18 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       ])
     );
 
-    // Craque da Rodada
-    const maxRoundPts = Math.max(...latestSnaps.map((s) => s.roundPoints), 0);
-    const craqueList = latestSnaps.filter(
-      (s) => s.roundPoints === maxRoundPts && maxRoundPts > 0
+    // Craque do Dia — ao vivo, do dia mais recente com jogos encerrados
+    const maxLatestPts = Math.max(...ranked.map((u) => u.latestDayPoints ?? 0), 0);
+    const craqueList = ranked.filter(
+      (u) => u.latestDayPoints !== null && u.latestDayPoints === maxLatestPts && maxLatestPts > 0
     );
 
-    // Rei dos Exatos (nessa rodada)
-    const maxExacts = Math.max(...latestSnaps.map((s) => s.roundExacts), 0);
-    const exatosList = latestSnaps.filter(
-      (s) => s.roundExacts === maxExacts && maxExacts > 0
+    // Rei dos Exatos — ao vivo, do dia mais recente
+    const maxLatestExacts = Math.max(...ranked.map((u) => u.latestDayExacts), 0);
+    const exatosList = ranked.filter(
+      (u) => u.latestDayExacts === maxLatestExacts && maxLatestExacts > 0
     );
-    exactWinnerIds = new Set(exatosList.map((s) => s.userId));
+    exactWinnerIds = new Set(exatosList.map((u) => u.id));
 
     // Maior Subida — posição na snapshot vs posição atual ao vivo
     // Em liga: deriva posição relativa dentro dos membros da liga no momento da snapshot
@@ -191,12 +232,6 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     const riseWinners = riseList.filter((r) => r.change === maxRise && maxRise > 0);
     riseWinnerIds = new Set(riseWinners.map((r) => r.userId));
 
-    // Bola Murcha (tinha palpite na rodada mas zerou)
-    const bolaMurchaList = latestSnaps.filter(
-      (s) => s.hadPrediction && s.roundPoints === 0
-    );
-    bolaMurchaIds = new Set(bolaMurchaList.map((s) => s.userId));
-
     // Mapa de nomes para highlights
     const snappedIds = [...new Set(latestSnaps.map((s) => s.userId))];
     const snappedUsers = await prisma.user.findMany({
@@ -210,19 +245,15 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       craque:
         craqueList.length > 0
           ? {
-              names: craqueList
-                .map((s) => nameMap.get(s.userId))
-                .filter((n): n is string => !!n),
-              points: maxRoundPts,
+              names: craqueList.map((u) => u.name).filter((n): n is string => !!n),
+              points: maxLatestPts,
             }
           : null,
       reiExatos:
         exatosList.length > 0
           ? {
-              names: exatosList
-                .map((s) => nameMap.get(s.userId))
-                .filter((n): n is string => !!n),
-              count: maxExacts,
+              names: exatosList.map((u) => u.name).filter((n): n is string => !!n),
+              count: maxLatestExacts,
             }
           : null,
       maiorSubida:
@@ -235,8 +266,8 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
             }
           : null,
       bolaMurcha:
-        bolaMurchaList.length > 0
-          ? bolaMurchaList.map((s) => nameMap.get(s.userId) ?? null)
+        bolaMurchaIds.size > 0
+          ? ranked.filter((u) => bolaMurchaIds.has(u.id)).map((u) => u.name ?? null)
           : null,
     };
   }
