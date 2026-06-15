@@ -106,13 +106,15 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
   });
 
   function rankingSort(
-    a: { totalPoints: number; exactScores: number; goalDifferenceHits: number; correctWinners: number },
-    b: { totalPoints: number; exactScores: number; goalDifferenceHits: number; correctWinners: number }
+    a: { totalPoints: number; exactScores: number; goalDifferenceHits: number; correctWinners: number; name: string | null },
+    b: { totalPoints: number; exactScores: number; goalDifferenceHits: number; correctWinners: number; name: string | null }
   ) {
     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
     if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
     if (b.goalDifferenceHits !== a.goalDifferenceHits) return b.goalDifferenceHits - a.goalDifferenceHits;
-    return b.correctWinners - a.correctWinners;
+    if (b.correctWinners !== a.correctWinners) return b.correctWinners - a.correctWinners;
+    // Empate absoluto — ordem alfabética (só afeta exibição, posição olímpica é a mesma)
+    return (a.name ?? "").localeCompare(b.name ?? "", "pt-BR");
   }
 
   const ranked = usersWithStats.filter((u) => !u.isDeveloper).sort(rankingSort);

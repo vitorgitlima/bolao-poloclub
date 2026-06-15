@@ -110,6 +110,36 @@ export default function ComoJogarPage() {
         </div>
       </div>
 
+      {/* Critério de Desempate */}
+      <div className="glass-card p-5 space-y-3">
+        <h2 className="text-white font-bold text-base flex items-center gap-2">
+          ⚖️ Critério de desempate
+        </h2>
+        <p className="text-white/60 text-sm leading-relaxed">
+          Quando dois ou mais jogadores têm a mesma pontuação total, o ranking usa os seguintes critérios em ordem:
+        </p>
+        <div className="space-y-2">
+          {[
+            { pos: "1º", emoji: "🎯", label: "Mais placares exatos", desc: "Quem acertou mais vezes o placar certinho (6 pts)" },
+            { pos: "2º", emoji: "⚖️", label: "Mais saldos de gols", desc: "Quem acertou mais vezes o saldo de gols (4 pts)" },
+            { pos: "3º", emoji: "✅", label: "Mais vencedores certos", desc: "Quem acertou mais vezes só o vencedor (3 pts)" },
+            { pos: "4º", emoji: "🔤", label: "Ordem alfabética", desc: "Em empate absoluto, os nomes são ordenados de A a Z" },
+          ].map((row) => (
+            <div key={row.pos} className="flex items-start gap-3 text-sm">
+              <span className="text-white/25 font-bold text-xs w-5 shrink-0 pt-0.5">{row.pos}</span>
+              <span className="text-base leading-none shrink-0">{row.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-white/80 font-semibold">{row.label}</span>
+                <span className="text-white/35 ml-2 text-xs">{row.desc}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-white/35 text-xs leading-relaxed pt-1 border-t border-white/8">
+          Em empate absoluto (todos os critérios iguais), ambos ficam na mesma posição — ranking olímpico.
+        </p>
+      </div>
+
       <p className="text-center text-white/20 text-xs pt-2 pb-4">
         Dúvidas? Fala com o Vitor no grupo do WhatsApp 😄
       </p>

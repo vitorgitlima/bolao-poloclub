@@ -268,9 +268,17 @@ export function RankingTable({
   }
 
   // Ranking olímpico excluindo developers — devs não afetam posições dos outros
+  // Usa todos os critérios de desempate; empate absoluto → mesma posição
+  function isStrictlyAheadOf(a: RankingEntry, b: RankingEntry): boolean {
+    if (a.totalPoints !== b.totalPoints) return a.totalPoints > b.totalPoints;
+    if (a.exactScores !== b.exactScores) return a.exactScores > b.exactScores;
+    if (a.goalDifferenceHits !== b.goalDifferenceHits) return a.goalDifferenceHits > b.goalDifferenceHits;
+    if (a.correctWinners !== b.correctWinners) return a.correctWinners > b.correctWinners;
+    return false; // empate absoluto — mesma posição olímpica
+  }
   const ranks = data.map((entry) => {
     if (entry.isDeveloper) return null;
-    return data.filter((e) => !e.isDeveloper && e.totalPoints > entry.totalPoints).length + 1;
+    return data.filter((e) => !e.isDeveloper && isStrictlyAheadOf(e, entry)).length + 1;
   });
 
   return (
