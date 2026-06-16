@@ -91,51 +91,67 @@ type PredictionPanelData = {
 };
 
 function PredictionRow({ p }: { p: PredictionDetail }) {
-  const isLive = p.status === "LIVE";
-  const isFinished = p.status === "FINISHED";
-  const hasScore = p.actualHome !== null && p.actualAway !== null;
-  const isExact = isFinished && hasScore && p.predHome === p.actualHome && p.predAway === p.actualAway;
+  const isLive      = p.status === "LIVE";
+  const isFinished  = p.status === "FINISHED";
+  const hasScore    = p.actualHome !== null && p.actualAway !== null;
+  const isExact     = isFinished && p.points === 6;
+  const isLiveExact = isLive && p.points === 6;
 
   return (
-    <div className="flex items-center gap-2 bg-white/4 rounded-lg px-3 py-2">
-      {/* Home */}
-      <div className="flex items-center gap-1 flex-1 min-w-0 text-xs text-white/70">
-        <TeamFlag flag={p.homeFlag} name={p.homeTeam} />
-        <span className="truncate">{p.homeTeam}</span>
+    <div className="bg-white/4 rounded-lg px-3 py-2 space-y-1.5">
+
+      {/* Linha 1: Times — cada lado ganha flex-1, nomes truncam */}
+      <div className="flex items-center gap-2 text-xs text-white/65">
+        <div className="flex items-center gap-1 flex-1 min-w-0">
+          <TeamFlag flag={p.homeFlag} name={p.homeTeam} />
+          <span className="truncate">{p.homeTeam}</span>
+        </div>
+        <span className="text-white/20 text-[10px] shrink-0">vs</span>
+        <div className="flex items-center gap-1 flex-1 min-w-0 justify-end">
+          <span className="truncate text-right">{p.awayTeam}</span>
+          <TeamFlag flag={p.awayFlag} name={p.awayTeam} />
+        </div>
       </div>
 
-      {/* Scores */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        {isLive ? (
-          <span className="text-red-400 text-[10px] font-bold animate-pulse">
-            {hasScore ? `${p.actualHome}–${p.actualAway}` : "AO VIVO"}
+      {/* Linha 2: Placar real | Meu palpite ⭐  ·········  Pontos */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          {isLive ? (
+            <span className="text-red-400 text-[10px] font-bold animate-pulse">
+              {hasScore ? `${p.actualHome}–${p.actualAway}` : "AO VIVO"}
+            </span>
+          ) : hasScore ? (
+            <span className="text-white/40 text-xs tabular-nums">{p.actualHome}–{p.actualAway}</span>
+          ) : (
+            <span className="text-white/25 text-[10px]">—</span>
+          )}
+          <span className="text-white/15 text-[10px]">|</span>
+          <span className={cn(
+            "text-xs font-mono tabular-nums",
+            (isExact || isLiveExact) ? "text-green-400 font-bold" : "text-white/60"
+          )}>
+            {p.predHome}:{p.predAway}
           </span>
-        ) : hasScore ? (
-          <span className="text-white/40 text-xs tabular-nums">{p.actualHome}–{p.actualAway}</span>
-        ) : (
-          <span className="text-white/25 text-[10px]">—</span>
-        )}
-        <span className="text-white/15 text-[10px]">|</span>
-        <span className={cn("text-xs font-mono tabular-nums", isExact ? "text-green-400 font-bold" : "text-white/60")}>
-          {p.predHome}:{p.predAway}
-        </span>
-        {isExact && <Star className="w-3 h-3 text-green-400 fill-green-400 shrink-0" />}
+          {(isExact || isLiveExact) && (
+            <Star className={cn(
+              "w-3 h-3 text-green-400 fill-green-400 shrink-0",
+              isLiveExact && "animate-pulse"
+            )} />
+          )}
+        </div>
+
+        {/* Pontos: pulsam se LIVE e pontuando, fixos se encerrado, — caso contrário */}
+        <div className="text-sm font-bold shrink-0">
+          {isLive && p.points > 0 ? (
+            <span className={cn("animate-pulse", pointsColor(p.points))}>{p.points}</span>
+          ) : isFinished ? (
+            <span className={pointsColor(p.points)}>{p.points}</span>
+          ) : (
+            <span className="text-white/20 text-[10px]">—</span>
+          )}
+        </div>
       </div>
 
-      {/* Away */}
-      <div className="flex items-center gap-1 shrink-0">
-        <span className="text-xs text-white/70 truncate max-w-[4rem]">{p.awayTeam}</span>
-        <TeamFlag flag={p.awayFlag} name={p.awayTeam} />
-      </div>
-
-      {/* Points */}
-      <div className={cn("text-sm font-bold shrink-0 w-8 text-right", pointsColor(p.points))}>
-        {!isFinished ? (
-          <span className="text-white/20 text-[10px]">—</span>
-        ) : (
-          p.points
-        )}
-      </div>
     </div>
   );
 }
@@ -186,7 +202,8 @@ function PredictionPanel({ userId }: { userId: string }) {
       ? [{ label: "", items: data.predictions }]
       : [{ label: selectedPhase, items: filtered }];
 
-  const totalPts = filtered.reduce((s, p) => s + (p.status === "FINISHED" ? p.points : 0), 0);
+  const totalPts   = filtered.reduce((s, p) => s + (p.status === "FINISHED" ? p.points : 0), 0);
+  const livePts    = filtered.reduce((s, p) => s + (p.status === "LIVE" && p.points > 0 ? p.points : 0), 0);
   const exactCount = filtered.filter((p) => p.status === "FINISHED" && p.points === 6).length;
 
   return (
@@ -226,7 +243,8 @@ function PredictionPanel({ userId }: { userId: string }) {
       {filtered.length > 0 && (
         <div className="flex items-center gap-3 px-1 text-xs text-white/35">
           <span>{filtered.length} palpite{filtered.length !== 1 ? "s" : ""}</span>
-          {totalPts > 0 && <span className="text-yellow-400 font-semibold">+{totalPts} pts</span>}
+          {totalPts > 0   && <span className="text-yellow-400 font-semibold">+{totalPts} pts</span>}
+          {livePts > 0    && <span className="text-red-400 font-semibold animate-pulse">+{livePts} parcial</span>}
           {exactCount > 0 && <span className="text-green-400">🎯 {exactCount} exato{exactCount !== 1 ? "s" : ""}</span>}
         </div>
       )}
