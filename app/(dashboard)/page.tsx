@@ -51,6 +51,19 @@ function groupByDay(matches: Match[]): Map<string, Match[]> {
   return map;
 }
 
+function groupByDayDesc(matches: Match[]): Map<string, Match[]> {
+  const sorted = [...matches].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  const map = new Map<string, Match[]>();
+  for (const m of sorted) {
+    const day = toBRTDay(m.date);
+    if (!map.has(day)) map.set(day, []);
+    map.get(day)!.push(m);
+  }
+  return map;
+}
+
 function computeRodadas(matches: Match[]): Rodada[] {
   const isGroup = (m: Match) => m.phase.startsWith("Grupo");
 
@@ -324,19 +337,44 @@ export default function DashboardPage() {
               )}
             </div>
           ) : (
-            [...groupByDay(registrados).entries()].map(([day, dayMatches]) => (
-              <div key={day} className="space-y-3">
-                <div className="flex items-center gap-2 px-1">
-                  <span className="text-white/40 text-xs uppercase tracking-wider font-semibold">
-                    {format(parseISO(day), "d 'de' MMMM", { locale: ptBR })}
-                  </span>
-                  <div className="flex-1 h-px bg-white/5" />
-                </div>
-                {dayMatches.map((match) => (
-                  <RegisteredMatchCard key={match.id} match={match} onSaved={loadMatches} />
-                ))}
-              </div>
-            ))
+            (() => {
+              const live     = registrados.filter((m) => m.status === "LIVE");
+              const upcoming = registrados.filter((m) => m.status === "SCHEDULED");
+              const finished = registrados.filter((m) => m.status === "FINISHED");
+              return (
+                <>
+                  {live.map((match) => (
+                    <RegisteredMatchCard key={match.id} match={match} onSaved={loadMatches} />
+                  ))}
+                  {[...groupByDay(upcoming).entries()].map(([day, dayMatches]) => (
+                    <div key={day} className="space-y-3">
+                      <div className="flex items-center gap-2 px-1">
+                        <span className="text-white/40 text-xs uppercase tracking-wider font-semibold">
+                          {format(parseISO(day), "d 'de' MMMM", { locale: ptBR })}
+                        </span>
+                        <div className="flex-1 h-px bg-white/5" />
+                      </div>
+                      {dayMatches.map((match) => (
+                        <RegisteredMatchCard key={match.id} match={match} onSaved={loadMatches} />
+                      ))}
+                    </div>
+                  ))}
+                  {[...groupByDayDesc(finished).entries()].map(([day, dayMatches]) => (
+                    <div key={day} className="space-y-3">
+                      <div className="flex items-center gap-2 px-1">
+                        <span className="text-white/40 text-xs uppercase tracking-wider font-semibold">
+                          {format(parseISO(day), "d 'de' MMMM", { locale: ptBR })}
+                        </span>
+                        <div className="flex-1 h-px bg-white/5" />
+                      </div>
+                      {dayMatches.map((match) => (
+                        <RegisteredMatchCard key={match.id} match={match} onSaved={loadMatches} />
+                      ))}
+                    </div>
+                  ))}
+                </>
+              );
+            })()
           )}
         </div>
       )}
