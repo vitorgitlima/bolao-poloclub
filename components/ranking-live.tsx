@@ -51,6 +51,13 @@ export function RankingLive({ userId }: { userId?: string }) {
   const [loading, setLoading] = useState(true);
   const [leagueLoading, setLeagueLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [statsNew, setStatsNew] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("statsTabSeen")) {
+      setStatsNew(true);
+    }
+  }, []);
 
   const fetchGlobal = useCallback(async () => {
     try {
@@ -87,6 +94,10 @@ export function RankingLive({ userId }: { userId?: string }) {
 
   async function selectTab(tab: string) {
     setActiveTab(tab);
+    if (tab === "stats" && statsNew) {
+      localStorage.setItem("statsTabSeen", "1");
+      setStatsNew(false);
+    }
     if (tab === "geral") return;
     if (leagueCache[tab]) return; // já carregado
     setLeagueLoading(true);
@@ -209,7 +220,7 @@ export function RankingLive({ userId }: { userId?: string }) {
         <button
           onClick={() => selectTab("stats")}
           className={cn(
-            "tab-pill whitespace-nowrap flex items-center gap-1.5 shrink-0",
+            "tab-pill whitespace-nowrap flex items-center gap-1.5 shrink-0 relative",
             isStats
               ? "tab-pill-active"
               : "tab-pill-inactive border-amber-400/30 text-amber-300/70 hover:text-amber-300"
@@ -217,6 +228,12 @@ export function RankingLive({ userId }: { userId?: string }) {
         >
           <BarChart2 className="w-3.5 h-3.5" />
           Stats
+          {statsNew && (
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+            </span>
+          )}
         </button>
       </div>
 
