@@ -21,6 +21,7 @@ type RankingEntry = {
   goalDifferenceHits: number;
   correctWinners: number;
   predictions: number;
+  scoredPredictions: number;
   isLeader: boolean;
   isTopStreak: boolean;
   isTopExact: boolean;
@@ -228,8 +229,9 @@ export function RankingLive({ userId }: { userId?: string }) {
         const totalSaldos = globalData.ranking.reduce((s, u) => s + u.goalDifferenceHits, 0);
         const totalVencedores = globalData.ranking.reduce((s, u) => s + u.correctWinners, 0);
         const totalPredictions = globalData.ranking.reduce((s, u) => s + u.predictions, 0);
-        const totalErros = totalPredictions - totalExatos - totalSaldos - totalVencedores;
-        const pct = (n: number) => totalPredictions > 0 ? Math.round((n / totalPredictions) * 100) : 0;
+        const totalScored = globalData.ranking.reduce((s, u) => s + u.scoredPredictions, 0);
+        const totalErros = totalScored - totalExatos - totalSaldos - totalVencedores;
+        const pct = (n: number) => totalScored > 0 ? Math.round((n / totalScored) * 100) : 0;
         return (
           <div className="space-y-4">
 
@@ -314,7 +316,7 @@ export function RankingLive({ userId }: { userId?: string }) {
                   ))}
                 </div>
                 <p className="text-white/20 text-[10px] mt-4 border-t border-white/5 pt-3">
-                  {totalPredictions} palpites feitos pelo grupo nos jogos disputados
+                  {totalScored} palpites computados nos jogos já disputados
                 </p>
               </div>
             )}

@@ -16,6 +16,7 @@ export type RankingUser = {
   goalDifferenceHits: number;
   correctWinners: number;
   predictions: number;
+  scoredPredictions: number;
   isLeader: boolean;
   isTopStreak: boolean;
   isTopExact: boolean;
@@ -136,6 +137,7 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       goalDifferenceHits,
       correctWinners,
       predictions: user.predictions.filter((p) => !p.match.phase.startsWith("🧪")).length,
+      scoredPredictions: scored.length,
       streak,
       latestDayPoints,
       latestDayExacts,
@@ -289,6 +291,7 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     goalDifferenceHits: u.goalDifferenceHits,
     correctWinners: u.correctWinners,
     predictions: u.predictions,
+    scoredPredictions: u.scoredPredictions,
     isLeader: !u.isDeveloper && maxPoints > 0 && u.totalPoints === maxPoints,
     isTopStreak: streakWinnerIds.has(u.id),
     isTopExact: exactWinnerIds.has(u.id),
