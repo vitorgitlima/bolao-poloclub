@@ -224,19 +224,43 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { icon: <Calendar className="w-4 h-4" />, label: "Jogos", value: matches.length, color: "text-white" },
-          { icon: <Target className="w-4 h-4" />, label: "Palpites", value: myPredictions, color: "text-blue-400" },
-          { icon: <Star className="w-4 h-4" />, label: "Meus Pontos", value: myPoints, color: "text-yellow-400" },
-        ].map((stat) => (
-          <div key={stat.label} className="glass-card p-4 text-center">
-            <div className={`flex justify-center mb-1 ${stat.color} opacity-60`}>{stat.icon}</div>
-            <div className={`text-2xl font-black ${stat.color}`}>{stat.value}</div>
-            <div className="text-white/30 text-xs mt-0.5">{stat.label}</div>
+      {(() => {
+        const played    = matches.filter((m) => m.status === "FINISHED" || m.status === "LIVE").length;
+        const remaining = matches.length - played;
+        return (
+          <div className="grid grid-cols-3 gap-3">
+            {/* Card Jogos — restantes em destaque */}
+            <div className="glass-card p-4 text-center">
+              <div className="flex justify-center mb-1 text-green-400 opacity-60">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div className="text-2xl font-black text-green-400">{remaining}</div>
+              <div className="text-white/30 text-xs mt-0.5">restantes</div>
+              <div className="text-white/20 text-[10px] mt-0.5">
+                <span className="text-white/40">{played}</span> de {matches.length}
+              </div>
+            </div>
+
+            {/* Palpites */}
+            <div className="glass-card p-4 text-center">
+              <div className="flex justify-center mb-1 text-blue-400 opacity-60">
+                <Target className="w-4 h-4" />
+              </div>
+              <div className="text-2xl font-black text-blue-400">{myPredictions}</div>
+              <div className="text-white/30 text-xs mt-0.5">Palpites</div>
+            </div>
+
+            {/* Meus Pontos */}
+            <div className="glass-card p-4 text-center">
+              <div className="flex justify-center mb-1 text-yellow-400 opacity-60">
+                <Star className="w-4 h-4" />
+              </div>
+              <div className="text-2xl font-black text-yellow-400">{myPoints}</div>
+              <div className="text-white/30 text-xs mt-0.5">Meus Pontos</div>
+            </div>
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       {/* Seletor de rodada */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
