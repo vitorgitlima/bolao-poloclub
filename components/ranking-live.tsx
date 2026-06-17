@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { RankingTable } from "@/components/ranking-table";
 import { RankingHighlights } from "@/components/ranking-highlights";
-import { Trophy, Target, Check, RefreshCw, Users, Globe } from "lucide-react";
+import { Trophy, Target, Check, RefreshCw, Users, Globe, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type RankingEntry = {
@@ -36,7 +36,7 @@ type Highlights = {
   bolaMurcha: Array<string | null> | null;
 };
 
-type RankingData = { ranking: RankingEntry[]; highlights: Highlights | null };
+type RankingData = { ranking: RankingEntry[]; highlights: Highlights | null; remainingMatches?: number };
 
 type League = { id: string; name: string; memberCount: number };
 
@@ -56,7 +56,7 @@ export function RankingLive({ userId }: { userId?: string }) {
       const res = await fetch("/api/ranking");
       if (res.ok) {
         const data = await res.json();
-        setGlobalData({ ranking: data.ranking ?? [], highlights: data.highlights ?? null });
+        setGlobalData({ ranking: data.ranking ?? [], highlights: data.highlights ?? null, remainingMatches: data.remainingMatches });
         setLastUpdated(new Date());
       }
     } finally {
@@ -101,6 +101,7 @@ export function RankingLive({ userId }: { userId?: string }) {
   }
 
   const isGeral = activeTab === "geral";
+  const isStats = activeTab === "stats";
   const activeData: RankingData = isGeral ? globalData : (leagueCache[activeTab] ?? { ranking: [], highlights: null });
   const activeLeague = leagues.find((l) => l.id === activeTab);
 
@@ -177,54 +178,159 @@ export function RankingLive({ userId }: { userId?: string }) {
       </div>
 
 
-      {/* Tabs: Geral + ligas do usuário */}
-      {(leagues.length > 0) && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+      {/* Tabs: Geral + ligas + Stats */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+        <button
+          onClick={() => selectTab("geral")}
+          className={cn("tab-pill whitespace-nowrap flex items-center gap-1.5 shrink-0",
+            isGeral ? "tab-pill-active" : "tab-pill-inactive")}
+        >
+          <Globe className="w-3.5 h-3.5" />
+          Geral
+          <span className={cn("text-[10px] font-bold", isGeral ? "text-white/60" : "text-white/30")}>
+            {globalData.ranking.length}
+          </span>
+        </button>
+        {leagues.map((league) => (
           <button
-            onClick={() => selectTab("geral")}
-            className={cn("tab-pill whitespace-nowrap flex items-center gap-1.5 shrink-0",
-              isGeral ? "tab-pill-active" : "tab-pill-inactive")}
+            key={league.id}
+            onClick={() => selectTab(league.id)}
+            className={cn("tab-pill whitespace-nowrap flex items-center gap-1.5 shrink-0 max-w-[180px]",
+              activeTab === league.id ? "tab-pill-active" : "tab-pill-inactive")}
           >
-            <Globe className="w-3.5 h-3.5" />
-            Geral
-            <span className={cn("text-[10px] font-bold", isGeral ? "text-white/60" : "text-white/30")}>
-              {globalData.ranking.length}
+            <Users className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{league.name}</span>
+            <span className={cn("text-[10px] font-bold shrink-0", activeTab === league.id ? "text-white/60" : "text-white/30")}>
+              {league.memberCount}
             </span>
           </button>
-          {leagues.map((league) => (
-            <button
-              key={league.id}
-              onClick={() => selectTab(league.id)}
-              className={cn("tab-pill whitespace-nowrap flex items-center gap-1.5 shrink-0 max-w-[180px]",
-                activeTab === league.id ? "tab-pill-active" : "tab-pill-inactive")}
-            >
-              <Users className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{league.name}</span>
-              <span className={cn("text-[10px] font-bold shrink-0", activeTab === league.id ? "text-white/60" : "text-white/30")}>
-                {league.memberCount}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+        ))}
+        <button
+          onClick={() => selectTab("stats")}
+          className={cn("tab-pill whitespace-nowrap flex items-center gap-1.5 shrink-0",
+            isStats ? "tab-pill-active" : "tab-pill-inactive")}
+        >
+          <BarChart2 className="w-3.5 h-3.5" />
+          Stats
+        </button>
+      </div>
 
-      {/* Destaques da Rodada (apenas quando há dados) */}
-      {activeData.highlights && <RankingHighlights highlights={activeData.highlights} />}
+      {/* Tab Stats */}
+      {isStats && (() => {
+        const r = globalData.remainingMatches ?? 0;
+        const leaderPts = globalData.ranking.find((u) => u.isLeader)?.totalPoints ?? 0;
+        const totalParticipants = globalData.ranking.length;
+        const totalExatos = globalData.ranking.reduce((s, u) => s + u.exactScores, 0);
+        const totalSaldos = globalData.ranking.reduce((s, u) => s + u.goalDifferenceHits, 0);
+        const totalVencedores = globalData.ranking.reduce((s, u) => s + u.correctWinners, 0);
+        const totalPredictions = globalData.ranking.reduce((s, u) => s + u.predictions, 0);
+        const totalErros = totalPredictions - totalExatos - totalSaldos - totalVencedores;
+        const pct = (n: number) => totalPredictions > 0 ? Math.round((n / totalPredictions) * 100) : 0;
+        return (
+          <div className="space-y-3">
+            <div className="glass-card px-4 py-4 text-center">
+              <div className="text-5xl font-black text-white">{r}</div>
+              <div className="text-white/40 text-sm mt-1">jogos restantes na Copa</div>
+            </div>
+
+            <div className="glass-card px-4 py-3 space-y-2">
+              <p className="text-white/50 text-[10px] uppercase tracking-wider font-semibold">⚡ Pontos ainda em disputa</p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-2xl font-black text-green-400">{r * 6}</div>
+                  <div className="text-[10px] text-white/30 leading-tight mt-0.5">acertando<br />todos os exatos</div>
+                  <div className="text-[10px] text-green-400/50 mt-1">🎯 6 pts × {r}</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-purple-400">{r * 4}</div>
+                  <div className="text-[10px] text-white/30 leading-tight mt-0.5">acertando<br />todos os saldos</div>
+                  <div className="text-[10px] text-purple-400/50 mt-1">⚖️ 4 pts × {r}</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-blue-400">{r * 3}</div>
+                  <div className="text-[10px] text-white/30 leading-tight mt-0.5">acertando<br />os vencedores</div>
+                  <div className="text-[10px] text-blue-400/50 mt-1">✅ 3 pts × {r}</div>
+                </div>
+              </div>
+              {leaderPts > 0 && r > 0 && (
+                <p className="text-white/30 text-[10px] border-t border-white/5 pt-2">
+                  🏆 Líder com <span className="text-yellow-400 font-bold">{leaderPts} pts</span> — acertando só os vencedores, qualquer um ganha mais <span className="text-blue-400 font-bold">{r * 3} pts</span>
+                </p>
+              )}
+            </div>
+
+            <div className="glass-card px-4 py-3">
+              <p className="text-white/50 text-[10px] uppercase tracking-wider font-semibold mb-3">📈 Competição até agora</p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-xl font-black text-white">{totalParticipants}</div>
+                  <div className="text-[10px] text-white/30">participantes</div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-white">{totalPredictions}</div>
+                  <div className="text-[10px] text-white/30">palpites feitos</div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-green-400">{totalExatos}</div>
+                  <div className="text-[10px] text-white/30">exatos no geral</div>
+                </div>
+              </div>
+            </div>
+
+            {totalPredictions > 0 && (
+              <div className="glass-card px-4 py-3">
+                <p className="text-white/50 text-[10px] uppercase tracking-wider font-semibold mb-3">
+                  🎯 Precisão do grupo
+                </p>
+                <div className="space-y-2.5">
+                  {[
+                    { label: "Placar exato",   emoji: "🎯", value: totalExatos,    color: "bg-green-400",  pctColor: "text-green-400" },
+                    { label: "Saldo de gols",  emoji: "⚖️", value: totalSaldos,    color: "bg-purple-400", pctColor: "text-purple-400" },
+                    { label: "Vencedor certo", emoji: "✅", value: totalVencedores, color: "bg-blue-400",   pctColor: "text-blue-400" },
+                    { label: "Errou tudo",     emoji: "❌", value: totalErros,     color: "bg-white/20",   pctColor: "text-white/40" },
+                  ].map(({ label, emoji, value, color, pctColor }) => (
+                    <div key={label}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] text-white/50">{emoji} {label}</span>
+                        <span className={cn("text-[11px] font-bold tabular-nums", pctColor)}>
+                          {pct(value)}%
+                          <span className="text-white/25 font-normal ml-1">({value})</span>
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+                        <div className={cn("h-full rounded-full", color)} style={{ width: `${pct(value)}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-white/20 text-[10px] mt-3">
+                  Total: {totalPredictions} palpites feitos pelo grupo
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Destaques da Rodada (apenas quando há dados e não está em Stats) */}
+      {!isStats && activeData.highlights && <RankingHighlights highlights={activeData.highlights} />}
 
       {/* Classificação */}
-      <div className="glass-card p-4">
-        <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-          {isGeral ? "🌍 Classificação Geral" : `🏆 ${activeLeague?.name}`}
-          <span className="text-white/30 font-normal normal-case tracking-normal">
-            · {activeData.ranking.length} participante{activeData.ranking.length !== 1 ? "s" : ""}
-          </span>
-        </h2>
-        {isContentLoading ? (
-          <div className="py-12 text-center text-white/30 text-sm">Carregando...</div>
-        ) : (
-          <RankingTable data={activeData.ranking} currentUserId={userId} />
-        )}
-      </div>
+      {!isStats && (
+        <div className="glass-card p-4">
+          <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
+            {isGeral ? "🌍 Classificação Geral" : `🏆 ${activeLeague?.name}`}
+            <span className="text-white/30 font-normal normal-case tracking-normal">
+              · {activeData.ranking.length} participante{activeData.ranking.length !== 1 ? "s" : ""}
+            </span>
+          </h2>
+          {isContentLoading ? (
+            <div className="py-12 text-center text-white/30 text-sm">Carregando...</div>
+          ) : (
+            <RankingTable data={activeData.ranking} currentUserId={userId} />
+          )}
+        </div>
+      )}
 
       {/* CTA para criar liga — só aparece se o usuário não está em nenhuma */}
       {!loading && leagues.length === 0 && userId && (
