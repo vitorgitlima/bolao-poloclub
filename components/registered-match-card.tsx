@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
-import { Trophy, Loader2, CheckCircle2, Pencil, X } from "lucide-react";
+import { Trophy, Loader2, CheckCircle2, Pencil, X, ChevronDown, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,15 @@ type Prediction = {
   points: number | null;
 };
 
+type MatchPrediction = {
+  userId: string;
+  userName: string | null;
+  userImage: string | null;
+  predHome: number;
+  predAway: number;
+  points: number | null;
+};
+
 type Match = {
   id: string;
   homeTeam: string;
@@ -60,7 +69,26 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
   const [loading, setLoading] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [matchPreds, setMatchPreds] = useState<MatchPrediction[]>([]);
+  const [loadingPreds, setLoadingPreds] = useState(false);
   const { showToast } = useToast();
+
+  const toggleExpanded = useCallback(async () => {
+    if (!expanded && matchPreds.length === 0) {
+      setLoadingPreds(true);
+      try {
+        const res = await fetch(`/api/matches/${match.id}/predictions`);
+        if (res.ok) {
+          const data = await res.json();
+          setMatchPreds(data.predictions ?? []);
+        }
+      } finally {
+        setLoadingPreds(false);
+      }
+    }
+    setExpanded((v) => !v);
+  }, [expanded, matchPreds.length, match.id]);
 
   const isLive = match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
@@ -248,6 +276,68 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
           </div>
         )}
       </div>
+
+      {/* Botão "Ver palpites" — só para LIVE e FINISHED */}
+      {(isLive || isFinished) && (
+        <button
+          onClick={toggleExpanded}
+          className={cn(
+            "w-full flex items-center justify-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold transition-all border-t",
+            isLive
+              ? "border-red-500/20 text-red-400/70 hover:text-red-400 hover:bg-red-500/5"
+              : "border-white/5 text-white/30 hover:text-white/50 hover:bg-white/3"
+          )}
+        >
+          {loadingPreds ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <>
+              <Users className="w-3 h-3" />
+              {expanded ? "Fechar palpites" : "Ver palpites do grupo"}
+              <ChevronDown className={cn("w-3 h-3 transition-transform", expanded && "rotate-180")} />
+            </>
+          )}
+        </button>
+      )}
+
+      {/* Painel de palpites */}
+      {expanded && (
+        <div className="border-t border-white/5 px-3 py-3 space-y-1.5">
+          {matchPreds.length === 0 ? (
+            <p className="text-white/25 text-xs text-center py-2">Nenhum palpite registrado</p>
+          ) : (
+            matchPreds.map((p) => {
+              const ptColor =
+                p.points === null ? "text-white/20" :
+                p.points === 6 ? "text-green-400" :
+                p.points === 4 ? "text-purple-400" :
+                p.points === 3 ? "text-blue-400" :
+                "text-white/25";
+              return (
+                <div key={p.userId} className="flex items-center gap-2 py-1">
+                  {p.userImage ? (
+                    <Image src={p.userImage} alt={p.userName ?? ""} width={22} height={22}
+                      className="rounded-full object-cover shrink-0 opacity-80" unoptimized />
+                  ) : (
+                    <div className="w-[22px] h-[22px] rounded-full bg-white/10 shrink-0" />
+                  )}
+                  <span className="text-white/55 text-[11px] flex-1 truncate">{p.userName ?? "—"}</span>
+                  <span className="text-white/40 text-[11px] tabular-nums font-mono shrink-0">
+                    {p.predHome} × {p.predAway}
+                  </span>
+                  <span className={cn(
+                    "text-[11px] font-black tabular-nums shrink-0 w-6 text-right",
+                    ptColor,
+                    isLive && p.points !== null && p.points > 0 && "animate-pulse"
+                  )}>
+                    {p.points !== null ? `${p.points}` : "—"}
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 }
