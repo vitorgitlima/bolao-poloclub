@@ -207,8 +207,12 @@ export function RankingLive({ userId }: { userId?: string }) {
         ))}
         <button
           onClick={() => selectTab("stats")}
-          className={cn("tab-pill whitespace-nowrap flex items-center gap-1.5 shrink-0",
-            isStats ? "tab-pill-active" : "tab-pill-inactive")}
+          className={cn(
+            "tab-pill whitespace-nowrap flex items-center gap-1.5 shrink-0",
+            isStats
+              ? "tab-pill-active"
+              : "tab-pill-inactive border-amber-400/30 text-amber-300/70 hover:text-amber-300"
+          )}
         >
           <BarChart2 className="w-3.5 h-3.5" />
           Stats
@@ -227,84 +231,90 @@ export function RankingLive({ userId }: { userId?: string }) {
         const totalErros = totalPredictions - totalExatos - totalSaldos - totalVencedores;
         const pct = (n: number) => totalPredictions > 0 ? Math.round((n / totalPredictions) * 100) : 0;
         return (
-          <div className="space-y-3">
-            <div className="glass-card px-4 py-4 text-center">
-              <div className="text-5xl font-black text-white">{r}</div>
-              <div className="text-white/40 text-sm mt-1">jogos restantes na Copa</div>
+          <div className="space-y-4">
+
+            {/* Hero: jogos restantes */}
+            <div className="glass-card px-4 py-6 text-center border border-white/10">
+              <div className="text-white/30 text-xs uppercase tracking-widest mb-1">Copa do Mundo 2026</div>
+              <div className="text-7xl font-black text-white leading-none">{r}</div>
+              <div className="text-white/50 text-sm mt-2">jogos restantes</div>
             </div>
 
-            <div className="glass-card px-4 py-3 space-y-2">
+            {/* Pontos em disputa */}
+            <div className="glass-card px-4 py-4 space-y-3">
               <p className="text-white/50 text-[10px] uppercase tracking-wider font-semibold">⚡ Pontos ainda em disputa</p>
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-2xl font-black text-green-400">{r * 6}</div>
-                  <div className="text-[10px] text-white/30 leading-tight mt-0.5">acertando<br />todos os exatos</div>
-                  <div className="text-[10px] text-green-400/50 mt-1">🎯 6 pts × {r}</div>
+                <div className="bg-green-400/8 rounded-xl py-3 px-1">
+                  <div className="text-3xl font-black text-green-400">{r * 6}</div>
+                  <div className="text-[10px] text-white/35 leading-tight mt-1">acertando<br />todos os exatos</div>
+                  <div className="text-[10px] text-green-400/50 mt-1.5">🎯 6 × {r}</div>
                 </div>
-                <div>
-                  <div className="text-2xl font-black text-purple-400">{r * 4}</div>
-                  <div className="text-[10px] text-white/30 leading-tight mt-0.5">acertando<br />todos os saldos</div>
-                  <div className="text-[10px] text-purple-400/50 mt-1">⚖️ 4 pts × {r}</div>
+                <div className="bg-purple-400/8 rounded-xl py-3 px-1">
+                  <div className="text-3xl font-black text-purple-400">{r * 4}</div>
+                  <div className="text-[10px] text-white/35 leading-tight mt-1">acertando<br />todos os saldos</div>
+                  <div className="text-[10px] text-purple-400/50 mt-1.5">⚖️ 4 × {r}</div>
                 </div>
-                <div>
-                  <div className="text-2xl font-black text-blue-400">{r * 3}</div>
-                  <div className="text-[10px] text-white/30 leading-tight mt-0.5">acertando<br />os vencedores</div>
-                  <div className="text-[10px] text-blue-400/50 mt-1">✅ 3 pts × {r}</div>
+                <div className="bg-blue-400/8 rounded-xl py-3 px-1">
+                  <div className="text-3xl font-black text-blue-400">{r * 3}</div>
+                  <div className="text-[10px] text-white/35 leading-tight mt-1">acertando<br />os vencedores</div>
+                  <div className="text-[10px] text-blue-400/50 mt-1.5">✅ 3 × {r}</div>
                 </div>
               </div>
               {leaderPts > 0 && r > 0 && (
-                <p className="text-white/30 text-[10px] border-t border-white/5 pt-2">
+                <p className="text-white/30 text-[10px] border-t border-white/5 pt-2.5">
                   🏆 Líder com <span className="text-yellow-400 font-bold">{leaderPts} pts</span> — acertando só os vencedores, qualquer um ganha mais <span className="text-blue-400 font-bold">{r * 3} pts</span>
                 </p>
               )}
             </div>
 
-            <div className="glass-card px-4 py-3">
-              <p className="text-white/50 text-[10px] uppercase tracking-wider font-semibold mb-3">📈 Competição até agora</p>
-              <div className="grid grid-cols-3 gap-2 text-center">
+            {/* Competição até agora */}
+            <div className="glass-card px-4 py-4">
+              <p className="text-white/50 text-[10px] uppercase tracking-wider font-semibold mb-4">📈 Competição até agora</p>
+              <div className="grid grid-cols-3 gap-3 text-center">
                 <div>
-                  <div className="text-xl font-black text-white">{totalParticipants}</div>
-                  <div className="text-[10px] text-white/30">participantes</div>
+                  <div className="text-3xl font-black text-white">{totalParticipants}</div>
+                  <div className="text-[11px] text-white/35 mt-0.5">participantes</div>
                 </div>
                 <div>
-                  <div className="text-xl font-black text-white">{totalPredictions}</div>
-                  <div className="text-[10px] text-white/30">palpites feitos</div>
+                  <div className="text-3xl font-black text-amber-300">{totalPredictions}</div>
+                  <div className="text-[11px] text-white/35 mt-0.5">palpites feitos</div>
                 </div>
                 <div>
-                  <div className="text-xl font-black text-green-400">{totalExatos}</div>
-                  <div className="text-[10px] text-white/30">exatos no geral</div>
+                  <div className="text-3xl font-black text-green-400">{totalExatos}</div>
+                  <div className="text-[11px] text-white/35 mt-0.5">exatos no geral</div>
                 </div>
               </div>
             </div>
 
+            {/* Precisão do grupo */}
             {totalPredictions > 0 && (
-              <div className="glass-card px-4 py-3">
-                <p className="text-white/50 text-[10px] uppercase tracking-wider font-semibold mb-3">
+              <div className="glass-card px-4 py-4">
+                <p className="text-white/50 text-[10px] uppercase tracking-wider font-semibold mb-4">
                   🎯 Precisão do grupo
                 </p>
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {[
-                    { label: "Placar exato",   emoji: "🎯", value: totalExatos,    color: "bg-green-400",  pctColor: "text-green-400" },
-                    { label: "Saldo de gols",  emoji: "⚖️", value: totalSaldos,    color: "bg-purple-400", pctColor: "text-purple-400" },
-                    { label: "Vencedor certo", emoji: "✅", value: totalVencedores, color: "bg-blue-400",   pctColor: "text-blue-400" },
-                    { label: "Errou tudo",     emoji: "❌", value: totalErros,     color: "bg-white/20",   pctColor: "text-white/40" },
+                    { label: "Placar exato",   emoji: "🎯", value: totalExatos,    color: "bg-green-400",  pctColor: "text-green-400",  bgColor: "bg-green-400/10" },
+                    { label: "Saldo de gols",  emoji: "⚖️", value: totalSaldos,    color: "bg-purple-400", pctColor: "text-purple-400", bgColor: "bg-purple-400/10" },
+                    { label: "Vencedor certo", emoji: "✅", value: totalVencedores, color: "bg-blue-400",   pctColor: "text-blue-400",   bgColor: "bg-blue-400/10" },
+                    { label: "Errou tudo",     emoji: "❌", value: totalErros,     color: "bg-white/20",   pctColor: "text-white/40",   bgColor: "" },
                   ].map(({ label, emoji, value, color, pctColor }) => (
                     <div key={label}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] text-white/50">{emoji} {label}</span>
-                        <span className={cn("text-[11px] font-bold tabular-nums", pctColor)}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs text-white/55">{emoji} {label}</span>
+                        <span className={cn("text-sm font-black tabular-nums", pctColor)}>
                           {pct(value)}%
-                          <span className="text-white/25 font-normal ml-1">({value})</span>
+                          <span className="text-white/25 text-[11px] font-normal ml-1.5">({value})</span>
                         </span>
                       </div>
-                      <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+                      <div className="h-2 bg-white/8 rounded-full overflow-hidden">
                         <div className={cn("h-full rounded-full", color)} style={{ width: `${pct(value)}%` }} />
                       </div>
                     </div>
                   ))}
                 </div>
-                <p className="text-white/20 text-[10px] mt-3">
-                  Total: {totalPredictions} palpites feitos pelo grupo
+                <p className="text-white/20 text-[10px] mt-4 border-t border-white/5 pt-3">
+                  {totalPredictions} palpites feitos pelo grupo nos jogos disputados
                 </p>
               </div>
             )}
