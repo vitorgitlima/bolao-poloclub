@@ -223,7 +223,7 @@ export function MatchRow({ match, onSaved, onPendingChange, readOnly = false }: 
           </div>
         )}
 
-        {isFinished && !readOnly && (
+        {isFinished && (
           <div className="shrink-0 text-right min-w-[60px]">
             {pred ? (
               <>
@@ -246,7 +246,7 @@ export function MatchRow({ match, onSaved, onPendingChange, readOnly = false }: 
           </div>
         )}
 
-        {isLive && pred && !readOnly && (
+        {isLive && pred && (
           <div className="shrink-0 text-right min-w-[60px]">
             {pred.points != null ? (
               <div className={cn("text-xs font-bold flex items-center justify-end gap-1",
