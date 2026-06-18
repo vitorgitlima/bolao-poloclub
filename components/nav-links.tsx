@@ -40,19 +40,19 @@ export function NavLinks({ isAdmin, hasLive }: Props) {
         </span>
       </Link>
 
-      <Link href="/" className={cn(linkClass("/", true), "flex-col gap-0.5 sm:flex-row sm:gap-1.5 py-1 sm:py-1.5")}>
+      <Link href="/" className={linkClass("/", true)}>
         <div className="relative">
           <ClipboardList className={cn("w-4 h-4", hasLive && "text-red-400")} />
           {hasLive && (
             <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
           )}
         </div>
-        <span className={cn("text-[9px] sm:text-sm leading-none", hasLive && "text-red-400")}>Palpites</span>
+        <span className={cn("hidden sm:block", hasLive && "text-red-400")}>Palpites</span>
       </Link>
 
-      <Link href="/copa" className={cn(linkClass("/copa"), "flex-col gap-0.5 sm:flex-row sm:gap-1.5 py-1 sm:py-1.5")}>
+      <Link href="/copa" className={linkClass("/copa")}>
         <Table2 className="w-4 h-4 shrink-0" />
-        <span className="text-[9px] sm:text-sm leading-none">Copa</span>
+        <span className="hidden sm:block">Copa</span>
       </Link>
 
       <Link href="/ranking" className={linkClass("/ranking")}>
