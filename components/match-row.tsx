@@ -198,9 +198,9 @@ export function MatchRow({ match, onSaved, onPendingChange, readOnly = false }: 
           <span className="text-white/75 text-xs leading-tight">{match.awayTeam}</span>
         </div>
 
-        {/* Save button */}
-        {isPredictable && (
-          <div className="flex items-center gap-1 shrink-0">
+        {/* Coluna direita — sempre ocupa w-[60px] para alinhar todas as linhas */}
+        <div className="shrink-0 w-[60px] flex items-center justify-end">
+          {isPredictable ? (
             <button
               onClick={handleSave}
               disabled={loading}
@@ -220,59 +220,47 @@ export function MatchRow({ match, onSaved, onPendingChange, readOnly = false }: 
                 <Save className="w-3.5 h-3.5" />
               )}
             </button>
-          </div>
-        )}
-
-        {isFinished && (
-          <div className="shrink-0 text-right min-w-[60px]">
-            {pred ? (
-              <>
-                <div className={cn("text-xs font-bold",
-                  pred.points != null && pred.points >= 6
-                    ? "text-green-400"
-                    : pred.points != null && pred.points >= 3
-                      ? "text-yellow-400"
-                      : "text-white/40"
-                )}>
-                  {pred.points != null ? `+${pred.points}pts` : "—"}
-                </div>
-                <div className="text-white/30 text-[10px]">
-                  palpite: {pred.homeScore}–{pred.awayScore}
-                </div>
-              </>
-            ) : (
-              <span className="text-white/20 text-[10px]">sem palpite</span>
-            )}
-          </div>
-        )}
-
-        {isLive && pred && (
-          <div className="shrink-0 text-right min-w-[60px]">
-            {pred.points != null ? (
-              <div className={cn("text-xs font-bold flex items-center justify-end gap-1",
-                pred.points >= 6 ? "text-green-400" : pred.points >= 3 ? "text-yellow-400" : "text-white/40"
-              )}>
-                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
-                +{pred.points}pts
-              </div>
-            ) : null}
-            <div className="text-white/30 text-[10px]">
-              seu: {pred.homeScore}–{pred.awayScore}
+          ) : isFinished ? (
+            <div className="text-right">
+              {pred ? (
+                <>
+                  <div className={cn("text-xs font-bold",
+                    pred.points != null && pred.points >= 6
+                      ? "text-green-400"
+                      : pred.points != null && pred.points >= 3
+                        ? "text-yellow-400"
+                        : "text-white/40"
+                  )}>
+                    {pred.points != null ? `+${pred.points}pts` : "—"}
+                  </div>
+                  <div className="text-white/30 text-[10px]">
+                    {pred.homeScore}–{pred.awayScore}
+                  </div>
+                </>
+              ) : (
+                <span className="text-white/20 text-[10px]">—</span>
+              )}
             </div>
-          </div>
-        )}
-
-        {isLocked && !readOnly && (
-          <div className="shrink-0 text-right min-w-[52px]">
-            {pred ? (
+          ) : isLive && pred ? (
+            <div className="text-right">
+              {pred.points != null && (
+                <div className={cn("text-xs font-bold flex items-center justify-end gap-1",
+                  pred.points >= 6 ? "text-green-400" : pred.points >= 3 ? "text-yellow-400" : "text-white/40"
+                )}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
+                  +{pred.points}pts
+                </div>
+              )}
               <div className="text-white/30 text-[10px]">
-                🔒 {pred.homeScore}–{pred.awayScore}
+                {pred.homeScore}–{pred.awayScore}
               </div>
-            ) : (
-              <span className="text-white/20 text-[10px]">🔒</span>
-            )}
-          </div>
-        )}
+            </div>
+          ) : isLocked && !readOnly ? (
+            <div className="text-white/30 text-[10px] text-right">
+              {pred ? `🔒 ${pred.homeScore}–${pred.awayScore}` : "🔒"}
+            </div>
+          ) : null}
+        </div>
       </div>
       {error && (
         <p className="text-red-400 text-[10px] px-3 pb-2 -mt-1">{error}</p>

@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Trophy, Home, Settings, BookOpen, Users, FlaskConical } from "lucide-react";
-import { CopaBall } from "@/components/icons/copa-ball";
+import { Trophy, ClipboardList, Table2, Settings, BookOpen, Users, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = { isAdmin: boolean; hasLive?: boolean };
@@ -41,19 +40,19 @@ export function NavLinks({ isAdmin, hasLive }: Props) {
         </span>
       </Link>
 
-      <Link href="/" className={linkClass("/", true)}>
+      <Link href="/" className={cn(linkClass("/", true), "flex-col gap-0.5 sm:flex-row sm:gap-1.5 py-1 sm:py-1.5")}>
         <div className="relative">
-          <Home className={cn("w-4 h-4", hasLive && "text-red-400")} />
+          <ClipboardList className={cn("w-4 h-4", hasLive && "text-red-400")} />
           {hasLive && (
             <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
           )}
         </div>
-        <span className={cn("hidden sm:block", hasLive && "text-red-400")}>Jogos</span>
+        <span className={cn("text-[9px] sm:text-sm leading-none", hasLive && "text-red-400")}>Palpites</span>
       </Link>
 
-      <Link href="/copa" className={linkClass("/copa")}>
-        <CopaBall className="w-4 h-4 shrink-0" />
-        <span className="hidden sm:block">Copa</span>
+      <Link href="/copa" className={cn(linkClass("/copa"), "flex-col gap-0.5 sm:flex-row sm:gap-1.5 py-1 sm:py-1.5")}>
+        <Table2 className="w-4 h-4 shrink-0" />
+        <span className="text-[9px] sm:text-sm leading-none">Copa</span>
       </Link>
 
       <Link href="/ranking" className={linkClass("/ranking")}>
