@@ -212,7 +212,7 @@ export default function AdminPage() {
   // Auto-seleciona Rodada 1 quando os jogos carregam
   useEffect(() => {
     if (selectedRodadaId === null && rodadas.length > 0) {
-      setSelectedRodadaId(rodadas[0].id);
+      setSelectedRodadaId((rodadas[1] ?? rodadas[0]).id);
     }
   }, [testMatches]); // eslint-disable-line react-hooks/exhaustive-deps
 
