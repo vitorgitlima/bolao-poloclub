@@ -164,22 +164,24 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
         {error && (
           <p className="text-red-400 text-xs text-center bg-red-400/8 rounded-lg py-1">{error}</p>
         )}
-        <button
-          onClick={handleRandom}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold
-            bg-amber-400/15 border border-amber-400/25 text-amber-300
-            hover:bg-amber-400/25 active:scale-95 transition-all disabled:opacity-30"
-        >
-          🎲 Sortear placar
-        </button>
-        <button
-          onClick={() => handleSave()}
-          disabled={!canSave || loading || justSaved}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all
-            bg-green-600 hover:bg-green-500 active:scale-[0.98] text-white shadow-lg shadow-green-900/30
-            disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none"
-        >
+        <div className="flex gap-2">
+          <button
+            onClick={handleRandom}
+            disabled={loading}
+            title="Sortear placar aleatório"
+            className="shrink-0 flex items-center justify-center gap-1 px-3 py-3 rounded-xl text-sm font-bold
+              bg-amber-400/15 border border-amber-400/25 text-amber-300
+              hover:bg-amber-400/25 active:scale-95 transition-all disabled:opacity-30"
+          >
+            🎲
+          </button>
+          <button
+            onClick={() => handleSave()}
+            disabled={!canSave || loading || justSaved}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all
+              bg-green-600 hover:bg-green-500 active:scale-[0.98] text-white shadow-lg shadow-green-900/30
+              disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none"
+          >
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : justSaved ? (
@@ -187,7 +189,8 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
           ) : (
             "Confirmar Palpite"
           )}
-        </button>
+          </button>
+        </div>
       </div>
     </div>
   );
