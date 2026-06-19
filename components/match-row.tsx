@@ -58,6 +58,16 @@ function canPredict(dateStr: string): boolean {
   return new Date() < new Date(new Date(dateStr).getTime() - 10 * 60 * 1000);
 }
 
+function randomScore(): number {
+  const r = Math.random();
+  if (r < 0.38) return 0;
+  if (r < 0.65) return 1;
+  if (r < 0.83) return 2;
+  if (r < 0.93) return 3;
+  if (r < 0.98) return 4;
+  return 5;
+}
+
 function onlyDigits(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 2);
   if (!digits) return "";
@@ -201,25 +211,35 @@ export function MatchRow({ match, onSaved, onPendingChange, readOnly = false }: 
         {/* Coluna direita — sempre ocupa w-[60px] para alinhar todas as linhas */}
         <div className="shrink-0 w-[60px] flex items-center justify-end">
           {isPredictable ? (
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              title="Salvar palpite"
-              className={cn(
-                "w-7 h-7 rounded-lg flex items-center justify-center transition-all border",
-                justSaved
-                  ? "bg-green-500/20 text-green-400 border-green-500/20"
-                  : "bg-green-600/20 text-green-400 hover:bg-green-600/40 border-green-500/20"
-              )}
-            >
-              {loading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : justSaved ? (
-                <CheckCircle2 className="w-3.5 h-3.5" />
-              ) : (
-                <Save className="w-3.5 h-3.5" />
-              )}
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => { setHomeVal(randomScore().toString()); setAwayVal(randomScore().toString()); }}
+                title="Sortear placar"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-sm
+                  bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/20 transition-all active:scale-95"
+              >
+                🎲
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                title="Salvar palpite"
+                className={cn(
+                  "w-7 h-7 rounded-lg flex items-center justify-center transition-all border",
+                  justSaved
+                    ? "bg-green-500/20 text-green-400 border-green-500/20"
+                    : "bg-green-600/20 text-green-400 hover:bg-green-600/40 border-green-500/20"
+                )}
+              >
+                {loading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : justSaved ? (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
           ) : isFinished ? (
             <div className="text-right">
               {pred ? (

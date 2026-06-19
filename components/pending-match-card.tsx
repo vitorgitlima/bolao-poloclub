@@ -23,6 +23,16 @@ function Flag({ flag, name }: { flag: string; name: string }) {
   return <span className="text-4xl sm:text-5xl leading-none drop-shadow-lg">{flag}</span>;
 }
 
+function randomScore(): number {
+  const r = Math.random();
+  if (r < 0.38) return 0;
+  if (r < 0.65) return 1;
+  if (r < 0.83) return 2;
+  if (r < 0.93) return 3;
+  if (r < 0.98) return 4;
+  return 5;
+}
+
 function onlyDigits(v: string) {
   const digits = v.replace(/\D/g, "").slice(0, 2);
   if (!digits) return "";
@@ -56,19 +66,18 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
   const canSave = homeVal !== "" && awayVal !== "";
   const matchDate = new Date(match.date);
 
-  async function handleSave() {
-    if (!canSave || loading || justSaved) return;
+  async function handleSave(overrideHome?: number, overrideAway?: number) {
+    const home = overrideHome ?? parseInt(homeVal);
+    const away = overrideAway ?? parseInt(awayVal);
+    if (overrideHome === undefined && (!canSave || loading || justSaved)) return;
+    if (isNaN(home) || isNaN(away)) return;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/predictions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          matchId: match.id,
-          homeScore: parseInt(homeVal),
-          awayScore: parseInt(awayVal),
-        }),
+        body: JSON.stringify({ matchId: match.id, homeScore: home, awayScore: away }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Erro ao salvar"); return; }
@@ -80,6 +89,14 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleRandom() {
+    const h = randomScore();
+    const a = randomScore();
+    setHomeVal(h.toString());
+    setAwayVal(a.toString());
+    handleSave(h, a);
   }
 
   return (
@@ -114,7 +131,7 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
             value={homeVal}
             onChange={(e) => setHomeVal(onlyDigits(e.target.value))}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
-            onBlur={handleSave}
+            onBlur={() => handleSave()}
             placeholder="–"
             className="w-12 h-12 bg-white/10 border border-white/15 rounded-2xl text-white text-center text-xl font-black focus:outline-none focus:border-green-400/50 focus:bg-white/15 placeholder:text-white/15 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
@@ -127,7 +144,7 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
             value={awayVal}
             onChange={(e) => setAwayVal(onlyDigits(e.target.value))}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
-            onBlur={handleSave}
+            onBlur={() => handleSave()}
             placeholder="–"
             className="w-12 h-12 bg-white/10 border border-white/15 rounded-2xl text-white text-center text-xl font-black focus:outline-none focus:border-green-400/50 focus:bg-white/15 placeholder:text-white/15 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
@@ -148,7 +165,16 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
           <p className="text-red-400 text-xs text-center bg-red-400/8 rounded-lg py-1">{error}</p>
         )}
         <button
-          onClick={handleSave}
+          onClick={handleRandom}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold
+            bg-amber-400/15 border border-amber-400/25 text-amber-300
+            hover:bg-amber-400/25 active:scale-95 transition-all disabled:opacity-30"
+        >
+          🎲 Sortear placar
+        </button>
+        <button
+          onClick={() => handleSave()}
           disabled={!canSave || loading || justSaved}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all
             bg-green-600 hover:bg-green-500 active:scale-[0.98] text-white shadow-lg shadow-green-900/30
