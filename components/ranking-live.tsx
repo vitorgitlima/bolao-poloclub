@@ -295,7 +295,7 @@ export function RankingLive({ userId }: { userId?: string }) {
                   <div className="text-[11px] text-white/35 mt-0.5">participantes</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-black text-amber-300">{totalPredictions}</div>
+                  <div className="text-3xl font-black text-amber-300">{totalScored}</div>
                   <div className="text-[11px] text-white/35 mt-0.5">palpites feitos</div>
                 </div>
                 <div>
