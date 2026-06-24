@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { RankingTable } from "@/components/ranking-table";
 import { RankingHighlights } from "@/components/ranking-highlights";
-import { Trophy, Target, Check, RefreshCw, Users, Globe, BarChart2 } from "lucide-react";
+import { Trophy, Target, Check, RefreshCw, Users, Globe, BarChart2, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type RankingEntry = {
@@ -52,11 +52,14 @@ export function RankingLive({ userId }: { userId?: string }) {
   const [leagueLoading, setLeagueLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [statsNew, setStatsNew] = useState(false);
+  const [favoriteLeagueId, setFavoriteLeagueId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && !localStorage.getItem("statsTabSeen")) {
       setStatsNew(true);
     }
+    const saved = typeof window !== "undefined" ? localStorage.getItem("favoriteLeague") : null;
+    if (saved) setFavoriteLeagueId(saved);
   }, []);
 
   const fetchGlobal = useCallback(async () => {
@@ -84,13 +87,29 @@ export function RankingLive({ userId }: { userId?: string }) {
     return () => clearInterval(interval);
   }, [fetchGlobal]);
 
-  // Busca ligas do usuário
+  // Busca ligas do usuário e auto-seleciona a favorita
   useEffect(() => {
     if (!userId) return;
     fetch("/api/leagues")
       .then((r) => r.ok ? r.json() : [])
-      .then((data) => setLeagues(data.map((l: League) => ({ id: l.id, name: l.name, memberCount: l.memberCount }))));
-  }, [userId]);
+      .then((data) => {
+        const loaded: League[] = data.map((l: League) => ({ id: l.id, name: l.name, memberCount: l.memberCount }));
+        setLeagues(loaded);
+        const fav = localStorage.getItem("favoriteLeague");
+        if (fav && loaded.some((l) => l.id === fav)) selectTab(fav);
+      });
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggleFavorite(leagueId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (favoriteLeagueId === leagueId) {
+      localStorage.removeItem("favoriteLeague");
+      setFavoriteLeagueId(null);
+    } else {
+      localStorage.setItem("favoriteLeague", leagueId);
+      setFavoriteLeagueId(leagueId);
+    }
+  }
 
   async function selectTab(tab: string) {
     setActiveTab(tab);
@@ -203,20 +222,31 @@ export function RankingLive({ userId }: { userId?: string }) {
             {globalData.ranking.length}
           </span>
         </button>
-        {leagues.map((league) => (
-          <button
-            key={league.id}
-            onClick={() => selectTab(league.id)}
-            className={cn("tab-pill whitespace-nowrap flex items-center gap-1.5 shrink-0 max-w-[180px]",
-              activeTab === league.id ? "tab-pill-active" : "tab-pill-inactive")}
-          >
-            <Users className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">{league.name}</span>
-            <span className={cn("text-[10px] font-bold shrink-0", activeTab === league.id ? "text-white/60" : "text-white/30")}>
-              {league.memberCount}
-            </span>
-          </button>
-        ))}
+        {leagues.map((league) => {
+          const isFav = favoriteLeagueId === league.id;
+          const isActive = activeTab === league.id;
+          return (
+            <button
+              key={league.id}
+              onClick={() => selectTab(league.id)}
+              className={cn("tab-pill whitespace-nowrap flex items-center gap-1.5 shrink-0 max-w-[180px]",
+                isActive ? "tab-pill-active" : "tab-pill-inactive")}
+            >
+              <Users className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{league.name}</span>
+              <span className={cn("text-[10px] font-bold shrink-0", isActive ? "text-white/60" : "text-white/30")}>
+                {league.memberCount}
+              </span>
+              <span
+                onClick={(e) => toggleFavorite(league.id, e)}
+                className={cn("shrink-0 transition-colors", isFav ? "text-yellow-400" : "text-white/20 hover:text-white/50")}
+                title={isFav ? "Remover favorito" : "Favoritar liga"}
+              >
+                <Star className="w-3 h-3" fill={isFav ? "currentColor" : "none"} />
+              </span>
+            </button>
+          );
+        })}
         <button
           onClick={() => selectTab("stats")}
           className={cn(

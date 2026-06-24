@@ -288,8 +288,15 @@ export default function DashboardPage() {
       {/* Abas Pendentes / Palpites Registrados */}
       <div className="flex gap-1.5">
         <button
-          onClick={() => setTab("pendentes")}
-          className={`tab-pill relative ${tab === "pendentes" ? "tab-pill-active" : "tab-pill-inactive"}`}
+          onClick={() => pendentes.length > 0 && setTab("pendentes")}
+          disabled={pendentes.length === 0}
+          className={`tab-pill relative ${
+            pendentes.length === 0
+              ? "opacity-40 cursor-not-allowed text-red-400/60 border-red-500/20"
+              : tab === "pendentes"
+              ? "tab-pill-active"
+              : "tab-pill-inactive"
+          }`}
         >
           Pendentes
           {pendentes.length > 0 && (
