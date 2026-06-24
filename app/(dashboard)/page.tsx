@@ -292,7 +292,7 @@ export default function DashboardPage() {
           disabled={pendentes.length === 0}
           className={`tab-pill relative ${
             pendentes.length === 0
-              ? "opacity-40 cursor-not-allowed text-red-400/60 border-red-500/20"
+              ? "cursor-not-allowed text-red-400/80 border-red-500/30 bg-red-500/10"
               : tab === "pendentes"
               ? "tab-pill-active"
               : "tab-pill-inactive"
