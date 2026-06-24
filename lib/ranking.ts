@@ -42,9 +42,21 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
   const [users, finishedMatchDates] = await Promise.all([
     prisma.user.findMany({
       where: filterUserIds ? { id: { in: filterUserIds } } : undefined,
-      include: {
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        isContributor: true,
+        isArchitect: true,
+        isIdealizador: true,
+        isDeveloper: true,
+        betaRank: true,
+        isBetaTester: true,
         predictions: {
-          include: { match: { select: { date: true, phase: true } } },
+          select: {
+            points: true,
+            match: { select: { date: true, phase: true } },
+          },
         },
       },
     }),
