@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/db";
-import { espnNameToPt, ESPN_LOGO_MAP, type EspnMatch } from "@/lib/espn-api";
+import {
+  espnNameToPt,
+  espnKnockoutNameToPt,
+  ESPN_LOGO_MAP,
+  KNOCKOUT_SLUGS,
+  type EspnMatch,
+} from "@/lib/espn-api";
 import { calculatePoints } from "@/lib/points";
 import {
   createMissingPredictionNotifications,
@@ -19,15 +25,52 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
   let updatedPredictions = 0;
   const finishedNow: FinishedEntry[] = [];
 
+  // Passo 0: atualiza nomes/logos das fases eliminatórias (mesmo status "pre")
+  // Necessário para refletir times reais quando ESPN substitui placeholders após a fase de grupos
+  const knockoutMatches = espnMatches.filter(
+    (em) => em.seasonSlug && (KNOCKOUT_SLUGS as readonly string[]).includes(em.seasonSlug)
+  );
+  for (const em of knockoutMatches) {
+    const espnId = parseInt(em.id);
+    if (isNaN(espnId)) continue;
+    const match = await prisma.match.findUnique({ where: { externalId: espnId } });
+    if (!match) continue;
+
+    const homePt = espnKnockoutNameToPt(em.homeTeam.name);
+    const awayPt = espnKnockoutNameToPt(em.awayTeam.name);
+    const homeFlag = em.homeTeam.logo || ESPN_LOGO_MAP[em.homeTeam.name] || match.homeFlag;
+    const awayFlag = em.awayTeam.logo || ESPN_LOGO_MAP[em.awayTeam.name] || match.awayFlag;
+
+    const nameChanged = match.homeTeam !== homePt || match.awayTeam !== awayPt;
+    const flagChanged =
+      (em.homeTeam.logo && match.homeFlag !== em.homeTeam.logo) ||
+      (em.awayTeam.logo && match.awayFlag !== em.awayTeam.logo);
+
+    if (nameChanged || flagChanged) {
+      await prisma.match.update({
+        where: { id: match.id },
+        data: { homeTeam: homePt, awayTeam: awayPt, homeFlag, awayFlag },
+      });
+    }
+  }
+
   for (const em of espnMatches) {
     if (em.status === "pre") continue;
 
-    const homePt = espnNameToPt(em.homeTeam.name);
-    const awayPt = espnNameToPt(em.awayTeam.name);
+    // Para knockouts: o Passo 0 já atualizou o nome para português
+    // mas usamos espnKnockoutNameToPt para o lookup quando necessário
+    const isKnockout =
+      em.seasonSlug && (KNOCKOUT_SLUGS as readonly string[]).includes(em.seasonSlug);
+    const homePt = isKnockout
+      ? espnKnockoutNameToPt(em.homeTeam.name)
+      : espnNameToPt(em.homeTeam.name);
+    const awayPt = isKnockout
+      ? espnKnockoutNameToPt(em.awayTeam.name)
+      : espnNameToPt(em.awayTeam.name);
 
-    const match = await prisma.match.findFirst({
-      where: { homeTeam: homePt, awayTeam: awayPt },
-    });
+    const match =
+      (await prisma.match.findFirst({ where: { homeTeam: homePt, awayTeam: awayPt } })) ??
+      (em.id ? await prisma.match.findUnique({ where: { externalId: parseInt(em.id) } }) : null);
     if (!match) continue;
 
     const status = em.completed ? "FINISHED" : "LIVE";

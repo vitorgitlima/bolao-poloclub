@@ -7,10 +7,33 @@ export type EspnMatch = {
   date: string;
   status: "pre" | "in" | "post";
   statusDetail: string;
+  seasonSlug?: string; // e.g. "round-of-32", "round-of-16", "quarterfinals", "semifinal", "final"
   homeTeam: { name: string; abbr: string; score: number; logo?: string };
   awayTeam: { name: string; abbr: string; score: number; logo?: string };
   completed: boolean;
 };
+
+export const KNOCKOUT_SLUGS = ["round-of-32", "round-of-16", "quarterfinals", "semifinal", "third-place", "final"] as const;
+
+// Traduz nomes ESPN da fase eliminatória → Portuguese (real team ou placeholder)
+export function espnKnockoutNameToPt(displayName: string): string {
+  // Já é um time real
+  if (ESPN_NAME_MAP[displayName]) return ESPN_NAME_MAP[displayName];
+
+  // "Group A 2nd Place" → "2º Grupo A"
+  const g2nd = displayName.match(/^Group ([A-L]) 2nd Place$/);
+  if (g2nd) return `2º Grupo ${g2nd[1]}`;
+
+  // "Group A Winner" → "1º Grupo A"
+  const gWin = displayName.match(/^Group ([A-L]) Winner$/);
+  if (gWin) return `1º Grupo ${gWin[1]}`;
+
+  // "Third Place Group ..." → "3º Melhor"
+  if (displayName.startsWith("Third Place Group")) return "3º Melhor";
+
+  // Qualquer outro placeholder ("Round of 32 X Winner" etc.)
+  return "A Definir";
+}
 
 function parseEvent(event: Record<string, unknown>): EspnMatch | null {
   try {
@@ -34,6 +57,7 @@ function parseEvent(event: Record<string, unknown>): EspnMatch | null {
       date: event.date as string,
       status: statusType.state as "pre" | "in" | "post",
       statusDetail: statusType.description as string,
+      seasonSlug: (event.season as Record<string, unknown>)?.slug as string | undefined,
       homeTeam: {
         name: homeTeamData.displayName as string,
         abbr: homeTeamData.abbreviation as string,
