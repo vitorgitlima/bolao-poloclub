@@ -17,10 +17,10 @@ type Match = {
 };
 
 // ── Layout constants ──────────────────────────────────────────
-const CARD_W = 148;
-const CARD_H = 66;
-const SLOT_H = 78; // slot por jogo das oitavas (inclui gap)
-const CON_W = 28; // largura do conector horizontal
+const CARD_W = 180;
+const CARD_H = 80;
+const SLOT_H = 96; // slot por jogo das oitavas (inclui gap)
+const CON_W = 40; // largura do conector horizontal
 const COL_W = CARD_W + CON_W; // largura total de cada coluna
 const TOTAL_H = 8 * SLOT_H;
 const TOTAL_W = 4 * COL_W + CARD_W; // 4 conectores + 5 colunas de card
@@ -39,10 +39,10 @@ function xLeft(round: number) {
 function TeamFlag({ src, alt }: { src: string; alt: string }) {
   if (src?.startsWith("http")) {
     return (
-      <Image src={src} alt={alt} width={14} height={14} className="object-contain shrink-0" unoptimized />
+      <Image src={src} alt={alt} width={18} height={18} className="object-contain shrink-0" unoptimized />
     );
   }
-  return <span className="text-xs leading-none shrink-0">{src || "⚽"}</span>;
+  return <span className="text-sm leading-none shrink-0">{src || "⚽"}</span>;
 }
 
 function BracketCard({ match }: { match: Match | null }) {
@@ -52,7 +52,7 @@ function BracketCard({ match }: { match: Match | null }) {
         style={{ height: CARD_H, width: CARD_W }}
         className="rounded-xl border border-white/8 bg-white/3 flex items-center justify-center"
       >
-        <span className="text-white/20 text-[10px] font-medium">A definir</span>
+        <span className="text-white/20 text-xs font-medium">A definir</span>
       </div>
     );
   }
@@ -69,15 +69,15 @@ function BracketCard({ match }: { match: Match | null }) {
   }: { team: string; flag: string; score: number | null; won: boolean }) => (
     <div
       className={cn(
-        "flex items-center gap-1.5 px-2",
+        "flex items-center gap-2 px-2.5",
         isFinished && !won ? "opacity-35" : "opacity-100",
       )}
     >
       <TeamFlag src={flag} alt={team} />
       <span
         className={cn(
-          "text-[11px] flex-1 truncate",
-          won ? "text-white font-bold" : "text-white/70 font-medium",
+          "text-xs flex-1 truncate",
+          won ? "text-white font-bold" : "text-white/75 font-medium",
           team === "A Definir" && "text-white/25",
         )}
       >
@@ -86,7 +86,7 @@ function BracketCard({ match }: { match: Match | null }) {
       {score !== null && !["SCHEDULED"].includes(match.status) && (
         <span
           className={cn(
-            "text-[11px] font-black tabular-nums shrink-0",
+            "text-sm font-black tabular-nums shrink-0",
             won ? "text-green-400" : "text-white/35",
           )}
         >
@@ -183,7 +183,7 @@ export function BracketView({ matches }: { matches: Match[] }) {
       >
         {LABELS.map((label, i) => (
           <div key={label} style={{ width: i < 3 ? COL_W : CARD_W }} className="text-center">
-            <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest">
+            <span className="text-[11px] text-white/35 font-bold uppercase tracking-widest">
               {label}
             </span>
           </div>
