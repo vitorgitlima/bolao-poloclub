@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { Loader2, RefreshCw } from "lucide-react";
 import { MatchRow } from "@/components/match-row";
+import { BracketView } from "@/components/bracket-view";
 import { cn } from "@/lib/utils";
 
 type Match = {
@@ -18,6 +19,7 @@ type Match = {
   homeScore: number | null;
   awayScore: number | null;
   status: string;
+  externalId?: number | null;
   predictions: unknown[];
 };
 
@@ -254,6 +256,14 @@ export default function CopaPage() {
             {kp.label}
           </button>
         ))}
+        {availableKnockouts.some((kp) => kp.key === "oitavas") && (
+          <button
+            onClick={() => setActiveTab("chaveamento")}
+            className={`tab-pill whitespace-nowrap ${activeTab === "chaveamento" ? "tab-pill-active" : "tab-pill-inactive"}`}
+          >
+            🏆 Chaveamento
+          </button>
+        )}
       </div>
 
       {/* Grupos */}
@@ -321,8 +331,20 @@ export default function CopaPage() {
         </div>
       )}
 
-      {/* Fases eliminatórias */}
-      {activeTab !== "grupos" && (
+      {/* Chaveamento (bracket) */}
+      {activeTab === "chaveamento" && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-white/50 text-sm font-bold">Chaveamento</span>
+            <div className="flex-1 h-px bg-white/5" />
+            <span className="text-white/20 text-[10px]">Oitavas → Final</span>
+          </div>
+          <BracketView matches={matches} />
+        </div>
+      )}
+
+      {/* Fases eliminatórias (lista) */}
+      {activeTab !== "grupos" && activeTab !== "chaveamento" && (
         <div className="space-y-3">
           {knockoutMatches.length > 0 ? (
             <>
