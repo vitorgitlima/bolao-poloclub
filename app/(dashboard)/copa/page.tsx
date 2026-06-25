@@ -323,16 +323,7 @@ export default function CopaPage() {
       )}
 
       {/* Chaveamento (bracket) */}
-      {activeTab === "chaveamento" && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 px-1">
-            <span className="text-white/50 text-sm font-bold">Chaveamento</span>
-            <div className="flex-1 h-px bg-white/5" />
-            <span className="text-white/20 text-[10px]">Oitavas → Final</span>
-          </div>
-          <BracketView matches={matches} />
-        </div>
-      )}
+      {activeTab === "chaveamento" && <BracketView matches={matches} />}
 
       {/* Fases eliminatórias (lista) */}
       {activeTab !== "grupos" && activeTab !== "chaveamento" && (
