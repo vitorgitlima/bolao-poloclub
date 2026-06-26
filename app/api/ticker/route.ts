@@ -42,6 +42,14 @@ export async function GET() {
   const now = new Date();
   const h48ago = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
+  // Fim do dia de amanhã em BRT (UTC-3) = início do dia depois de amanhã às 03:00 UTC
+  const brtNow = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const endOfTomorrow = new Date(brtNow);
+  endOfTomorrow.setDate(endOfTomorrow.getDate() + 2);
+  endOfTomorrow.setHours(0, 0, 0, 0);
+  // Converter de volta para UTC: BRT é UTC-3
+  const endOfTomorrowUTC = new Date(endOfTomorrow.getTime() + 3 * 60 * 60 * 1000);
+
   const [liveMatches, recentResults, upcomingMatches, topPredictions] =
     await Promise.all([
       prisma.match.findMany({
@@ -61,11 +69,10 @@ export async function GET() {
       prisma.match.findMany({
         where: {
           status: "SCHEDULED",
-          date: { gte: now },
+          date: { gte: now, lt: endOfTomorrowUTC },
           phase: { not: { startsWith: "🧪" } },
         },
         orderBy: { date: "asc" },
-        take: 5,
         select: { id: true, homeTeam: true, awayTeam: true, date: true },
       }),
       prisma.prediction.groupBy({
