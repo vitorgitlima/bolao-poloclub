@@ -50,7 +50,7 @@ export async function GET() {
   // Converter de volta para UTC: BRT é UTC-3
   const endOfTomorrowUTC = new Date(endOfTomorrow.getTime() + 3 * 60 * 60 * 1000);
 
-  const [liveMatches, recentResults, upcomingMatches, topPredictions] =
+  const [liveMatches, recentResults, upcomingMatches] =
     await Promise.all([
       prisma.match.findMany({
         where: { status: "LIVE", phase: { not: { startsWith: "🧪" } } },
@@ -75,29 +75,7 @@ export async function GET() {
         orderBy: { date: "asc" },
         select: { id: true, homeTeam: true, awayTeam: true, date: true },
       }),
-      prisma.prediction.groupBy({
-        by: ["userId"],
-        _sum: { points: true },
-        orderBy: { _sum: { points: "desc" } },
-        take: 5,
-      }),
     ]);
-
-  // Top 3 non-developer users
-  const userIds = topPredictions.map((p) => p.userId);
-  const users = await prisma.user.findMany({
-    where: { id: { in: userIds }, isDeveloper: false },
-    select: { id: true, name: true },
-  });
-  const userMap = new Map(users.map((u) => [u.id, u.name]));
-  const topRanking = topPredictions
-    .filter((p) => userMap.has(p.userId))
-    .slice(0, 3)
-    .map((p, i) => ({
-      position: i + 1,
-      name: userMap.get(p.userId)?.split(" ")[0] ?? "—",
-      points: p._sum.points ?? 0,
-    }));
 
   const items: TickerItem[] = [];
 
@@ -123,13 +101,6 @@ export async function GET() {
       type: "result",
       text: `${m.homeTeam}  ${m.homeScore}–${m.awayScore}  ${m.awayTeam}`,
     });
-  }
-
-  if (topRanking.length > 0) {
-    const rankText = topRanking
-      .map((r) => `${r.position}º ${r.name} ${r.points}pts`)
-      .join("  ·  ");
-    items.push({ id: "ranking", type: "ranking", text: rankText });
   }
 
   return NextResponse.json({ items });
