@@ -8,12 +8,29 @@ export type TickerItem = {
   text: string;
 };
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("pt-BR", {
+function fmtMatchTime(date: Date): string {
+  const brtNow = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const brtMatch = new Date(date.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+
+  const todayStr = brtNow.toDateString();
+  const matchStr = brtMatch.toDateString();
+
+  const tomorrowBrt = new Date(brtNow);
+  tomorrowBrt.setDate(tomorrowBrt.getDate() + 1);
+  const tomorrowStr = tomorrowBrt.toDateString();
+
+  const time = date.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "America/Sao_Paulo",
   });
+
+  if (matchStr === todayStr) return time;
+  if (matchStr === tomorrowStr) return `Amanhã ${time}`;
+
+  const day = String(brtMatch.getDate()).padStart(2, "0");
+  const month = String(brtMatch.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month} ${time}`;
 }
 
 export async function GET() {
@@ -89,7 +106,7 @@ export async function GET() {
     items.push({
       id: `upcoming-${m.id}`,
       type: "upcoming",
-      text: `${m.homeTeam} × ${m.awayTeam}  ${fmtTime(m.date.toISOString())}`,
+      text: `${m.homeTeam} × ${m.awayTeam}  ${fmtMatchTime(m.date)}`,
     });
   }
 
