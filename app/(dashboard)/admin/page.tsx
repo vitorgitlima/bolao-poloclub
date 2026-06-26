@@ -172,6 +172,10 @@ function ManualScoreRow({ match, onSaved }: { match: TestMatch; onSaved: () => v
 }
 
 export default function AdminPage() {
+  const [cardText, setCardText] = useState<string | null>(null);
+  const [cardLoading, setCardLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   const [syncing, setSyncing] = useState<"today" | "all" | null>(null);
   const [result, setResult] = useState<SyncResult | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
@@ -234,6 +238,24 @@ export default function AdminPage() {
     }
   }
 
+  async function generateCard() {
+    setCardLoading(true);
+    setCardText(null);
+    try {
+      const res = await fetch("/api/admin/ranking-card");
+      if (res.ok) setCardText((await res.json()).text);
+    } finally {
+      setCardLoading(false);
+    }
+  }
+
+  async function handleCopy() {
+    if (!cardText) return;
+    await navigator.clipboard.writeText(cardText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   async function handleSync(mode: "today" | "all") {
     setSyncing(mode);
     setResult(null);
@@ -280,6 +302,41 @@ export default function AdminPage() {
             </span>
           )}
         </div>
+      </div>
+
+      {/* ── CARD WHATSAPP ── */}
+      <div className="glass-card p-5">
+        <h2 className="text-white font-bold mb-1 flex items-center gap-2">
+          📋 Card para WhatsApp
+        </h2>
+        <p className="text-white/40 text-xs mb-4">
+          Gera o ranking atual formatado para colar no grupo antes dos jogos.
+        </p>
+        <button
+          onClick={generateCard}
+          disabled={cardLoading}
+          className="flex items-center gap-2 px-4 py-2.5 bg-green-600/20 hover:bg-green-600/30 text-green-300 font-semibold rounded-xl border border-green-500/30 transition-all disabled:opacity-50 text-sm"
+        >
+          {cardLoading
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</>
+            : <>📋 Gerar ranking</>}
+        </button>
+        {cardText && (
+          <div className="mt-4 space-y-2">
+            <textarea
+              readOnly
+              value={cardText}
+              rows={Math.min(cardText.split("\n").length + 1, 20)}
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white/80 text-sm font-mono resize-none focus:outline-none"
+            />
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white/70 hover:text-white text-xs font-medium transition-all border border-white/10"
+            >
+              {copied ? "✓ Copiado!" : "📋 Copiar"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ESPN API info */}
