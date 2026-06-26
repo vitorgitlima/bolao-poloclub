@@ -30,7 +30,7 @@ const LABEL_CLASS: Record<TickerItem["type"], string> = {
 };
 
 const MIN_SLOTS  = 8;
-const PX_PER_SEC = 100;
+const PX_PER_SEC = 75;
 const REFRESH_MS = 30_000;
 
 export function TickerBar() {
