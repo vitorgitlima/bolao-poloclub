@@ -29,59 +29,82 @@ const LABEL_CLASS: Record<TickerItem["type"], string> = {
   ranking:  "text-yellow-400/60 font-bold",
 };
 
-const MIN_SLOTS = 8;
-const PX_PER_SEC = 150;  // velocidade em pixels/segundo — ajuste aqui se quiser mais rápido/lento
+const MIN_SLOTS  = 8;
+const PX_PER_SEC = 100;
 const REFRESH_MS = 30_000;
 
 export function TickerBar() {
   const [items, setItems] = useState<TickerItem[]>([]);
-  const [paused, setPaused] = useState(false);
-  const [duration, setDuration] = useState<string | null>(null); // null = ainda não mediu
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef      = useRef<HTMLDivElement>(null);
+  const pausedRef      = useRef(false);
+  const offsetRef      = useRef(0);
+  const loopLengthRef  = useRef(0); // largura de uma cópia (distância do loop)
 
-  async function fetchItems() {
-    try {
-      const res = await fetch("/api/ticker");
-      if (!res.ok) return;
-      const data = await res.json();
-      setItems(data.items ?? []);
-    } catch {}
-  }
-
+  // Busca e auto-refresh
   useEffect(() => {
+    async function fetchItems() {
+      try {
+        const res = await fetch("/api/ticker");
+        if (res.ok) setItems((await res.json()).items ?? []);
+      } catch {}
+    }
     fetchItems();
     const id = setInterval(fetchItems, REFRESH_MS);
     return () => clearInterval(id);
   }, []);
 
-  // Mede a largura real após render — só inicia animação quando tiver o valor correto
+  // Recalcula loopLength sempre que o conteúdo muda — sem reiniciar o rAF
   useLayoutEffect(() => {
     if (!scrollRef.current || items.length === 0) return;
-    const baseWidth = scrollRef.current.scrollWidth / 2;
-    if (baseWidth > 0) setDuration(`${Math.round(baseWidth / PX_PER_SEC)}s`);
+    const full = scrollRef.current.scrollWidth; // conteúdo duplicado (2x)
+    loopLengthRef.current = full / 2;
+    // Mantém offset dentro dos limites após mudança de conteúdo
+    if (loopLengthRef.current > 0 && offsetRef.current >= loopLengthRef.current) {
+      offsetRef.current = offsetRef.current % loopLengthRef.current;
+    }
   }, [items]);
+
+  // Loop rAF — inicia uma vez, nunca reinicia
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let lastTs: number | null = null;
+    let animId: number;
+
+    function tick(now: number) {
+      if (!pausedRef.current && loopLengthRef.current > 0) {
+        if (lastTs !== null) {
+          const delta = (now - lastTs) / 1000; // segundos
+          offsetRef.current = (offsetRef.current + PX_PER_SEC * delta) % loopLengthRef.current;
+          if (el) el.style.transform = `translateX(-${offsetRef.current}px)`;
+        }
+        lastTs = now;
+      } else {
+        lastTs = null; // reseta para não pular ao retomar
+      }
+      animId = requestAnimationFrame(tick);
+    }
+
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (items.length === 0) return null;
 
   const repeats = Math.max(1, Math.ceil(MIN_SLOTS / items.length));
-  const base: TickerItem[] = Array.from({ length: repeats }, () => items).flat();
-  const display = [...base, ...base];
+  const base    = Array.from({ length: repeats }, () => items).flat();
+  const display = [...base, ...base]; // duplicado para loop seamless
 
   return (
     <div
       className="w-full overflow-hidden bg-black/55 backdrop-blur-sm border-b border-white/8 cursor-default select-none"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onMouseEnter={() => { pausedRef.current = true; }}
+      onMouseLeave={() => { pausedRef.current = false; }}
     >
       <div
         ref={scrollRef}
         className="flex items-center whitespace-nowrap py-1"
-        style={{
-          // Só anima após ter a duração medida — evita flash lento no mobile
-          animation: duration ? `ticker ${duration} linear infinite` : "none",
-          animationPlayState: paused ? "paused" : "running",
-          willChange: "transform",
-        }}
+        style={{ willChange: "transform" }}
       >
         {display.map((item, i) => (
           <span key={`${item.id}-${i}`} className="inline-flex items-center gap-1.5 pl-5">
