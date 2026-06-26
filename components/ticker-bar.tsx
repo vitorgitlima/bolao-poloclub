@@ -30,7 +30,7 @@ const LABEL_CLASS: Record<TickerItem["type"], string> = {
 };
 
 const MIN_SLOTS = 8;
-const PX_PER_SEC = 90;   // velocidade em pixels/segundo — ajuste aqui se quiser mais rápido/lento
+const PX_PER_SEC = 150;  // velocidade em pixels/segundo — ajuste aqui se quiser mais rápido/lento
 const REFRESH_MS = 30_000;
 
 export function TickerBar() {
