@@ -36,7 +36,7 @@ const REFRESH_MS = 30_000;
 export function TickerBar() {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [paused, setPaused] = useState(false);
-  const [duration, setDuration] = useState("30s");
+  const [duration, setDuration] = useState<string | null>(null); // null = ainda não mediu
   const scrollRef = useRef<HTMLDivElement>(null);
 
   async function fetchItems() {
@@ -54,12 +54,11 @@ export function TickerBar() {
     return () => clearInterval(id);
   }, []);
 
-  // Mede a largura real do conteúdo após render e calcula duração em px/s
-  // scrollWidth = conteúdo duplicado (2x), então dividimos por 2 para ter a distância real
+  // Mede a largura real após render — só inicia animação quando tiver o valor correto
   useLayoutEffect(() => {
     if (!scrollRef.current || items.length === 0) return;
     const baseWidth = scrollRef.current.scrollWidth / 2;
-    setDuration(`${Math.round(baseWidth / PX_PER_SEC)}s`);
+    if (baseWidth > 0) setDuration(`${Math.round(baseWidth / PX_PER_SEC)}s`);
   }, [items]);
 
   if (items.length === 0) return null;
@@ -78,7 +77,8 @@ export function TickerBar() {
         ref={scrollRef}
         className="flex items-center whitespace-nowrap py-1"
         style={{
-          animation: `ticker ${duration} linear infinite`,
+          // Só anima após ter a duração medida — evita flash lento no mobile
+          animation: duration ? `ticker ${duration} linear infinite` : "none",
           animationPlayState: paused ? "paused" : "running",
           willChange: "transform",
         }}
