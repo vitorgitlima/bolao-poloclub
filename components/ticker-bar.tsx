@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 type TickerItem = {
   id: string;
@@ -30,12 +30,14 @@ const LABEL_CLASS: Record<TickerItem["type"], string> = {
 };
 
 const MIN_SLOTS = 8;
-const SECS_PER_ITEM = 4;
+const PX_PER_SEC = 90;   // velocidade em pixels/segundo — ajuste aqui se quiser mais rápido/lento
 const REFRESH_MS = 30_000;
 
 export function TickerBar() {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [paused, setPaused] = useState(false);
+  const [duration, setDuration] = useState("30s");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   async function fetchItems() {
     try {
@@ -52,14 +54,19 @@ export function TickerBar() {
     return () => clearInterval(id);
   }, []);
 
+  // Mede a largura real do conteúdo após render e calcula duração em px/s
+  // scrollWidth = conteúdo duplicado (2x), então dividimos por 2 para ter a distância real
+  useLayoutEffect(() => {
+    if (!scrollRef.current || items.length === 0) return;
+    const baseWidth = scrollRef.current.scrollWidth / 2;
+    setDuration(`${Math.round(baseWidth / PX_PER_SEC)}s`);
+  }, [items]);
+
   if (items.length === 0) return null;
 
-  // Repeat until MIN_SLOTS to ensure tape > viewport on mobile
   const repeats = Math.max(1, Math.ceil(MIN_SLOTS / items.length));
   const base: TickerItem[] = Array.from({ length: repeats }, () => items).flat();
-  // Duplicate for seamless -50% loop
   const display = [...base, ...base];
-  const duration = `${base.length * SECS_PER_ITEM}s`;
 
   return (
     <div
@@ -68,6 +75,7 @@ export function TickerBar() {
       onMouseLeave={() => setPaused(false)}
     >
       <div
+        ref={scrollRef}
         className="flex items-center whitespace-nowrap py-1"
         style={{
           animation: `ticker ${duration} linear infinite`,
