@@ -35,10 +35,11 @@ const REFRESH_MS = 30_000;
 
 export function TickerBar() {
   const [items, setItems] = useState<TickerItem[]>([]);
-  const scrollRef      = useRef<HTMLDivElement>(null);
-  const pausedRef      = useRef(false);
-  const offsetRef      = useRef(0);
-  const loopLengthRef  = useRef(0); // largura de uma cópia (distância do loop)
+  const scrollRef     = useRef<HTMLDivElement>(null);
+  const pausedRef     = useRef(false);
+  const offsetRef     = useRef(0);
+  const loopRef       = useRef(0);   // largura de uma cópia
+  const rafRef        = useRef<number | null>(null); // id do rAF em curso
 
   // Busca e auto-refresh
   useEffect(() => {
@@ -53,47 +54,51 @@ export function TickerBar() {
     return () => clearInterval(id);
   }, []);
 
-  // Recalcula loopLength sempre que o conteúdo muda — sem reiniciar o rAF
+  // Quando itens chegam/mudam: mede loop e inicia rAF (apenas uma vez)
   useLayoutEffect(() => {
-    if (!scrollRef.current || items.length === 0) return;
-    const full = scrollRef.current.scrollWidth; // conteúdo duplicado (2x)
-    loopLengthRef.current = full / 2;
-    // Mantém offset dentro dos limites após mudança de conteúdo
-    if (loopLengthRef.current > 0 && offsetRef.current >= loopLengthRef.current) {
-      offsetRef.current = offsetRef.current % loopLengthRef.current;
-    }
-  }, [items]);
-
-  // Loop rAF — inicia uma vez, nunca reinicia
-  useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || items.length === 0) return;
+
+    // Atualiza largura do loop (conteúdo duplicado ÷ 2)
+    loopRef.current = el.scrollWidth / 2;
+    if (offsetRef.current >= loopRef.current) {
+      offsetRef.current = offsetRef.current % loopRef.current;
+    }
+
+    // Inicia o rAF só na primeira vez que há conteúdo
+    if (rafRef.current !== null) return;
+
     let lastTs: number | null = null;
-    let animId: number;
 
     function tick(now: number) {
-      if (!pausedRef.current && loopLengthRef.current > 0) {
+      if (!pausedRef.current && loopRef.current > 0) {
         if (lastTs !== null) {
-          const delta = (now - lastTs) / 1000; // segundos
-          offsetRef.current = (offsetRef.current + PX_PER_SEC * delta) % loopLengthRef.current;
+          const delta = (now - lastTs) / 1000;
+          offsetRef.current = (offsetRef.current + PX_PER_SEC * delta) % loopRef.current;
           if (el) el.style.transform = `translateX(-${offsetRef.current}px)`;
         }
         lastTs = now;
       } else {
-        lastTs = null; // reseta para não pular ao retomar
+        lastTs = null;
       }
-      animId = requestAnimationFrame(tick);
+      rafRef.current = requestAnimationFrame(tick);
     }
 
-    animId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animId);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    rafRef.current = requestAnimationFrame(tick);
+  }, [items]);
+
+  // Cancela rAF ao desmontar
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   if (items.length === 0) return null;
 
   const repeats = Math.max(1, Math.ceil(MIN_SLOTS / items.length));
   const base    = Array.from({ length: repeats }, () => items).flat();
-  const display = [...base, ...base]; // duplicado para loop seamless
+  const display = [...base, ...base];
 
   return (
     <div
