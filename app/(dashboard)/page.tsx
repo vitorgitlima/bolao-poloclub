@@ -93,7 +93,7 @@ function computeRodadas(matches: Match[]): Rodada[] {
   }
 
   const knockouts: { id: string; label: string; phases: string[] }[] = [
-    { id: "r32",     label: "Rodada 32",  phases: ["Rodada de 32"] },
+    { id: "r32",     label: "16 Avos",    phases: ["Rodada de 32"] },
     { id: "oitavas", label: "Oitavas",    phases: ["Oitavas de Final"] },
     { id: "quartas", label: "Quartas",    phases: ["Quartas de Final"] },
     { id: "semi",    label: "Semifinal",  phases: ["Semifinal"] },
@@ -174,6 +174,10 @@ export default function DashboardPage() {
     if (open.length === 0) return null;
     const allDone = open.every((m) => m.predictions.length > 0);
     return allDone ? "green" : "yellow";
+  }
+
+  function isRodadaComplete(r: Rodada) {
+    return r.matches.length > 0 && r.matches.every((m) => m.status === "FINISHED");
   }
 
   if (loading) {
@@ -266,13 +270,16 @@ export default function DashboardPage() {
       <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
         {rodadas.map((r) => {
           const badge = rodadaBadge(r);
+          const isComplete = isRodadaComplete(r);
+          const isActive = activeRodada === r.id;
           return (
             <button
               key={r.id}
               onClick={() => selectRodada(r.id)}
               className={`tab-pill whitespace-nowrap relative shrink-0 ${
-                activeRodada === r.id ? "tab-pill-active" : "tab-pill-inactive"
+                isActive ? "tab-pill-active" : "tab-pill-inactive"
               }`}
+              style={isComplete && !isActive ? { color: "rgba(74, 222, 128, 0.65)" } : undefined}
             >
               {r.label}
               {badge && (
@@ -344,7 +351,17 @@ export default function DashboardPage() {
                   <div className="flex-1 h-px bg-white/5" />
                 </div>
                 {dayMatches.map((match) => (
-                  <PendingMatchCard key={match.id} match={match} onSaved={loadMatches} />
+                  <PendingMatchCard
+                    key={match.id}
+                    match={match}
+                    onSaved={loadMatches}
+                    teamHistory={matches.filter((m) =>
+                      m.status === "FINISHED" &&
+                      (m.homeTeam === match.homeTeam || m.awayTeam === match.homeTeam ||
+                       m.homeTeam === match.awayTeam || m.awayTeam === match.awayTeam) &&
+                      m.id !== match.id
+                    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 6)}
+                  />
                 ))}
               </div>
             ))

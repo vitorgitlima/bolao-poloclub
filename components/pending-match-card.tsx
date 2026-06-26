@@ -50,17 +50,31 @@ type Match = {
   phase: string;
 };
 
+type HistoricalMatch = {
+  id: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeFlag: string;
+  awayFlag: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  date: string;
+  phase: string;
+};
+
 type PendingMatchCardProps = {
   match: Match;
   onSaved: () => void;
+  teamHistory?: HistoricalMatch[];
 };
 
-export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
+export function PendingMatchCard({ match, onSaved, teamHistory }: PendingMatchCardProps) {
   const [homeVal, setHomeVal] = useState("");
   const [awayVal, setAwayVal] = useState("");
   const [loading, setLoading] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const { showToast } = useToast();
 
   const canSave = homeVal !== "" && awayVal !== "";
@@ -192,6 +206,53 @@ export function PendingMatchCard({ match, onSaved }: PendingMatchCardProps) {
           </button>
         </div>
       </div>
+
+      {/* Histórico na Copa */}
+      {teamHistory && teamHistory.length > 0 && (
+        <div className="border-t border-white/5">
+          <button
+            onClick={() => setShowHistory((v) => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 text-[11px] text-white/35 hover:text-white/60 transition-colors"
+          >
+            <span>{showHistory ? "▾" : "▸"} Histórico na Copa</span>
+            <span className="text-white/20">{teamHistory.length} jogo{teamHistory.length !== 1 ? "s" : ""}</span>
+          </button>
+          {showHistory && (
+            <div className="px-3 pb-3 space-y-2.5">
+              {teamHistory.map((h) => {
+                const homeIsAdversary = h.homeTeam === match.homeTeam || h.homeTeam === match.awayTeam;
+                const awayIsAdversary = h.awayTeam === match.homeTeam || h.awayTeam === match.awayTeam;
+                return (
+                  <div key={h.id}>
+                    <div className="text-[10px] text-white/25 uppercase tracking-wider mb-0.5">{h.phase}</div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      {h.homeFlag.startsWith("http") ? (
+                        <Image src={h.homeFlag} alt={h.homeTeam} width={14} height={14} className="object-contain shrink-0" unoptimized />
+                      ) : (
+                        <span className="text-sm leading-none shrink-0">{h.homeFlag || "⚽"}</span>
+                      )}
+                      <span className={homeIsAdversary ? "font-semibold text-white" : "text-white/50"}>
+                        {h.homeTeam}
+                      </span>
+                      <span className="text-white/50 font-bold tabular-nums shrink-0">
+                        {h.homeScore ?? "–"} × {h.awayScore ?? "–"}
+                      </span>
+                      <span className={awayIsAdversary ? "font-semibold text-white" : "text-white/50"}>
+                        {h.awayTeam}
+                      </span>
+                      {h.awayFlag.startsWith("http") ? (
+                        <Image src={h.awayFlag} alt={h.awayTeam} width={14} height={14} className="object-contain shrink-0" unoptimized />
+                      ) : (
+                        <span className="text-sm leading-none shrink-0">{h.awayFlag || "⚽"}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -64,18 +64,19 @@ function buildRodadas(matches: TestMatch[]): Rodada[] {
     }
   }
 
-  const knockoutOrder = [
-    "Oitavas de Final",
-    "Quartas de Final",
-    "Semifinal",
-    "Disputa do 3º Lugar",
-    "Final",
+  const knockoutOrder: { phase: string; label: string }[] = [
+    { phase: "Rodada de 32",       label: "16 Avos" },
+    { phase: "Oitavas de Final",   label: "Oitavas de Final" },
+    { phase: "Quartas de Final",   label: "Quartas de Final" },
+    { phase: "Semifinal",          label: "Semifinal" },
+    { phase: "Disputa do 3º Lugar", label: "Disputa do 3º Lugar" },
+    { phase: "Final",              label: "Final" },
   ];
-  for (const phase of knockoutOrder) {
+  for (const { phase, label } of knockoutOrder) {
     const km = matches.filter((m) => m.phase === phase);
     if (km.length === 0) continue;
     const dates = [...new Set(km.map((m) => m.date.slice(0, 10).replace(/-/g, "")))];
-    rodadas.push({ id: phase, label: phase, dates, matches: km });
+    rodadas.push({ id: phase, label, dates, matches: km });
   }
 
   return rodadas;
