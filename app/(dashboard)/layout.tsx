@@ -6,6 +6,7 @@ import { LogOut } from "lucide-react";
 import { NavLinks } from "@/components/nav-links";
 import { NotificationBell } from "@/components/notification-bell";
 import { ToastProvider } from "@/components/toast-provider";
+import { TickerBar } from "@/components/ticker-bar";
 import { prisma } from "@/lib/db";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -16,8 +17,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen stadium-bg overflow-x-hidden">
+      {/* Ticker + Navbar colados no topo */}
+      <div className="sticky top-0 z-50">
+        <TickerBar />
       {/* Navbar glassmorphism */}
-      <nav className="sticky top-0 z-50 glass border-b border-white/10">
+      <nav className="glass border-b border-white/10">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 flex items-center justify-between gap-3">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-1.5 group shrink-0">
@@ -82,6 +86,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </div>
       </nav>
+      </div>
 
       <ToastProvider>
         <main className="max-w-4xl mx-auto px-3 sm:px-4 py-6 pb-10 w-full">{children}</main>
