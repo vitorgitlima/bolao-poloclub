@@ -112,15 +112,16 @@ export function RankingTimeline({ userId, leagueId }: { userId: string; leagueId
   const positions = data.map((d) => d.position);
   const maxPos = Math.max(...positions);
   const minPos = Math.min(...positions);
-  const first = data[0].position;
   const last = data[data.length - 1].position;
-  const trend = last < first ? "up" : last > first ? "down" : "flat";
+  const prev = data.length >= 2 ? data[data.length - 2].position : last;
+  const diff = prev - last; // positivo = subiu, negativo = caiu
+  const trend = diff > 0 ? "up" : diff < 0 ? "down" : "flat";
 
   const trendColor = trend === "up" ? "#4ade80" : trend === "down" ? "#f87171" : "#94a3b8";
   const trendLabel = trend === "up"
-    ? `▲ Subiu ${first - last} posição${first - last > 1 ? "s" : ""}`
+    ? `▲ Subiu ${diff} posição${diff > 1 ? "s" : ""} hoje`
     : trend === "down"
-      ? `▼ Caiu ${last - first} posição${last - first > 1 ? "s" : ""}`
+      ? `▼ Caiu ${Math.abs(diff)} posição${Math.abs(diff) > 1 ? "s" : ""} hoje`
       : "— Manteve posição";
 
   // Y axis domain: add 0.5 padding so dots don't clip on edges
@@ -185,7 +186,7 @@ export function RankingTimeline({ userId, leagueId }: { userId: string; leagueId
         {[
           { label: "Melhor", value: `${minPos}º` },
           { label: "Atual", value: `${last}º` },
-          { label: "Início", value: `${first}º` },
+          { label: "Ontem", value: `${prev}º` },
         ].map((s) => (
           <div key={s.label} className="flex-1 text-center bg-white/4 rounded-lg py-1.5">
             <div className="text-white font-bold text-sm">{s.value}</div>
