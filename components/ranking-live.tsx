@@ -386,7 +386,11 @@ export function RankingLive({ userId }: { userId?: string }) {
           {isContentLoading ? (
             <div className="py-12 text-center text-white/30 text-sm">Carregando...</div>
           ) : (
-            <RankingTable data={activeData.ranking} currentUserId={userId} />
+            <RankingTable
+              data={activeData.ranking}
+              currentUserId={userId}
+              leagueId={activeTab !== "geral" && activeTab !== "stats" ? activeTab : undefined}
+            />
           )}
         </div>
       )}

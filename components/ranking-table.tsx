@@ -270,9 +270,11 @@ function PredictionPanel({ userId }: { userId: string }) {
 export function RankingTable({
   data,
   currentUserId,
+  leagueId,
 }: {
   data: RankingEntry[];
   currentUserId?: string;
+  leagueId?: string;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedView, setExpandedView] = useState<Record<string, "palpites" | "timeline">>({});
@@ -507,7 +509,7 @@ export function RankingTable({
                 {(expandedView[entry.id] ?? "palpites") === "palpites" ? (
                   <PredictionPanel userId={entry.id} />
                 ) : (
-                  <RankingTimeline userId={entry.id} />
+                  <RankingTimeline userId={entry.id} leagueId={leagueId} />
                 )}
               </div>
             )}

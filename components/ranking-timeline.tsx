@@ -49,14 +49,19 @@ function ordinal(n: number) {
   return `${n}º`;
 }
 
-export function RankingTimeline({ userId }: { userId: string }) {
+export function RankingTimeline({ userId, leagueId }: { userId: string; leagueId?: string }) {
   const [data, setData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setData([]);
+    setLoading(true);
     async function load() {
       try {
-        const res = await fetch(`/api/users/${userId}/timeline`);
+        const url = leagueId
+          ? `/api/users/${userId}/timeline?leagueId=${leagueId}`
+          : `/api/users/${userId}/timeline`;
+        const res = await fetch(url);
         if (!res.ok) return;
         const { snapshots } = (await res.json()) as { snapshots: Snapshot[] };
         setData(
@@ -75,7 +80,7 @@ export function RankingTimeline({ userId }: { userId: string }) {
       }
     }
     load();
-  }, [userId]);
+  }, [userId, leagueId]);
 
   if (loading) {
     return (
