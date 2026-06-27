@@ -164,9 +164,8 @@ export function RankingTimeline({ userId, leagueId }: { userId: string; leagueId
           {minPos <= 3 && (
             <ReferenceLine
               y={3}
-              stroke="rgba(251,191,36,0.15)"
+              stroke="rgba(251,191,36,0.2)"
               strokeDasharray="4 4"
-              label={{ value: "Pódio", fill: "rgba(251,191,36,0.3)", fontSize: 9, position: "right" }}
             />
           )}
           <Line
