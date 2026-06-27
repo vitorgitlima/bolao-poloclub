@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { computeRanking } from "@/lib/ranking";
-import { getCache, setCache } from "@/lib/cache";
-
-const CACHE_KEY = "global-ranking";
-const CACHE_TTL = 60_000;
+import { computeRankingCached } from "@/lib/ranking";
 
 export async function GET() {
   const session = await auth();
@@ -13,11 +9,8 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const cached = getCache<object>(CACHE_KEY);
-  if (cached) return NextResponse.json(cached);
-
   const [result, remainingMatches] = await Promise.all([
-    computeRanking(),
+    computeRankingCached(),
     prisma.match.count({
       where: { status: "SCHEDULED", phase: { not: { startsWith: "🧪" } } },
     }),
@@ -29,6 +22,5 @@ export async function GET() {
     remainingMatches,
   };
 
-  setCache(CACHE_KEY, data, CACHE_TTL);
   return NextResponse.json(data);
 }

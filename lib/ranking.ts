@@ -1,3 +1,4 @@
+import { cacheTag, cacheLife } from "next/cache";
 import { prisma } from "@/lib/db";
 import { createRoundSummaryNotifications } from "@/lib/notifications";
 
@@ -312,6 +313,15 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
   }));
 
   return { ranking, highlights };
+}
+
+// Cache compartilhado entre todas as instâncias Lambda da Vercel.
+// revalidateTag('ranking') no sync força refresh imediato após placar mudar.
+export async function computeRankingCached(filterUserIds?: string[]) {
+  "use cache";
+  cacheLife({ revalidate: 60, stale: 30, expire: 600 });
+  cacheTag("ranking");
+  return computeRanking(filterUserIds);
 }
 
 // Cria snapshot do ranking para uma data BRT específica.
