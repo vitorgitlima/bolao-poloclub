@@ -1,4 +1,4 @@
-import { cacheTag, cacheLife } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 import { createRoundSummaryNotifications } from "@/lib/notifications";
 
@@ -315,14 +315,13 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
   return { ranking, highlights };
 }
 
-// Cache compartilhado entre todas as instâncias Lambda da Vercel.
-// revalidateTag('ranking') no sync força refresh imediato após placar mudar.
-export async function computeRankingCached(filterUserIds?: string[]) {
-  "use cache";
-  cacheLife({ revalidate: 60, stale: 30, expire: 600 });
-  cacheTag("ranking");
-  return computeRanking(filterUserIds);
-}
+// Cache compartilhado entre todas as instâncias Lambda da Vercel via Data Cache.
+// revalidateTag('ranking') no sync invalida imediatamente após placar mudar.
+export const computeRankingCached = unstable_cache(
+  async (filterUserIds?: string[]) => computeRanking(filterUserIds),
+  ["ranking"],
+  { revalidate: 60, tags: ["ranking"] }
+);
 
 // Cria snapshot do ranking para uma data BRT específica.
 // Chamada automaticamente pelo cron quando todos os jogos do dia fecham.

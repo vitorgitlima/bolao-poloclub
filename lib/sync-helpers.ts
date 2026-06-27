@@ -1,4 +1,4 @@
-import { updateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import {
   espnNameToPt,
@@ -163,7 +163,7 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     // Config table may not exist yet in production
   }
 
-  if (updatedMatches > 0) updateTag("ranking");
+  if (updatedMatches > 0) revalidateTag("ranking", "max");
 
   return { updatedMatches, updatedPredictions };
 }
