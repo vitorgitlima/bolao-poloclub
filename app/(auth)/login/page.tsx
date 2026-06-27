@@ -1,3 +1,4 @@
+import { unstable_noStore } from "next/cache";
 import { signIn } from "@/lib/auth";
 
 export default async function LoginPage({
@@ -5,6 +6,7 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ callbackUrl?: string }>;
 }) {
+  unstable_noStore();
   const { callbackUrl } = await searchParams;
   const redirectTo = callbackUrl ?? "/brasileirao";
   return (
