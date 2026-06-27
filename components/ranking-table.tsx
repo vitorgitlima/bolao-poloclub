@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Trophy, Target, Check, ChevronDown, ChevronUp, Loader2, Star } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { RankingTimeline } from "@/components/ranking-timeline";
 
 type RankingEntry = {
   id: string;
@@ -274,6 +275,7 @@ export function RankingTable({
   currentUserId?: string;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedView, setExpandedView] = useState<Record<string, "palpites" | "timeline">>({});
 
   if (data.length === 0) {
     return (
@@ -466,7 +468,7 @@ export function RankingTable({
               </div>
             </button>
 
-            {/* Expanded predictions panel */}
+            {/* Expanded panel */}
             {isExpanded && (
               <div
                 className={cn(
@@ -484,7 +486,29 @@ export function RankingTable({
                         : "bg-white/2 border-white/8"
                 )}
               >
-                <PredictionPanel userId={entry.id} />
+                {/* Tab switcher */}
+                <div className="flex gap-1 mb-3">
+                  {(["palpites", "timeline"] as const).map((view) => (
+                    <button
+                      key={view}
+                      onClick={() => setExpandedView((v) => ({ ...v, [entry.id]: view }))}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-[11px] font-medium transition-all",
+                        (expandedView[entry.id] ?? "palpites") === view
+                          ? "bg-white/15 text-white"
+                          : "text-white/35 hover:text-white/60"
+                      )}
+                    >
+                      {view === "palpites" ? "⚽ Palpites" : "📈 Linha do Tempo"}
+                    </button>
+                  ))}
+                </div>
+
+                {(expandedView[entry.id] ?? "palpites") === "palpites" ? (
+                  <PredictionPanel userId={entry.id} />
+                ) : (
+                  <RankingTimeline userId={entry.id} />
+                )}
               </div>
             )}
           </div>
