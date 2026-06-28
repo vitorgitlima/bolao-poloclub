@@ -27,7 +27,10 @@ type RankingEntry = {
   isTopExact: boolean;
   isTopRiser: boolean;
   isBolasMurcha: boolean;
+  isMissingNextPrediction: boolean;
 };
+
+type NextMatchWarning = { homeTeam: string; awayTeam: string; time: string } | null;
 
 type Highlights = {
   roundName: string;
@@ -37,7 +40,7 @@ type Highlights = {
   bolaMurcha: Array<string | null> | null;
 };
 
-type RankingData = { ranking: RankingEntry[]; highlights: Highlights | null; remainingMatches?: number };
+type RankingData = { ranking: RankingEntry[]; highlights: Highlights | null; remainingMatches?: number; nextMatchWarning?: NextMatchWarning };
 
 type League = { id: string; name: string; memberCount: number };
 
@@ -390,6 +393,7 @@ export function RankingLive({ userId }: { userId?: string }) {
               data={activeData.ranking}
               currentUserId={userId}
               leagueId={activeTab !== "geral" && activeTab !== "stats" ? activeTab : undefined}
+              nextMatchWarning={isGeral ? (globalData.nextMatchWarning ?? null) : null}
             />
           )}
         </div>

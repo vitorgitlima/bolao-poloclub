@@ -26,7 +26,10 @@ type RankingEntry = {
   isTopExact: boolean;
   isTopRiser: boolean;
   isBolasMurcha: boolean;
+  isMissingNextPrediction?: boolean;
 };
+
+type NextMatchWarning = { homeTeam: string; awayTeam: string; time: string } | null;
 
 type PredictionDetail = {
   matchId: string;
@@ -271,10 +274,12 @@ export function RankingTable({
   data,
   currentUserId,
   leagueId,
+  nextMatchWarning,
 }: {
   data: RankingEntry[];
   currentUserId?: string;
   leagueId?: string;
+  nextMatchWarning?: NextMatchWarning;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedView, setExpandedView] = useState<Record<string, "palpites" | "timeline">>({});
@@ -428,6 +433,11 @@ export function RankingTable({
                   <div className="hidden sm:block text-xs text-white/40">
                     {entry.predictions} palpite{entry.predictions !== 1 ? "s" : ""}
                   </div>
+                  {entry.isMissingNextPrediction && nextMatchWarning && (
+                    <div className="text-[10px] text-red-400/85 mt-0.5 font-medium leading-tight">
+                      ⚠ Sem palpite · {nextMatchWarning.homeTeam} × {nextMatchWarning.awayTeam} {nextMatchWarning.time}
+                    </div>
+                  )}
                 </div>
               </div>
 
