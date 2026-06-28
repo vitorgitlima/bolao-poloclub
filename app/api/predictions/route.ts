@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   if (!canPredictMatch(match.date)) {
     return NextResponse.json(
-      { error: "Prazo de palpite encerrado (1h antes do jogo)" },
+      { error: "Prazo de palpite encerrado (10 min antes do jogo)" },
       { status: 400 }
     );
   }
