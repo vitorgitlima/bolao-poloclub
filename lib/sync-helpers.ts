@@ -204,6 +204,10 @@ async function maybeSnapshotCopaRound(): Promise<void> {
     const [day, , month] = brtDate.split("-").reverse(); // "11", "2026", "06"
     const roundLabel = `Copa 2026 — ${day}/${month}`;
 
+    // Snapshot imutável: se já existe para esse dia, não sobrescreve
+    const existing = await prisma.roundSnapshot.count({ where: { roundLabel } });
+    if (existing > 0) continue;
+
     try {
       await snapshotCurrentRanking(roundLabel, brtDate);
       console.log(`📸 Snapshot automático: ${roundLabel}`);
