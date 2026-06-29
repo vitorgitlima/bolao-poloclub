@@ -70,7 +70,7 @@ export function RankingLive({ userId }: { userId?: string }) {
       const res = await fetch("/api/ranking");
       if (res.ok) {
         const data = await res.json();
-        setGlobalData({ ranking: data.ranking ?? [], highlights: data.highlights ?? null, remainingMatches: data.remainingMatches });
+        setGlobalData({ ranking: data.ranking ?? [], highlights: data.highlights ?? null, remainingMatches: data.remainingMatches, nextMatchWarning: data.nextMatchWarning ?? null });
         setLastUpdated(new Date());
       }
     } finally {

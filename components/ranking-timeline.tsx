@@ -118,11 +118,12 @@ export function RankingTimeline({ userId, leagueId }: { userId: string; leagueId
   const trend = diff > 0 ? "up" : diff < 0 ? "down" : "flat";
 
   const trendColor = trend === "up" ? "#4ade80" : trend === "down" ? "#f87171" : "#94a3b8";
+  const lastDate = data[data.length - 1].date;
   const trendLabel = trend === "up"
-    ? `▲ Subiu ${diff} posição${diff > 1 ? "s" : ""} hoje`
+    ? `▲ Subiu ${diff} posição${diff > 1 ? "s" : ""} em ${lastDate}`
     : trend === "down"
-      ? `▼ Caiu ${Math.abs(diff)} posição${Math.abs(diff) > 1 ? "s" : ""} hoje`
-      : "— Manteve posição";
+      ? `▼ Caiu ${Math.abs(diff)} posição${Math.abs(diff) > 1 ? "s" : ""} em ${lastDate}`
+      : `— Manteve posição em ${lastDate}`;
 
   // Y axis domain: add 0.5 padding so dots don't clip on edges
   const yMin = Math.max(1, minPos - 1);
