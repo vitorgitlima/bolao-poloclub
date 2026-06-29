@@ -74,10 +74,15 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
       (em.id ? await prisma.match.findUnique({ where: { externalId: parseInt(em.id) } }) : null);
     if (!match) continue;
 
+    const wasFinished = match.status === "FINISHED";
+
+    // Jogo já encerrado no nosso banco → não tocar mais.
+    // Protege correções manuais de placar e evita que a ESPN reverta para LIVE.
+    if (wasFinished) continue;
+
     const status = em.completed ? "FINISHED" : "LIVE";
     const homeScore = em.homeTeam.score;
     const awayScore = em.awayTeam.score;
-    const wasFinished = match.status === "FINISHED";
 
     // Mata-mata: pontos congelam no placar do tempo regular.
     // Prorrogação ou pênaltis não alteram placar nem pontuação.
