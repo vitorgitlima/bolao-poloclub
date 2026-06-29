@@ -79,6 +79,18 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     const awayScore = em.awayTeam.score;
     const wasFinished = match.status === "FINISHED";
 
+    // Mata-mata: pontos congelam no placar do tempo regular.
+    // Prorrogação ou pênaltis não alteram placar nem pontuação.
+    const d = em.statusDetail.toLowerCase();
+    const isPastRegulation = !!isKnockout && (
+      d.includes("extra time") ||
+      d.includes("penalty") ||
+      d.includes("shoot") ||
+      d.includes("aet") ||
+      d.includes("/et") ||
+      d.includes("/pen")
+    );
+
     const homeLogoUrl = em.homeTeam.logo ?? ESPN_LOGO_MAP[em.homeTeam.name];
     const awayLogoUrl = em.awayTeam.logo ?? ESPN_LOGO_MAP[em.awayTeam.name];
 
@@ -86,15 +98,15 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
       where: { id: match.id },
       data: {
         status,
-        homeScore,
-        awayScore,
+        // Só atualiza placar no tempo regular; em prorrogação/pênaltis congela
+        ...(!isPastRegulation && { homeScore, awayScore }),
         ...(homeLogoUrl && { homeFlag: homeLogoUrl }),
         ...(awayLogoUrl && { awayFlag: awayLogoUrl }),
       },
     });
     updatedMatches++;
 
-    if (status === "LIVE" || em.completed) {
+    if (!isPastRegulation && (status === "LIVE" || em.completed)) {
       const predictions = await prisma.prediction.findMany({
         where: { matchId: match.id },
       });
