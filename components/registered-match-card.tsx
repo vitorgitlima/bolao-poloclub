@@ -92,6 +92,9 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
 
   const isLive = match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
+  const isExtraTime = match.status === "EXTRA_TIME";
+  const isPenalties = match.status === "PENALTIES";
+  const isActive = isLive || isExtraTime || isPenalties;
   const canEdit = match.status === "SCHEDULED" && canPredictDate(match.date);
   const pts = pred.points;
 
@@ -136,7 +139,9 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
   return (
     <div className={cn(
       "glass-card overflow-hidden",
-      isLive && "border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.08)]"
+      isLive && "border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.08)]",
+      isExtraTime && "border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.08)]",
+      isPenalties && "border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.08)]",
     )}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
@@ -148,6 +153,16 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
             <span className="flex items-center gap-1 text-red-400 font-bold text-[10px]">
               <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
               AO VIVO
+            </span>
+          ) : isExtraTime ? (
+            <span className="flex items-center gap-1 text-orange-400 font-bold text-[10px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+              PRORROGAÇÃO
+            </span>
+          ) : isPenalties ? (
+            <span className="flex items-center gap-1 text-yellow-400 font-bold text-[10px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+              PÊNALTIS
             </span>
           ) : isFinished ? (
             <span className="text-emerald-400/80 text-[10px] font-semibold">Encerrado</span>
@@ -169,10 +184,13 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
         </div>
 
         <div className="flex flex-col items-center shrink-0 min-w-[68px]">
-          {isFinished || isLive ? (
+          {isFinished || isActive ? (
             <div className={cn(
               "text-2xl font-black px-3 py-1 rounded-xl tabular-nums",
-              isFinished ? "text-yellow-400" : "text-red-400 animate-pulse"
+              isFinished ? "text-yellow-400" :
+              isExtraTime ? "text-orange-400 animate-pulse" :
+              isPenalties ? "text-yellow-400 animate-pulse" :
+              "text-red-400 animate-pulse"
             )}>
               {match.homeScore} – {match.awayScore}
             </div>
@@ -257,10 +275,10 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
                   <Trophy className="w-3 h-3" /> +{pts} pts
                 </span>
               )}
-              {pts === null && (isLive || isFinished) && (
+                      {pts === null && (isActive || isFinished) && (
                 <span className="text-white/25 text-xs bg-white/5 px-2 py-1 rounded-full">0 pts</span>
               )}
-              {pts === null && !isLive && !isFinished && (
+              {pts === null && !isActive && !isFinished && (
                 <span className="text-white/25 text-xs">aguardando resultado</span>
               )}
               {canEdit && (
@@ -277,15 +295,19 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
         )}
       </div>
 
-      {/* Botão "Ver palpites" — só para LIVE e FINISHED */}
-      {(isLive || isFinished) && (
+      {/* Botão "Ver palpites" — para jogos em andamento ou finalizados */}
+      {(isActive || isFinished) && (
         <button
           onClick={toggleExpanded}
           className={cn(
             "w-full flex items-center justify-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold transition-all border-t",
             isLive
               ? "border-red-500/20 text-red-400/70 hover:text-red-400 hover:bg-red-500/5"
-              : "border-white/5 text-white/30 hover:text-white/50 hover:bg-white/3"
+              : isExtraTime
+                ? "border-orange-500/20 text-orange-400/70 hover:text-orange-400 hover:bg-orange-500/5"
+                : isPenalties
+                  ? "border-yellow-500/20 text-yellow-400/70 hover:text-yellow-400 hover:bg-yellow-500/5"
+                  : "border-white/5 text-white/30 hover:text-white/50 hover:bg-white/3"
           )}
         >
           {loadingPreds ? (
@@ -328,7 +350,7 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
                   <span className={cn(
                     "text-[11px] font-black tabular-nums shrink-0 w-6 text-right",
                     ptColor,
-                    isLive && p.points !== null && p.points > 0 && "animate-pulse"
+                    isLive && p.points !== null && p.points > 0 && "animate-pulse",
                   )}>
                     {p.points !== null ? `${p.points}` : "—"}
                   </span>

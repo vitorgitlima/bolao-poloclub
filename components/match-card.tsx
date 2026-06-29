@@ -43,11 +43,16 @@ export function MatchCard({ match, onPredictionSaved }: MatchCardProps) {
   const isLocked = !canPredict;
   const isLive = match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
+  const isExtraTime = match.status === "EXTRA_TIME";
+  const isPenalties = match.status === "PENALTIES";
+  const isActive = isLive || isExtraTime || isPenalties;
 
   return (
     <div className={cn(
       "glass-card p-0 overflow-hidden",
-      isLive && "border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
+      isLive && "border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.15)]",
+      isExtraTime && "border-orange-500/40 shadow-[0_0_20px_rgba(249,115,22,0.15)]",
+      isPenalties && "border-yellow-500/40 shadow-[0_0_20px_rgba(234,179,8,0.15)]",
     )}>
       <div className="flex items-center justify-between px-4 py-2 border-b border-white/8">
         <span className="text-xs font-semibold text-green-400 uppercase tracking-wider">{match.phase}</span>
@@ -55,6 +60,16 @@ export function MatchCard({ match, onPredictionSaved }: MatchCardProps) {
           <div className="flex items-center gap-1.5">
             <div className="live-dot" />
             <span className="text-red-400 text-xs font-bold">AO VIVO</span>
+          </div>
+        ) : isExtraTime ? (
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+            <span className="text-orange-400 text-xs font-bold">PRORROGAÇÃO</span>
+          </div>
+        ) : isPenalties ? (
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+            <span className="text-yellow-400 text-xs font-bold">PÊNALTIS</span>
           </div>
         ) : isFinished ? (
           <span className="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">Encerrado</span>
@@ -78,8 +93,14 @@ export function MatchCard({ match, onPredictionSaved }: MatchCardProps) {
           </div>
 
           <div className="flex flex-col items-center min-w-[72px]">
-            {isFinished || isLive ? (
-              <div className={cn("text-3xl font-black px-3 py-1 rounded-xl", isFinished ? "text-yellow-400" : "text-red-400 animate-pulse")}>
+            {isFinished || isActive ? (
+              <div className={cn(
+                "text-3xl font-black px-3 py-1 rounded-xl",
+                isFinished ? "text-yellow-400" :
+                isExtraTime ? "text-orange-400 animate-pulse" :
+                isPenalties ? "text-yellow-400 animate-pulse" :
+                "text-red-400 animate-pulse"
+              )}>
                 {match.homeScore} – {match.awayScore}
               </div>
             ) : (

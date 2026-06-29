@@ -80,14 +80,12 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     // Protege correções manuais de placar e evita que a ESPN reverta para LIVE.
     if (wasFinished) continue;
 
-    const status = em.completed ? "FINISHED" : "LIVE";
     const homeScore = em.homeTeam.score;
     const awayScore = em.awayTeam.score;
 
-    // Mata-mata: pontos congelam no placar do tempo regular.
-    // Prorrogação ou pênaltis não alteram placar nem pontuação.
+    // Detecta prorrogação/pênaltis pelo statusDetail da ESPN
     const d = em.statusDetail.toLowerCase();
-    const isPastRegulation = !!isKnockout && (
+    const isPastRegulationNow = !!isKnockout && (
       d.includes("extra time") ||
       d.includes("penalty") ||
       d.includes("shoot") ||
@@ -96,6 +94,20 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
       d.includes("/pen")
     );
 
+    // Guarda duplo: se o banco já tinha EXTRA_TIME ou PENALTIES, mantém proteção
+    // mesmo que a ESPN mude o statusDetail para "Full Time" na finalização.
+    const dbWasPastRegulation = match.status === "EXTRA_TIME" || match.status === "PENALTIES";
+    const isPastRegulation = isPastRegulationNow || dbWasPastRegulation;
+
+    // Status a gravar: FINISHED se concluído, ou label específico de fase
+    let liveStatus = "LIVE";
+    if (isPastRegulationNow) {
+      liveStatus = (d.includes("penalty") || d.includes("shoot")) ? "PENALTIES" : "EXTRA_TIME";
+    } else if (dbWasPastRegulation) {
+      liveStatus = match.status; // mantém EXTRA_TIME/PENALTIES até ESPN marcar completed
+    }
+    const status = em.completed ? "FINISHED" : liveStatus;
+
     const homeLogoUrl = em.homeTeam.logo ?? ESPN_LOGO_MAP[em.homeTeam.name];
     const awayLogoUrl = em.awayTeam.logo ?? ESPN_LOGO_MAP[em.awayTeam.name];
 
@@ -103,7 +115,7 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
       where: { id: match.id },
       data: {
         status,
-        // Só atualiza placar no tempo regular; em prorrogação/pênaltis congela
+        // Só atualiza placar durante o tempo regular
         ...(!isPastRegulation && { homeScore, awayScore }),
         ...(homeLogoUrl && { homeFlag: homeLogoUrl }),
         ...(awayLogoUrl && { awayFlag: awayLogoUrl }),
