@@ -201,7 +201,7 @@ async function maybeSnapshotCopaRound(): Promise<void> {
     // Só cria snapshot se TODOS os jogos do dia fecharam
     if (!matches.every((m) => m.status === "FINISHED")) continue;
 
-    const [day, , month] = brtDate.split("-").reverse(); // "11", "2026", "06"
+    const [day, month] = brtDate.split("-").reverse(); // ["11", "06", "2026"] → day="11", month="06"
     const roundLabel = `Copa 2026 — ${day}/${month}`;
 
     // Snapshot imutável: se já existe para esse dia, não sobrescreve
