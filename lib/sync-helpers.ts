@@ -125,14 +125,29 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     });
     updatedMatches++;
 
-    if (!isPastRegulation && (status === "LIVE" || em.completed)) {
+    // Calcula pontos em 3 momentos:
+    // 1. Tempo regular (LIVE): usa placar ESPN (pode mudar a cada sync)
+    // 2. Primeira detecção de ET/pênaltis: usa placar congelado do DB (tempo regular)
+    // 3. Jogo finalizado após ET/pênaltis: usa placar congelado do DB + envia notificações
+    const isFirstEtDetection = isPastRegulationNow && !dbWasPastRegulation;
+    const isFinishingAfterEt = isPastRegulation && em.completed && !wasFinished;
+    const shouldCalcPoints =
+      (!isPastRegulation && (status === "LIVE" || em.completed)) ||
+      isFirstEtDetection ||
+      isFinishingAfterEt;
+
+    if (shouldCalcPoints) {
+      // Durante ET/pós-ET: calcula com o placar de tempo regular (congelado no DB)
+      const calcHome = isPastRegulation ? (match.homeScore ?? 0) : homeScore;
+      const calcAway = isPastRegulation ? (match.awayScore ?? 0) : awayScore;
+
       const predictions = await prisma.prediction.findMany({
         where: { matchId: match.id },
       });
       for (const pred of predictions) {
         const { points } = calculatePoints(
           { home: pred.homeScore, away: pred.awayScore },
-          { home: homeScore, away: awayScore }
+          { home: calcHome, away: calcAway }
         );
         if (pred.points !== points) {
           await prisma.prediction.update({ where: { id: pred.id }, data: { points } });
@@ -140,7 +155,7 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
         }
       }
 
-      // Coleta para notificações de pontos (só na transição para FINISHED)
+      // Notificações de pontos (só na transição para FINISHED)
       if (em.completed && !wasFinished && predictions.length > 0) {
         const updatedPreds = await prisma.prediction.findMany({
           where: { matchId: match.id },
@@ -149,7 +164,7 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
         finishedNow.push({
           matchId: match.id,
           label: `${homePt} × ${awayPt}`,
-          score: `${homeScore}–${awayScore}`,
+          score: `${calcHome}–${calcAway}`,
           predictions: updatedPreds,
         });
       }
