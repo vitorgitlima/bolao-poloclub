@@ -29,6 +29,7 @@ export type EspnMatch = {
   date: string;
   status: "pre" | "in" | "post";
   statusDetail: string;
+  period: number; // 1=1°T 2=2°T 3+=prorrogação/pênaltis
   seasonSlug?: string; // e.g. "round-of-32", "round-of-16", "quarterfinals", "semifinal", "final"
   homeTeam: { name: string; abbr: string; score: number; logo?: string };
   awayTeam: { name: string; abbr: string; score: number; logo?: string };
@@ -74,11 +75,18 @@ function parseEvent(event: Record<string, unknown>): EspnMatch | null {
     const homeLogo = (homeTeamData.logo ?? (homeTeamData.logos as Record<string, unknown>[])?.[0]?.href) as string | undefined;
     const awayLogo = (awayTeamData.logo ?? (awayTeamData.logos as Record<string, unknown>[])?.[0]?.href) as string | undefined;
 
+    const period = Number(
+      (status as Record<string, unknown>).period ??
+      (event.status as Record<string, unknown>)?.period ??
+      1
+    );
+
     return {
       id: event.id as string,
       date: event.date as string,
       status: statusType.state as "pre" | "in" | "post",
-      statusDetail: statusType.description as string,
+      statusDetail: (statusType.description ?? statusType.detail ?? statusType.name ?? "") as string,
+      period,
       seasonSlug: (event.season as Record<string, unknown>)?.slug as string | undefined,
       homeTeam: {
         name: homeTeamData.displayName as string,

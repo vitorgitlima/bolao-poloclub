@@ -83,11 +83,12 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     const homeScore = em.homeTeam.score;
     const awayScore = em.awayTeam.score;
 
-    // Detecta prorrogação/pênaltis pelo statusDetail da ESPN
-    // ESPN usa: "Extra Time", "1st Extra", "2nd Extra", "Extra Time - Half Time",
-    // "Penalty Shootout", "AET", etc.
+    // Detecta prorrogação/pênaltis pelo statusDetail da ESPN ou pelo período (> 2)
+    // ESPN usa: "Extra Time", "1st Extra", "2nd Extra", "Penalty Shootout", "AET", etc.
+    // Fallback: period > 2 é inequívoco (período 3 = ET, período 5 = pênaltis)
     const d = em.statusDetail.toLowerCase();
     const isPastRegulationNow = !!isKnockout && (
+      em.period > 2 ||          // fallback numérico mais confiável
       d.includes("extra") ||    // "Extra Time", "1st Extra", "2nd Extra"
       d.includes("penalty") ||
       d.includes("shoot") ||
