@@ -136,7 +136,7 @@ export default function DashboardPage() {
     if (matches.length === 0 || autoSelected.current) return;
     const best =
       rodadas.find((r) => r.matches.some((m) => m.status === "SCHEDULED" && canPredict(m.date)))?.id ??
-      rodadas.find((r) => r.matches.some((m) => m.status === "LIVE"))?.id ??
+      rodadas.find((r) => r.matches.some((m) => ["LIVE", "EXTRA_TIME", "PENALTIES"].includes(m.status)))?.id ??
       rodadas[0]?.id;
     if (best) { setActiveRodada(best); autoSelected.current = true; }
   }, [matches]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -208,7 +208,7 @@ export default function DashboardPage() {
     );
   }
 
-  const hasLive = matches.some((m) => m.status === "LIVE");
+  const hasLive = matches.some((m) => ["LIVE", "EXTRA_TIME", "PENALTIES"].includes(m.status));
 
   return (
     <div className="space-y-5">
@@ -230,7 +230,7 @@ export default function DashboardPage() {
 
       {/* Stats */}
       {(() => {
-        const played    = matches.filter((m) => m.status === "FINISHED" || m.status === "LIVE").length;
+        const played    = matches.filter((m) => ["FINISHED", "LIVE", "EXTRA_TIME", "PENALTIES"].includes(m.status)).length;
         const remaining = matches.length - played;
         return (
           <div className="grid grid-cols-3 gap-3">
@@ -387,7 +387,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             (() => {
-              const live     = registrados.filter((m) => m.status === "LIVE");
+              const live     = registrados.filter((m) => ["LIVE", "EXTRA_TIME", "PENALTIES"].includes(m.status));
               const upcoming = registrados.filter((m) => m.status === "SCHEDULED");
               const finished = registrados.filter((m) => m.status === "FINISHED");
               return (
