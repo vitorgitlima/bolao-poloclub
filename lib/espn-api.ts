@@ -131,7 +131,7 @@ export async function getEspnLiveAndToday(): Promise<EspnMatch[]> {
 function getStat(competitor: Record<string, unknown>, name: string): number {
   const stats = (competitor.statistics ?? []) as Record<string, unknown>[];
   const s = stats.find((x) => (x as Record<string, unknown>).name === name);
-  return Number((s as Record<string, unknown>)?.value ?? 0) || 0;
+  return Number((s as Record<string, unknown>)?.displayValue ?? 0) || 0;
 }
 
 function parseLiveDetails(event: Record<string, unknown>): EspnLiveDetails | null {
