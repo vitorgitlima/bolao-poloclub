@@ -25,7 +25,7 @@ type LiveDetails = {
   events: EventDetail[];
 };
 
-const POLL_MS = 30_000;
+const POLL_MS = 60_000;
 
 function CardPip({ color }: { color: "yellow" | "red" }) {
   return (

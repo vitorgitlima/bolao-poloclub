@@ -44,7 +44,7 @@ type RankingData = { ranking: RankingEntry[]; highlights: Highlights | null; rem
 
 type League = { id: string; name: string; memberCount: number };
 
-const POLL_INTERVAL = 60_000;
+const POLL_INTERVAL = 90_000;
 
 export function RankingLive({ userId }: { userId?: string }) {
   const [globalData, setGlobalData] = useState<RankingData>({ ranking: [], highlights: null });

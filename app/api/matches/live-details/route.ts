@@ -10,7 +10,7 @@ const getCachedLiveDetails = unstable_cache(
     return getEspnLiveDetailsByDate(todayBRT);
   },
   ["live-details"],
-  { revalidate: 20 }
+  { revalidate: 30 }
 );
 
 export async function GET() {
