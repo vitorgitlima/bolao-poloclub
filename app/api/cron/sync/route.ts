@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEspnLiveAndToday } from "@/lib/espn-api";
 import { processEspnMatches } from "@/lib/sync-helpers";
+import { prisma } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -13,7 +14,17 @@ export async function GET(req: NextRequest) {
   try {
     const matches = await getEspnLiveAndToday();
     const { updatedMatches, updatedPredictions } = await processEspnMatches(matches);
-    return NextResponse.json({ ok: true, updatedMatches, updatedPredictions });
+
+    const nextMatch = await prisma.match.findFirst({
+      where: { status: "SCHEDULED", date: { gt: new Date() } },
+      orderBy: { date: "asc" },
+      select: { date: true },
+    });
+    const nextMatchIn = nextMatch
+      ? Math.floor((nextMatch.date.getTime() - Date.now()) / 1000)
+      : null;
+
+    return NextResponse.json({ ok: true, updatedMatches, updatedPredictions, nextMatchIn });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Sync failed" },
