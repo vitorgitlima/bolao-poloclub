@@ -125,15 +125,15 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     });
     updatedMatches++;
 
-    // Calcula pontos em 3 momentos:
+    // Calcula pontos em 3 casos:
     // 1. Tempo regular (LIVE): usa placar ESPN (pode mudar a cada sync)
-    // 2. Primeira detecção de ET/pênaltis: usa placar congelado do DB (tempo regular)
+    // 2. Em ET/PENALTIES (qualquer sync): usa placar congelado do DB — idempotente,
+    //    só grava se mudou; cobre tanto a primeira detecção quanto DB já em EXTRA_TIME
     // 3. Jogo finalizado após ET/pênaltis: usa placar congelado do DB + envia notificações
-    const isFirstEtDetection = isPastRegulationNow && !dbWasPastRegulation;
     const isFinishingAfterEt = isPastRegulation && em.completed && !wasFinished;
     const shouldCalcPoints =
       (!isPastRegulation && (status === "LIVE" || em.completed)) ||
-      isFirstEtDetection ||
+      (isPastRegulation && !em.completed) ||
       isFinishingAfterEt;
 
     if (shouldCalcPoints) {

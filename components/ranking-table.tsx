@@ -96,9 +96,12 @@ type PredictionPanelData = {
 
 function PredictionRow({ p }: { p: PredictionDetail }) {
   const isLive      = p.status === "LIVE";
+  const isExtraTime = p.status === "EXTRA_TIME";
+  const isPenalties = p.status === "PENALTIES";
   const isFinished  = p.status === "FINISHED";
+  const isActive    = isLive || isExtraTime || isPenalties;
   const hasScore    = p.actualHome !== null && p.actualAway !== null;
-  const isExact     = isFinished && p.points === 6;
+  const isExact     = (isFinished || isExtraTime || isPenalties) && p.points === 6;
   const isLiveExact = isLive && p.points === 6;
 
   return (
@@ -124,6 +127,14 @@ function PredictionRow({ p }: { p: PredictionDetail }) {
             <span className="text-red-400 text-[10px] font-bold animate-pulse">
               {hasScore ? `${p.actualHome}–${p.actualAway}` : "AO VIVO"}
             </span>
+          ) : isExtraTime ? (
+            <span className="text-orange-400 text-[10px] font-bold animate-pulse">
+              {hasScore ? `${p.actualHome}–${p.actualAway}` : "PRORR."}
+            </span>
+          ) : isPenalties ? (
+            <span className="text-yellow-400 text-[10px] font-bold animate-pulse">
+              {hasScore ? `${p.actualHome}–${p.actualAway}` : "PEN."}
+            </span>
           ) : hasScore ? (
             <span className="text-white/40 text-xs tabular-nums">{p.actualHome}–{p.actualAway}</span>
           ) : (
@@ -144,11 +155,11 @@ function PredictionRow({ p }: { p: PredictionDetail }) {
           )}
         </div>
 
-        {/* Pontos: pulsam se LIVE e pontuando, fixos se encerrado, — caso contrário */}
+        {/* Pontos: pulsam se ao vivo, fixos se encerrado/ET/PEN, — se ainda não calculado */}
         <div className="text-sm font-bold shrink-0">
           {isLive && p.points > 0 ? (
             <span className={cn("animate-pulse", pointsColor(p.points))}>{p.points}</span>
-          ) : isFinished ? (
+          ) : (isFinished || isExtraTime || isPenalties) && p.points >= 0 ? (
             <span className={pointsColor(p.points)}>{p.points}</span>
           ) : (
             <span className="text-white/20 text-[10px]">—</span>
@@ -206,9 +217,10 @@ function PredictionPanel({ userId }: { userId: string }) {
       ? [{ label: "", items: data.predictions }]
       : [{ label: selectedPhase, items: filtered }];
 
-  const totalPts   = filtered.reduce((s, p) => s + (p.status === "FINISHED" ? p.points : 0), 0);
+  const CLOSED = ["FINISHED", "EXTRA_TIME", "PENALTIES"];
+  const totalPts   = filtered.reduce((s, p) => s + (CLOSED.includes(p.status) ? p.points : 0), 0);
   const livePts    = filtered.reduce((s, p) => s + (p.status === "LIVE" && p.points > 0 ? p.points : 0), 0);
-  const exactCount = filtered.filter((p) => p.status === "FINISHED" && p.points === 6).length;
+  const exactCount = filtered.filter((p) => CLOSED.includes(p.status) && p.points === 6).length;
 
   return (
     <div className="space-y-3">
