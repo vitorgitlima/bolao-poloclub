@@ -27,7 +27,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ matchId
     .map((p) => {
       let points: number | null = null;
       if (
-        (match.status === "LIVE" || match.status === "FINISHED") &&
+        (["LIVE", "FINISHED", "EXTRA_TIME", "PENALTIES"].includes(match.status)) &&
         match.homeScore !== null &&
         match.awayScore !== null
       ) {
