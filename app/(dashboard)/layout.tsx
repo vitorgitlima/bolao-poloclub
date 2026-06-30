@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const session = await auth();
   if (!session) redirect("/login");
 
-  const hasLive = (await prisma.match.count({ where: { status: "LIVE" } })) > 0;
+  const hasLive = (await prisma.match.count({ where: { status: { in: ["LIVE", "EXTRA_TIME", "PENALTIES"] } } })) > 0;
 
   return (
     <div className="min-h-screen stadium-bg overflow-x-hidden">
