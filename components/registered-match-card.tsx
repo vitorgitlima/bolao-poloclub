@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/toast-provider";
+import { LiveMatchBar } from "./live-match-bar";
 
 function Flag({ flag, name }: { flag: string; name: string }) {
   if (flag.startsWith("http")) {
@@ -49,6 +50,7 @@ type MatchPrediction = {
 
 type Match = {
   id: string;
+  externalId: number | null;
   homeTeam: string;
   awayTeam: string;
   homeFlag: string;
@@ -211,6 +213,13 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
           </span>
         </div>
       </div>
+
+      {/* Live stats — só quando jogo está ativo */}
+      {isActive && (
+        <div className="px-3 pb-1">
+          <LiveMatchBar externalId={match.externalId} status={match.status} />
+        </div>
+      )}
 
       {/* Footer: palpite + pontos + editar */}
       <div className="border-t border-white/5 px-4 py-3">

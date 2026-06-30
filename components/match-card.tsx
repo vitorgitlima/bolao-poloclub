@@ -8,6 +8,7 @@ import { ptBR } from "date-fns/locale";
 import { Lock, Trophy, MapPin, Clock } from "lucide-react";
 import { canPredictMatch } from "@/lib/points";
 import { cn } from "@/lib/utils";
+import { LiveMatchBar } from "./live-match-bar";
 
 type Prediction = {
   homeScore: number;
@@ -17,6 +18,7 @@ type Prediction = {
 
 type Match = {
   id: string;
+  externalId: number | null;
   homeTeam: string;
   awayTeam: string;
   homeFlag: string;
@@ -127,7 +129,9 @@ export function MatchCard({ match, onPredictionSaved }: MatchCardProps) {
           </div>
         )}
 
-        <div className="border-t border-white/8 pt-3">
+        <LiveMatchBar externalId={match.externalId} status={match.status} />
+
+        <div className="border-t border-white/8 pt-3 mt-2.5">
           {prediction ? (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

@@ -15,6 +15,7 @@ type Prediction = {
 
 type Match = {
   id: string;
+  externalId: number | null;
   homeTeam: string;
   awayTeam: string;
   homeFlag: string;

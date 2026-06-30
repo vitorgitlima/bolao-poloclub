@@ -2,6 +2,28 @@
 const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world";
 const ESPN_BRA  = "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1";
 
+export type EspnEventDetail = {
+  minute: string;
+  side: "home" | "away";
+  type: "goal" | "yellow" | "red";
+  playerName: string;
+  ownGoal: boolean;
+  penalty: boolean;
+};
+
+export type EspnLiveDetails = {
+  id: string;
+  displayClock: string;
+  period: number;
+  homeCards: { yellow: number; red: number };
+  awayCards: { yellow: number; red: number };
+  homePossession: number;
+  awayPossession: number;
+  homeShotsOnTarget: number;
+  awayShotsOnTarget: number;
+  events: EspnEventDetail[];
+};
+
 export type EspnMatch = {
   id: string;
   date: string;
@@ -104,6 +126,90 @@ export async function getEspnLiveAndToday(): Promise<EspnMatch[]> {
     seen.add(m.id);
     return true;
   });
+}
+
+function getStat(competitor: Record<string, unknown>, name: string): number {
+  const stats = (competitor.statistics ?? []) as Record<string, unknown>[];
+  const s = stats.find((x) => (x as Record<string, unknown>).name === name);
+  return Number((s as Record<string, unknown>)?.value ?? 0) || 0;
+}
+
+function parseLiveDetails(event: Record<string, unknown>): EspnLiveDetails | null {
+  try {
+    const comp = (event.competitions as Record<string, unknown>[])[0];
+    const compStatus = comp.status as Record<string, unknown>;
+    const compStatusType = compStatus.type as Record<string, unknown>;
+    if (compStatusType.state !== "in") return null;
+
+    const eventStatus = event.status as Record<string, unknown>;
+    const displayClock = ((eventStatus.displayClock ?? compStatus.displayClock) as string | undefined) ?? "";
+    const period = Number(eventStatus.period ?? compStatus.period ?? 1);
+
+    const competitors = comp.competitors as Record<string, unknown>[];
+    const home = competitors.find((c) => (c as Record<string, unknown>).homeAway === "home") as Record<string, unknown> | undefined;
+    const away = competitors.find((c) => (c as Record<string, unknown>).homeAway === "away") as Record<string, unknown> | undefined;
+    if (!home || !away) return null;
+
+    const homeTeamId = ((home.team as Record<string, unknown>).id) as string;
+    const awayTeamId = ((away.team as Record<string, unknown>).id) as string;
+
+    const homePoss = getStat(home, "possessionPct");
+    const awayPoss = getStat(away, "possessionPct") || (homePoss > 0 ? Math.round(100 - homePoss) : 0);
+
+    const details = (comp.details ?? []) as Record<string, unknown>[];
+    let homeYellow = 0, homeRed = 0, awayYellow = 0, awayRed = 0;
+    const events: EspnEventDetail[] = [];
+
+    for (const d of details) {
+      const teamId = ((d.team as Record<string, unknown>)?.id ?? "") as string;
+      const side: "home" | "away" = teamId === homeTeamId ? "home" : teamId === awayTeamId ? "away" : "home";
+      const minute = ((d.clock as Record<string, unknown>)?.displayValue ?? "") as string;
+      const athletes = (d.athletesInvolved as Record<string, unknown>[]) ?? [];
+      const playerName = ((athletes[0] as Record<string, unknown>)?.displayName ?? "") as string;
+      const isYellow = Boolean(d.yellowCard);
+      const isRed = Boolean(d.redCard);
+      const isScoring = Boolean(d.scoringPlay);
+      const isOwnGoal = Boolean(d.ownGoal);
+      const isPenalty = Boolean(d.penaltyKick);
+
+      if (isYellow) {
+        if (side === "home") homeYellow++; else awayYellow++;
+        events.push({ minute, side, type: "yellow", playerName, ownGoal: false, penalty: false });
+      } else if (isRed) {
+        if (side === "home") homeRed++; else awayRed++;
+        events.push({ minute, side, type: "red", playerName, ownGoal: false, penalty: false });
+      } else if (isScoring) {
+        events.push({ minute, side, type: "goal", playerName, ownGoal: isOwnGoal, penalty: isPenalty });
+      }
+    }
+
+    return {
+      id: event.id as string,
+      displayClock,
+      period,
+      homeCards: { yellow: homeYellow, red: homeRed },
+      awayCards: { yellow: awayYellow, red: awayRed },
+      homePossession: homePoss,
+      awayPossession: awayPoss,
+      homeShotsOnTarget: getStat(home, "shotsOnTarget"),
+      awayShotsOnTarget: getStat(away, "shotsOnTarget"),
+      events,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getEspnLiveDetailsByDate(date: string): Promise<EspnLiveDetails[]> {
+  try {
+    const res = await fetch(`${ESPN_BASE}/scoreboard?dates=${date}&limit=20`, { cache: "no-store" });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const events = (json.events ?? []) as Record<string, unknown>[];
+    return events.map(parseLiveDetails).filter(Boolean) as EspnLiveDetails[];
+  } catch {
+    return [];
+  }
 }
 
 export async function getEspnBrasileiraoByDate(date: string): Promise<EspnMatch[]> {
