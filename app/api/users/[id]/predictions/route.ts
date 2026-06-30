@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const matchFilter = {
     ...phaseCondition,
     OR: [
-      { status: { in: ["FINISHED", "LIVE"] } },
+      { status: { in: ["FINISHED", "LIVE", "EXTRA_TIME", "PENALTIES"] } },
       { status: "SCHEDULED", date: { lte: lockCutoff } },
     ],
   };
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         match: {
           phase: { not: { startsWith: "🧪" } },
           OR: [
-            { status: { in: ["FINISHED", "LIVE"] } },
+            { status: { in: ["FINISHED", "LIVE", "EXTRA_TIME", "PENALTIES"] } },
             { status: "SCHEDULED", date: { lte: lockCutoff } },
           ],
         },
