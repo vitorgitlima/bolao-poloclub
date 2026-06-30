@@ -19,7 +19,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Placar inválido" }, { status: 400 });
   }
 
-  const matchStatus = status === "LIVE" ? "LIVE" : status === "FINISHED" ? "FINISHED" : "LIVE";
+  const validStatuses = ["LIVE", "FINISHED", "EXTRA_TIME", "PENALTIES"];
+  const matchStatus = validStatuses.includes(status) ? status : "LIVE";
 
   await prisma.match.update({
     where: { id: matchId },

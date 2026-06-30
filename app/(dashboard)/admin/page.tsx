@@ -85,12 +85,15 @@ function buildRodadas(matches: TestMatch[]): Rodada[] {
 function statusBadge(status: string) {
   if (status === "FINISHED") return <span className="text-green-400 text-[10px] font-bold">FIM</span>;
   if (status === "LIVE") return <span className="text-red-400 text-[10px] font-bold animate-pulse">AO VIVO</span>;
+  if (status === "EXTRA_TIME") return <span className="text-orange-400 text-[10px] font-bold animate-pulse">PRORROG.</span>;
+  if (status === "PENALTIES") return <span className="text-yellow-400 text-[10px] font-bold animate-pulse">PÊNALTIS</span>;
   return <span className="text-white/30 text-[10px]">AGENDADO</span>;
 }
 
 function ManualScoreRow({ match, onSaved }: { match: TestMatch; onSaved: () => void }) {
   const [home, setHome] = useState(match.homeScore?.toString() ?? "");
   const [away, setAway] = useState(match.awayScore?.toString() ?? "");
+  const isPastRegulation = match.status === "EXTRA_TIME" || match.status === "PENALTIES";
   const [matchStatus, setMatchStatus] = useState<"LIVE" | "FINISHED">(
     match.status === "FINISHED" ? "FINISHED" : "LIVE"
   );
@@ -103,10 +106,12 @@ function ManualScoreRow({ match, onSaved }: { match: TestMatch; onSaved: () => v
     if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
     setSaving(true);
     try {
+      // Preserva EXTRA_TIME/PENALTIES quando admin só quer corrigir o placar
+      const statusToSend = isPastRegulation ? match.status : matchStatus;
       await fetch(`/api/admin/matches/${match.id}/result`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ homeScore: h, awayScore: a, status: matchStatus }),
+        body: JSON.stringify({ homeScore: h, awayScore: a, status: statusToSend }),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -139,7 +144,7 @@ function ManualScoreRow({ match, onSaved }: { match: TestMatch; onSaved: () => v
         placeholder="–"
       />
       <span className="flex-1 text-white/70 text-right truncate">{match.awayTeam}</span>
-      {home !== "" && away !== "" ? (
+      {home !== "" && away !== "" && !isPastRegulation ? (
         <button
           onClick={() => setMatchStatus(s => s === "LIVE" ? "FINISHED" : "LIVE")}
           title="Alternar status"

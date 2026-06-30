@@ -84,14 +84,15 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     const awayScore = em.awayTeam.score;
 
     // Detecta prorrogação/pênaltis pelo statusDetail da ESPN
+    // ESPN usa: "Extra Time", "1st Extra", "2nd Extra", "Extra Time - Half Time",
+    // "Penalty Shootout", "AET", etc.
     const d = em.statusDetail.toLowerCase();
     const isPastRegulationNow = !!isKnockout && (
-      d.includes("extra time") ||
+      d.includes("extra") ||    // "Extra Time", "1st Extra", "2nd Extra"
       d.includes("penalty") ||
       d.includes("shoot") ||
       d.includes("aet") ||
-      d.includes("/et") ||
-      d.includes("/pen")
+      d.includes("pen")
     );
 
     // Guarda duplo: se o banco já tinha EXTRA_TIME ou PENALTIES, mantém proteção
