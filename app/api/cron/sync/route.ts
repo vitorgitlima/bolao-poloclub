@@ -15,14 +15,22 @@ export async function GET(req: NextRequest) {
     const matches = await getEspnLiveAndToday();
     const { updatedMatches, updatedPredictions } = await processEspnMatches(matches);
 
+    // Jogo scheduled com data já passada = deveria estar ao vivo (ESPN ainda não detectou)
+    const overdueScheduled = await prisma.match.count({
+      where: { status: "SCHEDULED", date: { lte: new Date() } },
+    });
+
     const nextMatch = await prisma.match.findFirst({
       where: { status: "SCHEDULED", date: { gt: new Date() } },
       orderBy: { date: "asc" },
       select: { date: true },
     });
-    const nextMatchIn = nextMatch
-      ? Math.floor((nextMatch.date.getTime() - Date.now()) / 1000)
-      : null;
+    // Se há jogo atrasado (scheduled mas data passada), reporta como 0s para forçar sync agressivo
+    const nextMatchIn = overdueScheduled > 0
+      ? 0
+      : nextMatch
+        ? Math.floor((nextMatch.date.getTime() - Date.now()) / 1000)
+        : null;
 
     return NextResponse.json({ ok: true, updatedMatches, updatedPredictions, nextMatchIn });
   } catch (err) {
