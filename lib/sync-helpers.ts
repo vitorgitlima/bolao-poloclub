@@ -216,11 +216,11 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
 
 // Verifica se todos os jogos de algum dia BRT já fecharam e cria snapshot
 async function maybeSnapshotCopaRound(): Promise<void> {
-  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const recentMatches = await prisma.match.findMany({
     where: {
-      date: { gte: threeDaysAgo },
+      date: { gte: sevenDaysAgo },
       phase: { not: { startsWith: "🧪" } },
     },
     select: { date: true, status: true },
@@ -241,22 +241,22 @@ async function maybeSnapshotCopaRound(): Promise<void> {
 
   const now = new Date();
 
-  for (const [brtDate, matches] of byBRTDate) {
+  // Ordena cronologicamente para que snapshots retroativos sejam criados em sequência correta
+  const sortedDates = [...byBRTDate.keys()].sort();
+
+  for (const brtDate of sortedDates) {
+    const matches = byBRTDate.get(brtDate)!;
     // Só processa datas passadas ou hoje
     if (new Date(`${brtDate}T03:00:00Z`) > now) continue;
-    // Só cria snapshot se TODOS os jogos do dia fecharam
+    // Só cria/atualiza snapshot se TODOS os jogos do dia fecharam
     if (!matches.every((m) => m.status === "FINISHED")) continue;
 
     const [day, month] = brtDate.split("-").reverse(); // ["11", "06", "2026"] → day="11", month="06"
     const roundLabel = `Copa 2026 — ${day}/${month}`;
 
-    // Snapshot imutável: se já existe para esse dia, não sobrescreve
-    const existing = await prisma.roundSnapshot.count({ where: { roundLabel } });
-    if (existing > 0) continue;
-
     try {
       await snapshotCurrentRanking(roundLabel, brtDate);
-      console.log(`📸 Snapshot automático: ${roundLabel}`);
+      console.log(`📸 Snapshot: ${roundLabel}`);
     } catch (err) {
       console.error(`Snapshot falhou para ${roundLabel}:`, err);
     }

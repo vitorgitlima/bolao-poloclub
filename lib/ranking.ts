@@ -333,6 +333,10 @@ export async function snapshotCurrentRanking(
   const startUTC = new Date(`${roundDate}T03:00:00Z`);
   const endUTC = new Date(startUTC.getTime() + 24 * 60 * 60 * 1000);
 
+  // Verifica se é criação nova (para notificações — evita reenvio em regenerações)
+  const isNew = (await prisma.roundSnapshot.count({ where: { roundLabel } })) === 0;
+
+  // Stats do dia (roundPoints, exatos, presença)
   const [roundPtsData, roundExactsData, roundPredData] = await Promise.all([
     prisma.prediction.groupBy({
       by: ["userId"],
@@ -376,12 +380,70 @@ export async function snapshotCurrentRanking(
   const roundExactsMap = new Map(roundExactsData.map((d) => [d.userId, d._count.id]));
   const hadPredSet = new Set(roundPredData.map((d) => d.userId));
 
-  const { ranking } = await computeRanking();
-  const nonDevRanking = ranking.filter((u) => !u.isDeveloper);
+  // Acumulado ATÉ o fim deste dia (date-bounded).
+  // Garante que snapshots retroativos não capturem pontos de jogos posteriores ao dia.
+  const closedStatuses = ["FINISHED", "EXTRA_TIME", "PENALTIES"] as const;
+  const [cumulPtsData, cumulExactData, cumulGdhData, cumulCwData] = await Promise.all([
+    prisma.prediction.groupBy({
+      by: ["userId"],
+      where: {
+        match: { date: { lt: endUTC }, status: { in: [...closedStatuses] }, phase: { not: { startsWith: "🧪" } } },
+        points: { not: null },
+      },
+      _sum: { points: true },
+    }),
+    prisma.prediction.groupBy({
+      by: ["userId"],
+      where: {
+        match: { date: { lt: endUTC }, status: { in: [...closedStatuses] }, phase: { not: { startsWith: "🧪" } } },
+        points: { equals: 6 },
+      },
+      _count: { id: true },
+    }),
+    prisma.prediction.groupBy({
+      by: ["userId"],
+      where: {
+        match: { date: { lt: endUTC }, status: { in: [...closedStatuses] }, phase: { not: { startsWith: "🧪" } } },
+        points: { equals: 4 },
+      },
+      _count: { id: true },
+    }),
+    prisma.prediction.groupBy({
+      by: ["userId"],
+      where: {
+        match: { date: { lt: endUTC }, status: { in: [...closedStatuses] }, phase: { not: { startsWith: "🧪" } } },
+        points: { equals: 3 },
+      },
+      _count: { id: true },
+    }),
+  ]);
 
-  // Snapshot anterior para calcular mudança de posição (para notificações)
+  const cumulPtsMap = new Map(cumulPtsData.map((d) => [d.userId, d._sum.points ?? 0]));
+  const cumulExactMap = new Map(cumulExactData.map((d) => [d.userId, d._count.id]));
+  const cumulGdhMap = new Map(cumulGdhData.map((d) => [d.userId, d._count.id]));
+  const cumulCwMap = new Map(cumulCwData.map((d) => [d.userId, d._count.id]));
+
+  // Todos os usuários não-developer
+  const allNonDevUsers = await prisma.user.findMany({
+    where: { isDeveloper: false },
+    select: { id: true },
+  });
+
+  // Stats acumulados por usuário até endUTC
+  const userStats = allNonDevUsers.map((u) => ({
+    id: u.id,
+    totalPoints: cumulPtsMap.get(u.id) ?? 0,
+    exactScores: cumulExactMap.get(u.id) ?? 0,
+    goalDifferenceHits: cumulGdhMap.get(u.id) ?? 0,
+    correctWinners: cumulCwMap.get(u.id) ?? 0,
+  }));
+
+  // Snapshot anterior (para notificações de mudança de posição)
   const prevSnap = await prisma.roundSnapshot.findMany({
-    where: { userId: { in: nonDevRanking.map((u) => u.id) } },
+    where: {
+      userId: { in: allNonDevUsers.map((u) => u.id) },
+      roundDate: { lt: roundDate },
+    },
     orderBy: { roundDate: "desc" },
     distinct: ["userId"],
   });
@@ -389,13 +451,17 @@ export async function snapshotCurrentRanking(
 
   const notifEntries: Parameters<typeof createRoundSummaryNotifications>[1] = [];
 
-  for (const user of nonDevRanking) {
-    const position = nonDevRanking.filter((u) => {
-      if (u.totalPoints !== user.totalPoints) return u.totalPoints > user.totalPoints;
-      if (u.exactScores !== user.exactScores) return u.exactScores > user.exactScores;
-      if (u.goalDifferenceHits !== user.goalDifferenceHits) return u.goalDifferenceHits > user.goalDifferenceHits;
-      return u.correctWinners > user.correctWinners;
-    }).length + 1;
+  for (const user of userStats) {
+    // Posição olímpica baseada em stats acumulados até este dia
+    const position =
+      userStats.filter((other) => {
+        if (other.totalPoints !== user.totalPoints) return other.totalPoints > user.totalPoints;
+        if (other.exactScores !== user.exactScores) return other.exactScores > user.exactScores;
+        if (other.goalDifferenceHits !== user.goalDifferenceHits)
+          return other.goalDifferenceHits > user.goalDifferenceHits;
+        return other.correctWinners > user.correctWinners;
+      }).length + 1;
+
     const roundPoints = roundPtsMap.get(user.id) ?? 0;
     const roundExacts = roundExactsMap.get(user.id) ?? 0;
     const hadPrediction = hadPredSet.has(user.id) && roundPtsMap.has(user.id);
@@ -415,7 +481,7 @@ export async function snapshotCurrentRanking(
       },
     });
 
-    if (hadPrediction) {
+    if (isNew && hadPrediction) {
       notifEntries.push({
         userId: user.id,
         roundPoints,
@@ -426,5 +492,7 @@ export async function snapshotCurrentRanking(
     }
   }
 
-  await createRoundSummaryNotifications(roundLabel, notifEntries);
+  if (isNew) {
+    await createRoundSummaryNotifications(roundLabel, notifEntries);
+  }
 }
