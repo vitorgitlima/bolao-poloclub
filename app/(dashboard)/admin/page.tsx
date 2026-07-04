@@ -547,11 +547,11 @@ export default function AdminPage() {
                       <th className="text-left pb-2 pr-3">#</th>
                       <th className="text-left pb-2 pr-3">Nome</th>
                       <th className="text-right pb-2 pr-3">Pts</th>
-                      <th className="text-right pb-2 pr-3">Máx</th>
-                      <th className="text-right pb-2 pr-3">Esperado</th>
-                      <th className="text-right pb-2 pr-3">P(1°)</th>
-                      <th className="text-right pb-2 pr-3">P(Pódio)</th>
-                      <th className="text-right pb-2">Faltam</th>
+                      <th className="text-right pb-2 pr-3">Máx possível</th>
+                      <th className="text-right pb-2 pr-3">Pts esperados</th>
+                      <th className="text-right pb-2 pr-3">🏆 Campeão</th>
+                      <th className="text-right pb-2 pr-3">🥉 Pódio</th>
+                      <th className="text-right pb-2">Palpites faltando</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -617,8 +617,8 @@ export default function AdminPage() {
                                 <th className="text-left pb-1.5 pr-3">#</th>
                                 <th className="text-left pb-1.5 pr-3">Nome</th>
                                 <th className="text-right pb-1.5 pr-3">Pts</th>
-                                <th className="text-right pb-1.5 pr-3">P(1°)</th>
-                                <th className="text-right pb-1.5">P(Rebaixar)</th>
+                                <th className="text-right pb-1.5 pr-3">🏆 Campeão liga</th>
+                                <th className="text-right pb-1.5">⬇ Rebaixamento</th>
                               </tr>
                             </thead>
                             <tbody>
