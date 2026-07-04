@@ -1,7 +1,25 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, AlertTriangle, CheckCircle, Loader2, Zap, Save } from "lucide-react";
+import { RefreshCw, AlertTriangle, CheckCircle, Loader2, Zap, Save, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
+
+// ---- Types: Probabilities ----
+type GlobalEntry = {
+  userId: string; name: string | null; position: number;
+  totalPoints: number; maxPossible: number; expectedFinal: number;
+  winProbability: number; podiumProbability: number;
+  missingPredictions: number; isEliminated: boolean;
+};
+type LeagueMember = {
+  userId: string; name: string | null; leaguePosition: number;
+  totalPoints: number; winProbability: number;
+  relegationProbability: number; isSafe: boolean; isInDanger: boolean;
+};
+type LeagueStats = { leagueId: string; leagueName: string; members: LeagueMember[] };
+type ProbResult = {
+  remainingMatches: number; simulationsRun: number;
+  global: GlobalEntry[]; leagues: LeagueStats[];
+};
 
 type SyncResult = {
   ok: boolean;
@@ -191,6 +209,11 @@ export default function AdminPage() {
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [selectedRodadaId, setSelectedRodadaId] = useState<string | null>(null);
 
+  const [probLoading, setProbLoading] = useState(false);
+  const [probResult, setProbResult] = useState<ProbResult | null>(null);
+  const [probError, setProbError] = useState<string | null>(null);
+  const [expandedLeague, setExpandedLeague] = useState<string | null>(null);
+
   const todayBRT = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
   const [dateSyncDate, setDateSyncDate] = useState(todayBRT);
   const [dateSyncing, setDateSyncing] = useState(false);
@@ -259,6 +282,22 @@ export default function AdminPage() {
     await navigator.clipboard.writeText(cardText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleProbabilities() {
+    setProbLoading(true);
+    setProbError(null);
+    setProbResult(null);
+    try {
+      const res = await fetch("/api/admin/compute-probabilities", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { setProbError(data.error ?? "Erro"); return; }
+      setProbResult(data);
+    } catch {
+      setProbError("Erro de conexão");
+    } finally {
+      setProbLoading(false);
+    }
   }
 
   async function handleSync(mode: "today" | "all") {
@@ -464,6 +503,164 @@ export default function AdminPage() {
             >
               {copied ? "✓ Copiado!" : "📋 Copiar"}
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── PROBABILIDADES ── */}
+      <div className="glass-card p-5">
+        <h2 className="text-white font-bold mb-1 flex items-center gap-2">
+          <BarChart2 className="w-4 h-4 text-purple-400" /> Probabilidades do Campeonato
+        </h2>
+        <p className="text-white/30 text-xs mb-4">
+          Monte Carlo com {(10_000).toLocaleString("pt-BR")} simulações — taxas históricas por usuário com prior bayesiano
+        </p>
+
+        <button
+          onClick={handleProbabilities}
+          disabled={probLoading}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 text-sm font-semibold transition-all disabled:opacity-50"
+        >
+          {probLoading
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> Calculando...</>
+            : <><BarChart2 className="w-4 h-4" /> Calcular Probabilidades</>}
+        </button>
+
+        {probError && (
+          <p className="mt-3 text-red-400 text-sm">{probError}</p>
+        )}
+
+        {probResult && (
+          <div className="mt-5 space-y-5">
+            <p className="text-white/30 text-xs">
+              {probResult.remainingMatches} jogo{probResult.remainingMatches !== 1 ? "s" : ""} restante{probResult.remainingMatches !== 1 ? "s" : ""} ·{" "}
+              {probResult.simulationsRun.toLocaleString("pt-BR")} simulações
+            </p>
+
+            {/* Tabela global */}
+            <div>
+              <h3 className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-2">Ranking Global</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-white/30 border-b border-white/8">
+                      <th className="text-left pb-2 pr-3">#</th>
+                      <th className="text-left pb-2 pr-3">Nome</th>
+                      <th className="text-right pb-2 pr-3">Pts</th>
+                      <th className="text-right pb-2 pr-3">Máx</th>
+                      <th className="text-right pb-2 pr-3">Esperado</th>
+                      <th className="text-right pb-2 pr-3">P(1°)</th>
+                      <th className="text-right pb-2 pr-3">P(Pódio)</th>
+                      <th className="text-right pb-2">Faltam</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {probResult.global.map((u) => (
+                      <tr
+                        key={u.userId}
+                        className={`border-b border-white/5 ${u.isEliminated ? "opacity-40" : ""}`}
+                      >
+                        <td className="py-1.5 pr-3 text-white/40 font-mono">{u.position}</td>
+                        <td className="py-1.5 pr-3 text-white/80 font-medium truncate max-w-[100px]">
+                          {u.name ?? "—"}
+                          {u.isEliminated && <span className="ml-1 text-red-400/60">❌</span>}
+                        </td>
+                        <td className="py-1.5 pr-3 text-right text-white font-black tabular-nums">{u.totalPoints}</td>
+                        <td className="py-1.5 pr-3 text-right text-white/40 tabular-nums">{u.maxPossible}</td>
+                        <td className="py-1.5 pr-3 text-right text-blue-300 tabular-nums">{u.expectedFinal}</td>
+                        <td className={`py-1.5 pr-3 text-right font-bold tabular-nums ${
+                          u.winProbability > 20 ? "text-green-400" :
+                          u.winProbability > 5  ? "text-yellow-400" :
+                          u.winProbability > 0  ? "text-white/50" : "text-white/20"
+                        }`}>
+                          {u.winProbability > 0 ? `${u.winProbability}%` : "—"}
+                        </td>
+                        <td className={`py-1.5 pr-3 text-right tabular-nums ${
+                          u.podiumProbability > 50 ? "text-green-300" :
+                          u.podiumProbability > 20 ? "text-yellow-300" : "text-white/40"
+                        }`}>
+                          {u.podiumProbability > 0 ? `${u.podiumProbability}%` : "—"}
+                        </td>
+                        <td className={`py-1.5 text-right tabular-nums ${
+                          u.missingPredictions > 0 ? "text-orange-400" : "text-white/20"
+                        }`}>
+                          {u.missingPredictions > 0 ? `⚠ ${u.missingPredictions}` : "✓"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Por liga */}
+            {probResult.leagues.length > 0 && (
+              <div>
+                <h3 className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-2">Por Liga</h3>
+                <div className="space-y-2">
+                  {probResult.leagues.map((lg) => (
+                    <div key={lg.leagueId} className="border border-white/8 rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => setExpandedLeague(expandedLeague === lg.leagueId ? null : lg.leagueId)}
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-white/70 hover:text-white hover:bg-white/4 transition-all"
+                      >
+                        <span>{lg.leagueName}</span>
+                        {expandedLeague === lg.leagueId
+                          ? <ChevronUp className="w-4 h-4" />
+                          : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                      {expandedLeague === lg.leagueId && (
+                        <div className="px-4 pb-3 overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-white/30 border-b border-white/8">
+                                <th className="text-left pb-1.5 pr-3">#</th>
+                                <th className="text-left pb-1.5 pr-3">Nome</th>
+                                <th className="text-right pb-1.5 pr-3">Pts</th>
+                                <th className="text-right pb-1.5 pr-3">P(1°)</th>
+                                <th className="text-right pb-1.5">P(Rebaixar)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {lg.members.map((m) => (
+                                <tr
+                                  key={m.userId}
+                                  className={`border-b border-white/5 ${
+                                    m.isInDanger ? "bg-red-500/5" : m.isSafe ? "bg-green-500/4" : ""
+                                  }`}
+                                >
+                                  <td className="py-1.5 pr-3 text-white/40 font-mono">{m.leaguePosition}</td>
+                                  <td className="py-1.5 pr-3 text-white/80 font-medium truncate max-w-[120px]">
+                                    {m.name ?? "—"}
+                                  </td>
+                                  <td className="py-1.5 pr-3 text-right text-white font-black tabular-nums">{m.totalPoints}</td>
+                                  <td className={`py-1.5 pr-3 text-right font-bold tabular-nums ${
+                                    m.winProbability > 30 ? "text-green-400" :
+                                    m.winProbability > 10 ? "text-yellow-400" : "text-white/40"
+                                  }`}>
+                                    {m.winProbability > 0 ? `${m.winProbability}%` : "—"}
+                                  </td>
+                                  <td className={`py-1.5 text-right font-bold tabular-nums ${
+                                    m.isInDanger ? "text-red-400" :
+                                    m.isSafe     ? "text-green-400" : "text-white/50"
+                                  }`}>
+                                    {m.isSafe
+                                      ? "✅ Seguro"
+                                      : m.isInDanger
+                                        ? `⚠ ${m.relegationProbability}%`
+                                        : `${m.relegationProbability}%`}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
