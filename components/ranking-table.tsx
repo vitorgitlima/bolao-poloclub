@@ -67,6 +67,11 @@ const PODIUM = [
 
 const MEDAL = ["🥇", "🥈", "🥉"];
 
+const DANGER = {
+  row: "bg-red-500/10 border border-red-500/25",
+  pts: "text-red-400",
+};
+
 function TeamFlag({ flag, name }: { flag: string | null; name: string }) {
   if (flag && flag.startsWith("http")) {
     return (
@@ -319,6 +324,7 @@ export function RankingTable({
     if (entry.isDeveloper) return null;
     return data.filter((e) => !e.isDeveloper && isStrictlyAheadOf(e, entry)).length + 1;
   });
+  const nonDevCount = data.filter((e) => !e.isDeveloper).length;
 
   return (
     <div className="space-y-2">
@@ -327,6 +333,7 @@ export function RankingTable({
         const isMe = entry.id === currentUserId;
         const podium = rank !== null && rank <= 3 ? PODIUM[rank - 1] : undefined;
         const medal = rank !== null && rank <= 3 ? MEDAL[rank - 1] : null;
+        const danger = leagueId && rank !== null && rank >= nonDevCount - 1 ? DANGER : undefined;
         const isExpanded = expandedId === entry.id;
 
         return (
@@ -343,7 +350,9 @@ export function RankingTable({
                     ? "bg-green-500/15 border border-green-500/30"
                     : podium
                       ? podium.row
-                      : "bg-white/4 border border-white/8 hover:bg-white/7",
+                      : danger
+                        ? danger.row
+                        : "bg-white/4 border border-white/8 hover:bg-white/7",
                 isExpanded && "rounded-b-none border-b-0"
               )}
             >
@@ -480,7 +489,9 @@ export function RankingTable({
                         ? "text-green-400"
                         : podium
                           ? podium.pts
-                          : "text-white"
+                          : danger
+                            ? danger.pts
+                            : "text-white"
                   )}
                 >
                   <div className="text-2xl font-black leading-none">{entry.totalPoints}</div>

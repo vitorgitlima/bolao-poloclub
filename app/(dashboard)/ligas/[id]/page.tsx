@@ -502,7 +502,7 @@ export default function LeaguePage() {
                 <p className="text-xs mt-1">Aguarde os jogos terminarem!</p>
               </div>
             ) : (
-              <RankingTable data={ranking} currentUserId={currentUserId} />
+              <RankingTable data={ranking} currentUserId={currentUserId} leagueId={id} />
             )}
           </div>
         </div>
