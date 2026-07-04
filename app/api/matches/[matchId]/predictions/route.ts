@@ -45,7 +45,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ matchId
         points,
       };
     })
-    .sort((a, b) => (b.points ?? -1) - (a.points ?? -1));
+    .sort((a, b) => {
+      // 1° pontos desc (exatos no topo)
+      const ptsDiff = (b.points ?? -1) - (a.points ?? -1);
+      if (ptsDiff !== 0) return ptsDiff;
+      // 2° placar crescente (agrupa iguais, placares menores primeiro)
+      const goalsDiff = (a.predHome + a.predAway) - (b.predHome + b.predAway);
+      if (goalsDiff !== 0) return goalsDiff;
+      if (a.predHome !== b.predHome) return a.predHome - b.predHome;
+      return a.predAway - b.predAway;
+    });
 
   return NextResponse.json({ predictions, status: match.status });
 }

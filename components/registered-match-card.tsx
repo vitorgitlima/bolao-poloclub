@@ -333,36 +333,58 @@ export function RegisteredMatchCard({ match, onSaved }: { match: Match; onSaved:
 
       {/* Painel de palpites */}
       {expanded && (
-        <div className="border-t border-white/5 px-3 py-3 space-y-1.5">
+        <div className="border-t border-white/5 px-3 py-3">
           {matchPreds.length === 0 ? (
             <p className="text-white/25 text-xs text-center py-2">Nenhum palpite registrado</p>
           ) : (
-            matchPreds.map((p) => {
+            matchPreds.map((p, i) => {
+              const prev = matchPreds[i - 1];
+              const isNewGroup = i === 0 || p.predHome !== prev.predHome || p.predAway !== prev.predAway;
               const ptColor =
                 p.points === null ? "text-white/20" :
                 p.points === 6 ? "text-green-400" :
                 p.points === 4 ? "text-purple-400" :
                 p.points === 3 ? "text-blue-400" :
                 "text-white/25";
+              const groupBadgeColor =
+                p.points === null ? "bg-white/5 text-white/30" :
+                p.points === 6 ? "bg-green-500/15 text-green-400" :
+                p.points === 4 ? "bg-purple-500/15 text-purple-400" :
+                p.points === 3 ? "bg-blue-500/15 text-blue-400" :
+                "bg-white/5 text-white/25";
               return (
-                <div key={p.userId} className="flex items-center gap-2 py-1">
-                  {p.userImage ? (
-                    <Image src={p.userImage} alt={p.userName ?? ""} width={22} height={22}
-                      className="rounded-full object-cover shrink-0 opacity-80" unoptimized />
-                  ) : (
-                    <div className="w-[22px] h-[22px] rounded-full bg-white/10 shrink-0" />
+                <div key={p.userId}>
+                  {isNewGroup && (
+                    <div className={cn(
+                      "flex items-center gap-1.5 mt-2 mb-1 px-1 py-0.5 rounded-md w-fit",
+                      groupBadgeColor,
+                    )}>
+                      <span className="text-[10px] font-black tabular-nums font-mono">
+                        {p.predHome} × {p.predAway}
+                      </span>
+                      {p.points !== null && (
+                        <span className="text-[9px] font-semibold opacity-70">
+                          {p.points > 0 ? `+${p.points}pts` : "0pts"}
+                        </span>
+                      )}
+                    </div>
                   )}
-                  <span className="text-white/55 text-[11px] flex-1 truncate">{p.userName ?? "—"}</span>
-                  <span className="text-white/40 text-[11px] tabular-nums font-mono shrink-0">
-                    {p.predHome} × {p.predAway}
-                  </span>
-                  <span className={cn(
-                    "text-[11px] font-black tabular-nums shrink-0 w-6 text-right",
-                    ptColor,
-                    isLive && p.points !== null && p.points > 0 && "animate-pulse",
-                  )}>
-                    {p.points !== null ? `${p.points}` : "—"}
-                  </span>
+                  <div className="flex items-center gap-2 py-0.5 pl-2">
+                    {p.userImage ? (
+                      <Image src={p.userImage} alt={p.userName ?? ""} width={20} height={20}
+                        className="rounded-full object-cover shrink-0 opacity-75" unoptimized />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-white/10 shrink-0" />
+                    )}
+                    <span className="text-white/50 text-[11px] flex-1 truncate">{p.userName ?? "—"}</span>
+                    <span className={cn(
+                      "text-[11px] font-black tabular-nums shrink-0 w-6 text-right",
+                      ptColor,
+                      isLive && p.points !== null && p.points > 0 && "animate-pulse",
+                    )}>
+                      {p.points !== null ? `${p.points}` : "—"}
+                    </span>
+                  </div>
                 </div>
               );
             })
