@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
       const winRate   = (u.correctWinners + gWin * PRIOR) / (n + PRIOR);
       const predicted = userPredicted.get(u.id) ?? new Set<string>();
       const predictedCount = predicted.size;
-      const maxPossible    = u.totalPoints + predictedCount * 6;
-      const expectedFinal  = Math.round(u.totalPoints + predictedCount * (6 * exactRate + 4 * diffRate + 3 * winRate));
+      const maxPossible    = u.totalPoints + remainingMatches * 6;
+      const expectedFinal  = Math.round(u.totalPoints + remainingMatches * (6 * exactRate + 4 * diffRate + 3 * winRate));
       return {
         id: u.id, name: u.name,
         totalPoints: u.totalPoints,
@@ -101,13 +101,12 @@ export async function POST(req: NextRequest) {
     const lgRelg  = leagues.map((lg) => new Array(lg.memberIdxs.length).fill(0));
 
     for (let sim = 0; sim < N; sim++) {
-      // Simula pontos finais
+      // Simula pontos finais — todos os jogadores simulam todos os jogos restantes
+      // (quem ainda não palpitou pode fazer em cima da hora, não penaliza)
       const pts = ustats.map((u) => u.totalPoints);
-      for (const mid of matchIds) {
-        for (let i = 0; i < ustats.length; i++) {
-          if (ustats[i].predictedMatchIds.has(mid)) {
-            pts[i] += samplePoints(ustats[i].exactRate, ustats[i].diffRate, ustats[i].winRate);
-          }
+      for (let i = 0; i < ustats.length; i++) {
+        for (let m = 0; m < remainingMatches; m++) {
+          pts[i] += samplePoints(ustats[i].exactRate, ustats[i].diffRate, ustats[i].winRate);
         }
       }
 
