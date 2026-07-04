@@ -8,6 +8,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { ToastProvider } from "@/components/toast-provider";
 import { TickerBar } from "@/components/ticker-bar";
 import { prisma } from "@/lib/db";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -88,6 +89,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </nav>
       </div>
 
+      <SpeedInsights />
       <ToastProvider>
         <main className="max-w-4xl mx-auto px-3 sm:px-4 py-6 pb-10 w-full">{children}</main>
         <footer className="text-center text-white/20 text-xs pb-6">
