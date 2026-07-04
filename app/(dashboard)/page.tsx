@@ -119,6 +119,7 @@ export default function DashboardPage() {
   const [activeRodada, setActiveRodada] = useState<string>("r1");
   const [tab, setTab] = useState<"pendentes" | "registrados">("pendentes");
   const autoSelected = useRef(false);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
 
   const loadMatches = useCallback(async () => {
     const res = await fetch("/api/matches");
@@ -138,7 +139,17 @@ export default function DashboardPage() {
       rodadas.find((r) => r.matches.some((m) => m.status === "SCHEDULED" && canPredict(m.date)))?.id ??
       rodadas.find((r) => r.matches.some((m) => ["LIVE", "EXTRA_TIME", "PENALTIES"].includes(m.status)))?.id ??
       rodadas[0]?.id;
-    if (best) { setActiveRodada(best); autoSelected.current = true; }
+    if (best) {
+      setActiveRodada(best);
+      autoSelected.current = true;
+      requestAnimationFrame(() => {
+        const container = tabsContainerRef.current;
+        const btn = container?.querySelector(`[data-rodada-id="${best}"]`) as HTMLElement | null;
+        if (container && btn) {
+          container.scrollLeft = btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2;
+        }
+      });
+    }
   }, [matches]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentRodada = rodadas.find((r) => r.id === activeRodada) ?? rodadas[0] ?? null;
@@ -268,14 +279,15 @@ export default function DashboardPage() {
       })()}
 
       {/* Seletor de rodada */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-        {rodadas.map((r) => {
+      <div ref={tabsContainerRef} className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+        {[...rodadas].reverse().map((r) => {
           const badge = rodadaBadge(r);
           const isComplete = isRodadaComplete(r);
           const isActive = activeRodada === r.id;
           return (
             <button
               key={r.id}
+              data-rodada-id={r.id}
               onClick={() => selectRodada(r.id)}
               className={`tab-pill whitespace-nowrap relative shrink-0 ${
                 isActive ? "tab-pill-active" : "tab-pill-inactive"
