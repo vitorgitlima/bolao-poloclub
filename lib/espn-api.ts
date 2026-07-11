@@ -38,6 +38,16 @@ export type EspnMatch = {
 
 export const KNOCKOUT_SLUGS = ["round-of-32", "round-of-16", "quarterfinals", "semifinal", "third-place", "final"] as const;
 
+// Mapeia seasonSlug da ESPN → label de fase usado no nosso banco (phase)
+export const KNOCKOUT_PHASE_MAP: Record<string, string> = {
+  "round-of-32": "Rodada de 32",
+  "round-of-16": "Oitavas de Final",
+  quarterfinals: "Quartas de Final",
+  semifinal: "Semifinal",
+  "third-place": "Disputa do 3º Lugar",
+  final: "Final",
+};
+
 // Traduz nomes ESPN da fase eliminatória → Portuguese (real team ou placeholder)
 export function espnKnockoutNameToPt(displayName: string): string {
   // Já é um time real

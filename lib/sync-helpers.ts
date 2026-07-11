@@ -5,6 +5,7 @@ import {
   espnKnockoutNameToPt,
   ESPN_LOGO_MAP,
   KNOCKOUT_SLUGS,
+  KNOCKOUT_PHASE_MAP,
   type EspnMatch,
 } from "@/lib/espn-api";
 import { calculatePoints } from "@/lib/points";
@@ -34,7 +35,22 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
   for (const em of knockoutMatches) {
     const espnId = parseInt(em.id);
     if (isNaN(espnId)) continue;
-    const match = await prisma.match.findUnique({ where: { externalId: espnId } });
+
+    let match = await prisma.match.findUnique({ where: { externalId: espnId } });
+
+    // Ainda não vinculado (ex: fase recém-definida como a semifinal) → localiza
+    // pelo horário exato + fase e vincula o externalId agora, sem depender de
+    // rodar prisma/link-knockout-espnids.ts manualmente
+    if (!match) {
+      const phase = KNOCKOUT_PHASE_MAP[em.seasonSlug!];
+      match = await prisma.match.findFirst({
+        where: {
+          date: new Date(em.date),
+          externalId: null,
+          ...(phase && { phase }),
+        },
+      });
+    }
     if (!match) continue;
 
     const homePt = espnKnockoutNameToPt(em.homeTeam.name);
@@ -42,15 +58,22 @@ export async function processEspnMatches(espnMatches: EspnMatch[]) {
     const homeFlag = em.homeTeam.logo || ESPN_LOGO_MAP[em.homeTeam.name] || match.homeFlag;
     const awayFlag = em.awayTeam.logo || ESPN_LOGO_MAP[em.awayTeam.name] || match.awayFlag;
 
+    const needsLink = match.externalId !== espnId;
     const nameChanged = match.homeTeam !== homePt || match.awayTeam !== awayPt;
     const flagChanged =
       (em.homeTeam.logo && match.homeFlag !== em.homeTeam.logo) ||
       (em.awayTeam.logo && match.awayFlag !== em.awayTeam.logo);
 
-    if (nameChanged || flagChanged) {
+    if (needsLink || nameChanged || flagChanged) {
       await prisma.match.update({
         where: { id: match.id },
-        data: { homeTeam: homePt, awayTeam: awayPt, homeFlag, awayFlag },
+        data: {
+          ...(needsLink && { externalId: espnId }),
+          homeTeam: homePt,
+          awayTeam: awayPt,
+          homeFlag,
+          awayFlag,
+        },
       });
     }
   }
