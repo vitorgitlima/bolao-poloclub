@@ -30,21 +30,22 @@ export type EspnMatch = {
   status: "pre" | "in" | "post";
   statusDetail: string;
   period: number; // 1=1°T 2=2°T 3+=prorrogação/pênaltis
-  seasonSlug?: string; // e.g. "round-of-32", "round-of-16", "quarterfinals", "semifinal", "final"
+  seasonSlug?: string; // e.g. "round-of-32", "round-of-16", "quarterfinals", "semifinals", "final"
   homeTeam: { name: string; abbr: string; score: number; logo?: string };
   awayTeam: { name: string; abbr: string; score: number; logo?: string };
   completed: boolean;
 };
 
-export const KNOCKOUT_SLUGS = ["round-of-32", "round-of-16", "quarterfinals", "semifinal", "third-place", "final"] as const;
+export const KNOCKOUT_SLUGS = ["round-of-32", "round-of-16", "quarterfinals", "semifinals", "3rd-place-match", "final"] as const;
 
 // Mapeia seasonSlug da ESPN → label de fase usado no nosso banco (phase)
+// Confirmado direto na API: ESPN usa "semifinals" (plural) e "3rd-place-match", não "semifinal"/"third-place"
 export const KNOCKOUT_PHASE_MAP: Record<string, string> = {
   "round-of-32": "Rodada de 32",
   "round-of-16": "Oitavas de Final",
   quarterfinals: "Quartas de Final",
-  semifinal: "Semifinal",
-  "third-place": "Disputa do 3º Lugar",
+  semifinals: "Semifinal",
+  "3rd-place-match": "Disputa do 3º Lugar",
   final: "Final",
 };
 

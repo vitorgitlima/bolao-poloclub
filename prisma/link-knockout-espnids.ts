@@ -28,15 +28,15 @@ const KNOCKOUT_DATES = [
 ];
 
 const KNOCKOUT_SLUGS = new Set([
-  "round-of-32", "round-of-16", "quarterfinals", "semifinal", "third-place", "final",
+  "round-of-32", "round-of-16", "quarterfinals", "semifinals", "3rd-place-match", "final",
 ]);
 
 const PHASE_MAP: Record<string, string> = {
   "round-of-32":  "Rodada de 32",
   "round-of-16":  "Oitavas de Final",
   "quarterfinals":"Quartas de Final",
-  "semifinal":    "Semifinal",
-  "third-place":  "Disputa do 3º Lugar",
+  "semifinals":   "Semifinal",
+  "3rd-place-match": "Disputa do 3º Lugar",
   "final":        "Final",
 };
 
