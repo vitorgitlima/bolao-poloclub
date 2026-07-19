@@ -182,7 +182,57 @@ body {
 }
 
 .duel-side {
-  animation: duel-glow 2s ease-in-out infinite;
+  animation: duel-glow 2.2s ease-in-out infinite;
+}
+
+.duel-side.chaser {
+  animation-delay: -1.1s;
+}
+
+.duel-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.duel-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(251, 191, 36, 0.1), transparent 50%, rgba(22, 163, 74, 0.1));
+  pointer-events: none;
+}
+
+.duel-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.duel-avatar-ring {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.duel-avatar-ring.leader {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.duel-avatar-ring.chaser {
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+}
+
+.duel-avatar-ring img,
+.duel-avatar-ring > div {
+  border: 2px solid var(--background);
+}
+
+.duel-vs {
+  font-size: 1.15rem;
+  line-height: 1;
 }
 
 /* Campeão da liga — brilho suave contínuo */
