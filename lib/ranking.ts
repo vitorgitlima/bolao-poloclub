@@ -36,11 +36,16 @@ export type RankingHighlights = {
 export type RankingResult = {
   ranking: RankingUser[];
   highlights: RankingHighlights | null;
+  tournamentFinished: boolean;
+  liveFinal: boolean;
 };
+
+const OPEN_STATUSES = ["SCHEDULED", "LIVE", "EXTRA_TIME", "PENALTIES"] as const;
+const LIVE_STATUSES = ["LIVE", "EXTRA_TIME", "PENALTIES"] as const;
 
 // Calcula ranking para um conjunto de userIds (undefined = todos os usuários)
 export async function computeRanking(filterUserIds?: string[]): Promise<RankingResult> {
-  const [users, finishedMatchDates] = await Promise.all([
+  const [users, finishedMatchDates, openMatchesCount, liveFinalCount] = await Promise.all([
     prisma.user.findMany({
       where: filterUserIds ? { id: { in: filterUserIds } } : undefined,
       select: {
@@ -65,7 +70,16 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
       where: { status: "FINISHED", phase: { not: { startsWith: "🧪" } } },
       select: { date: true },
     }),
+    prisma.match.count({
+      where: { status: { in: [...OPEN_STATUSES] }, phase: { not: { startsWith: "🧪" } } },
+    }),
+    prisma.match.count({
+      where: { phase: "Final", status: { in: [...LIVE_STATUSES] } },
+    }),
   ]);
+
+  const tournamentFinished = openMatchesCount === 0;
+  const liveFinal = liveFinalCount > 0;
 
   // Dias BRT (ordenados) que têm pelo menos 1 jogo encerrado — base do streak e Bola Murcha
   const finishedDays = [
@@ -312,7 +326,7 @@ export async function computeRanking(filterUserIds?: string[]): Promise<RankingR
     isBolasMurcha: bolaMurchaIds.has(u.id),
   }));
 
-  return { ranking, highlights };
+  return { ranking, highlights, tournamentFinished, liveFinal };
 }
 
 // Cache compartilhado entre todas as instâncias Lambda da Vercel via Data Cache.

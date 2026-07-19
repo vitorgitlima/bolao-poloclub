@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { RankingTable } from "@/components/ranking-table";
 import { RankingHighlights } from "@/components/ranking-highlights";
+import { ChampionBanner } from "@/components/champion-banner";
+import { DuelBanner } from "@/components/duel-banner";
 import { cn } from "@/lib/utils";
 
 const MAX_DESCRIPTION = 280;
@@ -81,6 +83,8 @@ export default function LeaguePage() {
   const [league, setLeague] = useState<LeagueDetail | null>(null);
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [highlights, setHighlights] = useState<Highlights | null>(null);
+  const [tournamentFinished, setTournamentFinished] = useState(false);
+  const [liveFinal, setLiveFinal] = useState(false);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [activeTab, setActiveTab] = useState<"ranking" | "membros">("ranking");
   const [loading, setLoading] = useState(true);
@@ -125,6 +129,8 @@ export default function LeaguePage() {
         const r = await rankingRes.json();
         setRanking(r.ranking ?? []);
         setHighlights(r.highlights ?? null);
+        setTournamentFinished(!!r.tournamentFinished);
+        setLiveFinal(!!r.liveFinal);
       }
     } catch { setError("Erro ao carregar a liga."); }
     finally { setLoading(false); }
@@ -489,6 +495,14 @@ export default function LeaguePage() {
       {/* Tab: Ranking */}
       {activeTab === "ranking" && (
         <div className="space-y-4">
+          {tournamentFinished && (() => {
+            const champion = ranking.find((r) => r.isLeader);
+            return champion ? <ChampionBanner champion={champion} /> : null;
+          })()}
+          {liveFinal && !tournamentFinished && (() => {
+            const top2 = ranking.filter((r) => !r.isDeveloper).slice(0, 2);
+            return top2.length === 2 ? <DuelBanner top2={top2} /> : null;
+          })()}
           {highlights && <RankingHighlights highlights={highlights} />}
           <div className="glass-card p-4">
             <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4 flex items-center gap-2">

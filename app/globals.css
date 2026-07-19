@@ -168,3 +168,29 @@ body {
 }
 
 .score-input::placeholder { color: rgba(255,255,255,0.25) !important; }
+
+/* Duelo pelo título — brilho alternado entre os dois lados */
+@keyframes duel-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(251, 191, 36, 0);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(251, 191, 36, 0.35), 0 0 0 1px rgba(251, 191, 36, 0.3);
+    background: rgba(251, 191, 36, 0.08);
+  }
+}
+
+.duel-side {
+  animation: duel-glow 2s ease-in-out infinite;
+}
+
+/* Campeão da liga — brilho suave contínuo */
+@keyframes champion-glow {
+  0%, 100% { box-shadow: 0 0 0 rgba(251, 191, 36, 0); }
+  50% { box-shadow: 0 0 40px rgba(251, 191, 36, 0.25), inset 0 0 30px rgba(22, 163, 74, 0.08); }
+}
+
+.champion-glow {
+  animation: champion-glow 3s ease-in-out infinite;
+}
