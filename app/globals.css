@@ -244,3 +244,38 @@ body {
 .champion-glow {
   animation: champion-glow 3s ease-in-out infinite;
 }
+
+/* Confete do banner de campeão — contido dentro do card (overflow: hidden do pai) */
+.confetti-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -10%;
+  width: 7px;
+  height: 12px;
+  opacity: 0.85;
+  border-radius: 1px;
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes confetti-fall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 0.9; }
+  100% { transform: translateY(230%) rotate(340deg); opacity: 0.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .duel-side,
+  .champion-glow,
+  .confetti-piece,
+  .live-dot {
+    animation: none !important;
+  }
+}
